@@ -1,5 +1,7 @@
 "use client";
 
+import { AgendaPreview } from "../laboratorio/page";
+
 import { useState } from "react";
 import {
   CalendarDays,
@@ -147,7 +149,7 @@ const months2025 = [
   "Dezembro",
 ];
 
-export default function AgendaExperience() {
+function LegacyAgendaExperience() {
   const [activities, setActivities] = useState(initialActivities);
   const [selected, setSelected] = useState<Activity | null>(null);
   const [form, setForm] = useState<{
@@ -499,6 +501,19 @@ export default function AgendaExperience() {
       )}{" "}
       {review && reviewActivity && <AutomationReview activity={reviewActivity} onClose={() => setReview(false)} onResolve={resolveReview} />}
     </>
+  );
+}
+
+export default function AgendaExperience() {
+  return (
+    <section className="approved-agenda-page">
+      <div className="v2-intro client-compact-intro">
+        <h1>Agenda</h1>
+      </div>
+      <div className="approved-agenda-surface">
+        <AgendaPreview />
+      </div>
+    </section>
   );
 }
 

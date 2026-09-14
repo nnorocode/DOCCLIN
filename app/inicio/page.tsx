@@ -365,6 +365,8 @@ function Topbar({
   setNotificationOpen: (open: boolean) => void;
   onCreate: () => void;
 }) {
+  const [accountOpen, setAccountOpen] = useState(false);
+
   return (
     <header className="v2-topbar">
       <div className="v2-search">
@@ -381,12 +383,23 @@ function Topbar({
           <Bell size={22} />
           <b>3</b>
         </button>
-        <div className="v2-avatar">MO</div>
-        <div>
-          <strong>Mariana Oliveira</strong>
-          <small>Gestor(a)</small>
-        </div>
-        <ChevronDown size={18} />
+        <button className="gest-account-trigger" type="button" aria-haspopup="menu" aria-expanded={accountOpen} onClick={() => setAccountOpen((open) => !open)}>
+          <span className="v2-avatar">MO<i /></span>
+          <span>
+            <strong>Mariana Oliveira</strong>
+            <small>mariana@bellagestao.com.br</small>
+          </span>
+          <ChevronDown size={18} className={accountOpen ? "open" : ""} />
+        </button>
+        {accountOpen && (
+          <div className="gest-account-menu" role="menu" aria-label="Menu de Mariana Oliveira">
+            <button type="button" role="menuitem"><UserRound size={18} /><span>Meu perfil</span></button>
+            <button type="button" role="menuitem"><Settings size={18} /><span>Configurações da conta</span></button>
+            <button type="button" role="menuitem"><MessageCircle size={18} /><span>Mensagens</span></button>
+            <hr />
+            <button type="button" role="menuitem" className="danger"><LogOut size={18} /><span>Sair</span></button>
+          </div>
+        )}
       </div>
       {notificationOpen && (
         <div className="v2-notifications">

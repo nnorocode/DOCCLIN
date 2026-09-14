@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import InfoHint from "./InfoHint";
 import {
+  ArrowUp,
   CircleDollarSign,
   Edit3,
+  Grid2X2,
+  GripVertical,
+  List,
   ListFilter,
   Medal,
   Plus,
@@ -146,6 +150,7 @@ export default function ClientsExperience({
   const [sort, setSort] = useState("Mais recentes");
   const [panel, setPanel] = useState<Client | null | "new">(null);
   const [pageSize, setPageSize] = useState(25);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   useEffect(() => {
     const openNewClient = () => setPanel("new");
@@ -261,9 +266,17 @@ export default function ClientsExperience({
             <Plus size={18} />
             Cadastrar cliente
           </button>
+          <div className="client-view-toggle" role="group" aria-label="Visualização dos clientes">
+            <button type="button" className={viewMode === "list" ? "active" : ""} aria-label="Visualizar em lista" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")}>
+              <List size={18} />
+            </button>
+            <button type="button" className={viewMode === "grid" ? "active" : ""} aria-label="Visualizar em grade" aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")}>
+              <Grid2X2 size={17} />
+            </button>
+          </div>
         </header>
 
-        <table>
+        {viewMode === "list" ? <table>
           <thead>
             <tr>
               {[
@@ -358,7 +371,27 @@ export default function ClientsExperience({
               );
             })}
           </tbody>
-        </table>
+        </table> : (
+          <section className="client-card-grid" aria-label="Clientes em grade">
+            {filtered.slice(0, pageSize).map((client, index) => (
+              <ClientGridCard
+                key={client.id}
+                client={client}
+                rank={clientRanking(rows, client.id)}
+                tone={(["peach", "gray", "blue"] as const)[index % 3]}
+                onDetails={() => onDetails([
+                  `#CL-${client.id}`,
+                  client.name,
+                  client.type,
+                  client.contact,
+                  client.total,
+                  client.status,
+                ])}
+                onEdit={() => setPanel(client)}
+              />
+            ))}
+          </section>
+        )}
 
         <footer>
           <label className="client-page-size">Mostrar por página <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}><option value={10}>10</option><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option></select></label>
@@ -406,15 +439,50 @@ function Metric({
         : Users;
 
   return (
-    <article className="v2-card v2-metric">
+    <article className={`client-informative-card tone-${tone}`}>
+      <header>
+        <span><Icon size={20} strokeWidth={1.9} /></span>
+        <InfoHint text={`Entenda o indicador ${label.toLowerCase()} e como ele é calculado.`} />
+      </header>
       <div>
-        <span>{label}<InfoHint text={`Entenda o indicador ${label.toLowerCase()} e como ele é calculado.`} /></span>
+        <span>{label}</span>
         <strong>{value}</strong>
-        <small className={tone}>↑ {detail}</small>
+        <small><ArrowUp size={13} strokeWidth={2.4} /> {detail}</small>
       </div>
-      <i className={tone}>
-        <Icon size={20} />
-      </i>
+    </article>
+  );
+}
+
+function ClientGridCard({ client, rank, tone, onDetails, onEdit }: {
+  client: Client;
+  rank: ReturnType<typeof clientRanking>;
+  tone: "peach" | "gray" | "blue";
+  onDetails: () => void;
+  onEdit: () => void;
+}) {
+  return (
+    <article className={`client-grid-card is-${tone}`}>
+      <div className="client-grid-profile">
+        <div className="client-grid-avatar">
+          {client.photo ? <img src={client.photo} alt={`Foto de ${client.name}`} /> : <span>{client.initials}</span>}
+          <i className={client.status === "Ativo" ? "active" : ""} aria-hidden />
+        </div>
+        <h2>{client.name}</h2>
+        <p>{client.email}</p>
+      </div>
+      <div className="client-grid-facts">
+        <div><small>Tipo</small><strong>{client.type === "Pessoa Jurídica" ? "PJ" : "PF"}</strong></div>
+        <div><small>Último contato</small><strong>{client.contact}</strong></div>
+        <div><small>Total vendido</small><strong>{client.total}</strong></div>
+        <div><small>Status</small><strong className="client-grid-status"><i /> {client.status}</strong></div>
+        <div><small>Ranking</small><strong>{rank.label} · {rank.position}º</strong></div>
+        <div><small>Retorno</small><strong>{client.status === "Ativo" ? "18 set, 10:00" : "A definir"}</strong></div>
+      </div>
+      <footer>
+        <button type="button" className="primary" onClick={onDetails}>Ver detalhes</button>
+        <button type="button" aria-label="Editar cliente" onClick={onEdit}><Edit3 size={17} /></button>
+        <button type="button" aria-label="Organizar posição"><GripVertical size={18} /></button>
+      </footer>
     </article>
   );
 }
