@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import InfoHint from "./InfoHint";
+import { ClientSelect, StandardModuleTop } from "./ClientsExperience";
+import { InformativeMetricCardPreview, InsightActionCardPreview, type CardTone } from "../laboratorio/page";
 import {
   ArrowUpRight,
   Bot,
   Boxes,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
   CircleAlert,
   Gift,
   Lightbulb,
@@ -22,10 +26,10 @@ import {
 } from "lucide-react";
 
 const insights = [
-  { icon: TrendingUp, tone: "green", title: "Seu faturamento cresceu 18,6% nos últimos 30 dias.", detail: "Eu comparei o resultado com o período anterior e identifiquei uma evolução acima da média.", action: "Ir para Vendas" },
-  { icon: UsersRound, tone: "orange", title: "3 clientes importantes não compram há mais de 60 dias.", detail: "Eu estimei que esses clientes representaram R$ 29.450 em vendas no último semestre.", action: "Ir para Clientes" },
-  { icon: Boxes, tone: "purple", title: "12 produtos estão próximos do estoque mínimo.", detail: "Minha sugestão é antecipar a reposição para evitar rupturas e perda de vendas.", action: "Ir para Estoque" },
-  { icon: WalletCards, tone: "blue", title: "As contas a pagar desta semana somam R$ 8.430,20.", detail: "Eu encontrei vencimentos concentrados nos próximos três dias.", action: "Ir para Financeiro" },
+  { icon: TrendingUp, tone: "green", title: "Seu faturamento cresceu 18,6% nos últimos 30 dias.", detail: "Eu comparei o resultado com o período anterior e identifiquei uma evolução acima da média.", action: "Ir para Vendas", view: "Vendas" },
+  { icon: UsersRound, tone: "orange", title: "3 clientes importantes não compram há mais de 60 dias.", detail: "Eu estimei que esses clientes representaram R$ 29.450 em vendas no último semestre.", action: "Ir para Clientes", view: "Clientes" },
+  { icon: Boxes, tone: "purple", title: "12 produtos estão próximos do estoque mínimo.", detail: "Minha sugestão é antecipar a reposição para evitar rupturas e perda de vendas.", action: "Ir para Estoque", view: "Estoque" },
+  { icon: WalletCards, tone: "blue", title: "As contas a pagar desta semana somam R$ 8.430,20.", detail: "Eu encontrei vencimentos concentrados nos próximos três dias.", action: "Ir para Financeiro", view: "Financeiro" },
 ];
 
 const priorities = [
@@ -36,55 +40,95 @@ const priorities = [
   { id: "agenda", title: "Revisar agenda desta semana", detail: "2 compromissos importantes hoje", level: "Média", area: "Agenda", tone: "medium" },
 ];
 
+function easterSunday(year: number) {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+function nthWeekday(year: number, month: number, weekday: number, nth: number) {
+  const first = new Date(year, month, 1);
+  return new Date(year, month, 1 + ((weekday - first.getDay() + 7) % 7) + (nth - 1) * 7);
+}
+
+function commercialDates(year: number, month: number) {
+  const fixed: Array<[number, number, string, string]> = [
+    [3, 15, "Dia do Consumidor", "Prepare ofertas e comunicação para clientes."],
+    [6, 12, "Dia dos Namorados", "Planeje kits e campanhas com antecedência."],
+    [9, 15, "Dia do Cliente", "Organize ações de relacionamento e fidelização."],
+    [10, 12, "Dia das Crianças", "Revise produtos, serviços e estoque temático."],
+    [12, 25, "Natal", "Planeje compras, kits e comunicação com clientes."],
+  ];
+  const events = fixed.filter(([eventMonth]) => eventMonth === month + 1).map(([eventMonth, day, title, detail]) => ({ date: new Date(year, eventMonth - 1, day), title, detail }));
+  if (month === 4) events.push({ date: nthWeekday(year, 4, 0, 2), title: "Dia das Mães", detail: "Uma das datas mais fortes do varejo; prepare campanha e estoque." });
+  if (month === 7) events.push({ date: nthWeekday(year, 7, 0, 2), title: "Dia dos Pais", detail: "Planeje ofertas, kits e divulgação para a data." });
+  if (month === 10) {
+    const firstFriday = nthWeekday(year, 10, 5, 1);
+    const blackFriday = new Date(year, 10, firstFriday.getDate() + 21);
+    events.push({ date: blackFriday, title: "Black Friday", detail: "Revise preços, margens, estoque e calendário de divulgação." });
+    events.push({ date: new Date(year, 10, blackFriday.getDate() + 3), title: "Cyber Monday", detail: "Estenda a campanha para canais digitais e ofertas remanescentes." });
+  }
+  const easter = easterSunday(year);
+  if (easter.getMonth() === month) events.push({ date: easter, title: "Páscoa", detail: "Considere kits, produtos sazonais e compras antecipadas." });
+  return events.sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
 const opportunities = [
-  { icon: Megaphone, tone: "green", title: "Campanha de reativação", text: "Eu posso preparar uma mensagem personalizada para clientes inativos.", value: "Potencial: R$ 12.450,00", action: "Criar campanha" },
-  { icon: Gift, tone: "purple", title: "Promoção de kits", text: "Eu reuni produtos que vendem bem juntos e podem elevar o ticket médio.", value: "Potencial: +18%", action: "Abrir Catálogo" },
-  { icon: WalletCards, tone: "orange", title: "Lembrete de cobrança", text: "Eu posso organizar lembretes para clientes com contas em aberto.", value: "Potencial: R$ 9.230,00", action: "Abrir Financeiro" },
+  { icon: Megaphone, tone: "green", title: "Campanha de reativação", text: "Eu posso preparar uma mensagem personalizada para clientes inativos.", value: "Potencial: R$ 12.450,00", action: "Criar campanha", view: "Clientes" },
+  { icon: Gift, tone: "purple", title: "Promoção de kits", text: "Eu reuni produtos que vendem bem juntos e podem elevar o ticket médio.", value: "Potencial: +18%", action: "Abrir Catálogo", view: "Catálogo" },
+  { icon: WalletCards, tone: "orange", title: "Lembrete de cobrança", text: "Eu posso organizar lembretes para clientes com contas em aberto.", value: "Potencial: R$ 9.230,00", action: "Abrir Financeiro", view: "Financeiro" },
 ];
 
-export default function AssistantExperience() {
+const managerQuestions = [
+  ["Por que o lucro caiu?", "Compare receita, custos e margem com o período anterior.", "Financeiro"],
+  ["Quais clientes estão deixando de comprar?", "Encontre clientes com queda de frequência e valor.", "Clientes"],
+  ["Qual serviço dá mais lucro?", "Veja margem, volume e tempo consumido por serviço.", "Relatórios"],
+  ["Quais horários estão ficando vazios?", "Identifique dias e faixas com baixa ocupação.", "Agenda"],
+  ["Quanto terá de caixa em 30 dias?", "Projete entradas, saídas e compromissos já registrados.", "Financeiro"],
+] as const;
+
+export default function AssistantExperience({ onNavigate }: { onNavigate?: (view: string) => void }) {
   const [selected, setSelected] = useState(priorities[0]);
   const [conversationOpen, setConversationOpen] = useState(false);
   const [approved, setApproved] = useState<string[]>([]);
+  const [scope, setScope] = useState("Visão geral");
+  const [calendarStart, setCalendarStart] = useState(() => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), 1); });
+  const calendarMonths = Array.from({ length: 4 }, (_, index) => {
+    const date = new Date(calendarStart.getFullYear(), calendarStart.getMonth() + index, 1);
+    return { date, events: commercialDates(date.getFullYear(), date.getMonth()) };
+  });
+  const shiftCalendar = (months: number) => setCalendarStart((current) => new Date(current.getFullYear(), current.getMonth() + months, 1));
 
   return (
-    <section className="v2-assistant-page assistant-pro-page">
-      <header className="assistant-pro-header">
-        <div>
-          <h1>Assistente</h1>
-          <p>Eu analiso os dados do seu negócio e sugiro ações, oportunidades e direcionamentos precisos.</p>
-        </div>
-        <button>Visão geral <ChevronDown size={15} /></button>
-      </header>
-
-      <section className="assistant-pro-metrics">
+    <section className={`v2-assistant-page assistant-pro-page ${scope === "Visão geral" ? "" : "assistant-scope-focused"}`}>
+      <StandardModuleTop
+        title="Assistente"
+        help="Eu analiso os dados do seu negócio e sugiro ações, oportunidades e direcionamentos precisos."
+        action={<ClientSelect compact hideLabel label="Visão" value={scope} onChange={setScope} options={["Visão geral", "Prioridades", "Oportunidades"]} />}
+      >
         {[
-          ["Insights gerados", "18", "↑ 12,5% vs. 30 dias anteriores", Lightbulb, "blue"],
-          ["Alertas críticos", "4", "↑ 33,3% vs. 30 dias anteriores", CircleAlert, "red"],
-          ["Oportunidades", "9", "↑ 20,6% vs. 30 dias anteriores", Target, "green"],
-          ["Ações recomendadas", "12", "Novas recomendações disponíveis", CheckCircle2, "blue"],
+          ["Insights gerados", "18", "+12,5%", Lightbulb, "blue"],
+          ["Alertas críticos", "4", "+33,3%", CircleAlert, "rose"],
+          ["Oportunidades", "9", "+20,6%", Target, "teal"],
+          ["Ações recomendadas", "12", "Novas recomendações", CheckCircle2, "violet"],
         ].map(([label, value, detail, Icon, tone]) => (
-          <article className="v2-card" key={String(label)}>
-            <div><span>{label as string}<InfoHint text={`Entenda o indicador ${String(label).toLowerCase()} e como ele é calculado.`} /></span><strong>{value as string}</strong><small className={tone as string}>{detail as string}</small></div>
-            <i className={tone as string}><Icon size={25} /></i>
-          </article>
+          <InformativeMetricCardPreview key={String(label)} title={label as string} value={value as string} change={detail as string} icon={Icon as typeof Lightbulb} tone={tone as CardTone} />
         ))}
-      </section>
+      </StandardModuleTop>
 
       <section className="assistant-pro-main">
-        <div className="assistant-pro-column assistant-pro-left">
+        {(scope === "Visão geral") && <div className="assistant-pro-column assistant-pro-left">
           <article className="v2-card assistant-summary-card">
             <header><i><Sparkles size={17} /></i><div><h2>Resumo inteligente</h2><p>Principais sinais que encontrei para o seu negócio.</p></div></header>
-            <div className="assistant-insight-list">
-              {insights.map((item) => {
-                const Icon = item.icon;
-                return <article key={item.title}><i className={item.tone}><Icon size={20} /></i><div><strong>{item.title}</strong><p>{item.detail}</p></div><button>{item.action}</button></article>;
-              })}
+            <div className="assistant-insight-list assistant-modern-insights">
+              {insights.map((item) => <InsightActionCardPreview key={item.title} tone={item.tone === "green" ? "teal" : item.tone === "orange" ? "amber" : item.tone === "purple" ? "violet" : "blue"} classification="INSIGHT" title={item.title} description={item.detail} action={item.action} onAction={() => onNavigate?.(item.view)} />)}
             </div>
           </article>
-        </div>
+        </div>}
 
-        <div className="assistant-pro-column assistant-pro-right">
+        {(scope === "Visão geral" || scope === "Prioridades") && <div className="assistant-pro-column assistant-pro-right">
           <article className="v2-card assistant-priority-card">
             <header><i><Target size={17} /></i><div><h2>Prioridades do assistente</h2><p>Eu ordenei as ações por criticidade e impacto.</p></div></header>
             <div className="assistant-priority-list">
@@ -103,11 +147,21 @@ export default function AssistantExperience() {
               {approved.includes(selected.id) && <div className="assistant-ai-message assistant-ai-confirmation"><i><Bot size={16} /></i><div><b>Gest IA <span>agora</span></b><p>Perfeito. Eu preparei esta ação para sua revisão. Você ainda poderá confirmar ou cancelar antes de qualquer alteração.</p></div></div>}
             </div>
           </aside>}
-        </div>
-        <section className="v2-card assistant-opportunities-card">
+        </div>}
+        {(scope === "Visão geral" || scope === "Prioridades") && <article className="v2-card assistant-calendar-card">
+          <header><i><CalendarDays size={17} /></i><div><h2>Planejamento dos próximos meses</h2><p>Veja o mês atual e antecipe as próximas datas importantes.</p></div><div className="assistant-calendar-controls"><button type="button" onClick={() => shiftCalendar(-1)} aria-label="Voltar um mês"><ChevronLeft size={16} /></button><button type="button" className="assistant-calendar-today" onClick={() => { const now = new Date(); setCalendarStart(new Date(now.getFullYear(), now.getMonth(), 1)); }}>Hoje</button><button type="button" onClick={() => shiftCalendar(1)} aria-label="Avançar um mês"><ChevronRight size={16} /></button></div></header>
+          <div className="assistant-calendar-months">{calendarMonths.map(({ date: monthDate, events }, monthIndex) => {
+            const now = new Date();
+            const isCurrent = monthDate.getFullYear() === now.getFullYear() && monthDate.getMonth() === now.getMonth();
+            return <section className={isCurrent ? "is-current" : ""} key={monthDate.toISOString()}><header><span><strong>{monthDate.toLocaleDateString("pt-BR", { month: "long" })}</strong><small>{monthDate.getFullYear()}</small></span>{isCurrent ? <em>Mês atual</em> : monthIndex === 1 ? <em>Próximo</em> : null}</header><div>{events.length ? events.map(({ date, title, detail }) => { const days = Math.ceil((date.getTime() - new Date(new Date().toDateString()).getTime()) / 86400000); return <article key={`${date.toISOString()}-${title}`}><time>{date.toLocaleDateString("pt-BR", { day: "2-digit" })}</time><span><strong>{title}</strong><small>{detail}</small></span><em>{days >= 0 ? (days === 0 ? "Hoje" : `${days} dias`) : "Encerrada"}</em></article>; }) : <p>Sem data comercial prioritária. Use o mês para preparar a próxima campanha.</p>}</div></section>;
+          })}</div>
+          <small className="assistant-calendar-tip">As datas futuras aparecem juntas para facilitar o planejamento de campanha, estoque e comunicação.</small>
+        </article>}
+        {(scope === "Visão geral" || scope === "Oportunidades") && <section className="v2-card assistant-opportunities-card">
           <header><i><Megaphone size={17} /></i><div><h2>Oportunidades sugeridas</h2><p>Ideias que eu preparei para impulsionar seus resultados.</p></div></header>
-          <div>{opportunities.map((item) => { const Icon = item.icon; return <article key={item.title}><i className={item.tone}><Icon size={21} /></i><div><strong>{item.title}</strong><p>{item.text}</p><b>{item.value}</b></div><button>{item.action}</button></article>; })}</div>
-        </section>
+          <div>{opportunities.map((item) => { const Icon = item.icon; return <article key={item.title}><i className={item.tone}><Icon size={21} /></i><div><strong>{item.title}</strong><p>{item.text}</p><b>{item.value}</b></div><button onClick={() => onNavigate?.(item.view)}>{item.action}</button></article>; })}</div>
+        </section>}
+        {scope === "Visão geral" && <section className="v2-card assistant-proactive-questions"><header><i><Lightbulb size={17} /></i><div><h2>Perguntas que o assistente acompanha</h2><p>Leituras atualizadas diariamente para antecipar decisões do negócio.</p></div></header><div>{managerQuestions.map(([title, detail, view]) => <button type="button" key={title} onClick={() => onNavigate?.(view)}><span><strong>{title}</strong><small>{detail}</small></span><ArrowUpRight size={16} /></button>)}</div></section>}
       </section>
     </section>
   );

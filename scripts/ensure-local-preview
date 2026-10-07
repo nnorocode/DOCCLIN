@@ -1,0 +1,31 @@
+#!/bin/zsh
+
+set -eu
+
+project_root="${0:A:h:h}"
+session_name="gest-local-preview"
+preview_url="http://127.0.0.1:3000/inicio"
+log_path="${project_root}/.vinext/local-preview.screen.log"
+
+if /usr/bin/curl -fsS -o /dev/null "${preview_url}"; then
+  print "Gest já está disponível em http://localhost:3000/inicio"
+  exit 0
+fi
+
+if /usr/bin/screen -list | /usr/bin/grep -q "[.]${session_name}"; then
+  /usr/bin/screen -S "${session_name}" -X quit || true
+fi
+
+cd "${project_root}"
+/usr/bin/screen -dmS "${session_name}" "${project_root}/scripts/start-local-preview"
+
+for preview_attempt in {1..20}; do
+  if /usr/bin/curl -fsS -o /dev/null "${preview_url}"; then
+    print "Gest iniciado em http://localhost:3000/inicio"
+    exit 0
+  fi
+  sleep 1
+done
+
+print -u2 "Não foi possível iniciar o Gest. Consulte ${log_path}."
+exit 1

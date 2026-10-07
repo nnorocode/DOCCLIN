@@ -1,7 +1,7 @@
 export type ReportingBasis = "cash" | "accrual";
 export type FinanceKind = "income" | "expense";
 export type FinanceStatus = "paid" | "pending" | "overdue" | "cancelled";
-export type FinanceSource = "manual" | "sale";
+export type FinanceSource = "manual" | "sale" | "clinical";
 
 export type FinanceInstallment = {
   id: string;
@@ -243,8 +243,26 @@ export const initialTransactions: FinanceTransaction[] = [
   mockTransaction({ id: "FIN-1034", description: "Implantação comercial", kind: "income", category: "Serviços", source: "sale", customer: "Mercado Bom Preço", competenceDate: "2026-05-03", grossCents: 1450500, discountBps: 0, taxBps: 600, directCostCents: 210000, feeBps: 0, paymentMethod: "Transferência", installmentCount: 2, firstDueDate: "2026-05-10", paidCount: 2 }),
 ];
 
+const currentDate = new Date();
+const currentYear = currentDate.getFullYear();
+const currentMonth = currentDate.getMonth();
+const quarterStart = Math.floor(currentMonth / 3) * 3;
+const dateKey = (year: number, month: number, day: number) => {
+  const date = new Date(year, month, day);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
+
 export const periods = {
-  month: { label: "Agosto de 2026", range: { start: "2026-08-01", end: "2026-08-31" } },
-  quarter: { label: "3º trimestre de 2026", range: { start: "2026-07-01", end: "2026-09-30" } },
-  year: { label: "Ano de 2026", range: { start: "2026-01-01", end: "2026-12-31" } },
+  month: {
+    label: new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(currentDate),
+    range: { start: dateKey(currentYear, currentMonth, 1), end: dateKey(currentYear, currentMonth + 1, 0) },
+  },
+  quarter: {
+    label: `${Math.floor(currentMonth / 3) + 1}º trimestre de ${currentYear}`,
+    range: { start: dateKey(currentYear, quarterStart, 1), end: dateKey(currentYear, quarterStart + 3, 0) },
+  },
+  year: {
+    label: `Ano de ${currentYear}`,
+    range: { start: dateKey(currentYear, 0, 1), end: dateKey(currentYear, 11, 31) },
+  },
 } as const;

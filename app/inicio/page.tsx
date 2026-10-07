@@ -1,14 +1,34 @@
 "use client";
+import { chartTooltipStyle } from "./chart-presentation";
+import { appStorage } from "../../lib/local-store";
+import { catalogDefaults } from "../../lib/catalog-defaults";
+import GuidedTour from "./GuidedTour";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import AgendaExperience from "./AgendaExperience";
+import ClinicalWorkspace from "./ClinicalWorkspace";
+import { ClinicalLetterhead, emptyLetterhead } from "./ClinicalLetterhead";
+import ClinicalAttendancePicker from "./ClinicalAttendancePicker";
+import MessageAttachments, { type ChatAttachment } from "./MessageAttachments";
+import { ContactJourney, CrmContactFollowups, readJourneys, journeyStatuses } from "./ContactJourney";
 import AssistantExperience from "./AssistantExperience";
-import ClientsExperience from "./ClientsExperience";
+import ClientsExperience, { ClientSelect, StandardModuleTop } from "./ClientsExperience";
 import FinanceExperience from "./FinanceExperience";
+import TimeClockExperience, { readClockState, type ClockState } from "./TimeClockExperience";
+import PurchaseMarketWatch from "./PurchaseMarketWatch";
+import InvestmentSimulator from "./InvestmentSimulator";
 import InfoHint from "./InfoHint";
-import { Area, CartesianGrid, Legend, Line, LineChart as RechartsLineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { AccessProvider, AccessSettings, useAccess } from "./AccessControl";
+import { appModules, roleLabels } from "../../lib/access-control";
+import { validateAttachment, safeAttachmentUrl } from "../../lib/file-security";
+import { ChartModeSelect, FlexibleChart, type ChartMode } from "./ChartModeSelect";
+import { setExactDragPreview } from "./drag-preview";
+import { AiThinkingPreview, DocumentCardPreview, InformativeMetricCardPreview, InsightActionCardPreview, LineChartMetricCardPreview, MonthlyColumnChartPreview, NotificationCenterPreview, RevenueGoalGaugePreview, TimelinePreview, type CardTone } from "../laboratorio/page";
+import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
+  ArrowDown,
   ArrowDownRight,
+  ArrowUp,
   ArrowUpRight,
   Bell,
   Bot,
@@ -25,15 +45,21 @@ import {
   Clock3,
   ClipboardList,
   Crown,
+  Database,
   Edit3,
   Eye,
   EyeOff,
   FileText,
+  BookOpen,
   Grid2X2,
+  GripVertical,
   Heart,
   Home,
   LineChart,
+  List,
   LogOut,
+  HelpCircle,
+  Mail,
   Medal,
   Menu,
   MessageCircle,
@@ -43,6 +69,7 @@ import {
   Paperclip,
   Palette,
   Plus,
+  Printer,
   Search,
   Settings,
   ShoppingBag,
@@ -54,6 +81,8 @@ import {
   Target,
   Trash2,
   UserCheck,
+  ZoomIn,
+  ZoomOut,
   UserRound,
   Users,
   UsersRound,
@@ -70,6 +99,7 @@ type View =
   | "Tarefas"
   | "Projetos"
   | "Clientes"
+  | "Prontuário"
   | "Detalhe"
   | "Atendimento"
   | "Configurações"
@@ -87,8 +117,16 @@ type View =
   | "Manutenção"
   | "Relatórios"
   | "Equipe"
+  | "Colaboradores"
+  | "Ponto"
   | "Precificação"
+  | "Investimentos"
+  | "Primeiros passos"
   | "Loja";
+
+function showAppToast(message: string) {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("gest-app-toast", { detail: message }));
+}
 
 type NavigationGroup = {
   label: string;
@@ -100,12 +138,12 @@ const navigationGroups: NavigationGroup[] = [
   {
     label: "Minha rotina",
     icon: CalendarDays,
-    items: [["Agenda", CalendarDays], ["Tarefas", CheckCircle2], ["Projetos", BriefcaseBusiness]],
+    items: [["Agenda", CalendarDays], ["Tarefas", CheckCircle2]],
   },
   {
     label: "Relacionamento",
     icon: Users,
-    items: [["Clientes", Users], ["CRM", Target], ["Atendimento", ClipboardList]],
+    items: [["Prontuário", Heart], ["Clientes", Users], ["Atendimento", MessageCircle], ["CRM", Target]],
   },
   {
     label: "Comercial",
@@ -120,11 +158,26 @@ const navigationGroups: NavigationGroup[] = [
   {
     label: "Gestão",
     icon: LineChart,
-    items: [["Financeiro", CircleDollarSign], ["Precificação", Calculator], ["Relatórios", LineChart], ["Equipe", UsersRound]],
+    items: [["Financeiro", CircleDollarSign], ["Precificação", Calculator], ["Relatórios", LineChart]],
+  },
+  {
+    label: "Equipe",
+    icon: UsersRound,
+    items: [["Ponto", Clock3], ["Equipe", UserRound]],
   },
 ];
 function MessageIcon(props: React.ComponentProps<LucideIcon>) {
   return <ClipboardList {...props} />;
+}
+
+function ScrollableTabBar({ className, label, children }: { className: string; label: string; children: ReactNode }) {
+  const navRef = useRef<HTMLElement>(null);
+  const move = (direction: number) => navRef.current?.scrollBy({ left: direction * Math.max(240, navRef.current.clientWidth * .72), behavior: "smooth" });
+  return <div className="gest-horizontal-nav">
+    <button type="button" className="gest-horizontal-nav-arrow previous" onClick={() => move(-1)} aria-label={`Ver opções anteriores de ${label}`}><ChevronLeft size={17} /></button>
+    <nav ref={navRef} className={className} aria-label={label}>{children}</nav>
+    <button type="button" className="gest-horizontal-nav-arrow next" onClick={() => move(1)} aria-label={`Ver próximas opções de ${label}`}><ChevronRight size={17} /></button>
+  </div>;
 }
 
 const clients = [
@@ -138,6 +191,7 @@ const clients = [
     "Há 2 dias",
     "R$ 18.750,00",
     "Ativo",
+    "1991-05-12",
   ],
   [
     "#CL-1247",
@@ -262,43 +316,73 @@ function Sidebar({
   setActive,
   dark,
   setDark,
+  collapsed,
+  setCollapsed,
 }: {
   active: View;
   setActive: (view: View) => void;
   dark: boolean;
   setDark: (dark: boolean) => void;
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
 }) {
   const activeGroup = navigationGroups.find((group) =>
     group.items.some(([view]) => view === active || (active === "Detalhe" && view === "Clientes")),
   )?.label;
+  const access = useAccess();
+  const sidebarRef = useRef<HTMLElement | null>(null);
   const [openGroup, setOpenGroup] = useState<string | null>(activeGroup ?? "Minha rotina");
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = (view: View) => { setActive(view); setMobileOpen(false); if (collapsed) setOpenGroup(null); };
 
   useEffect(() => {
-    if (activeGroup) setOpenGroup(activeGroup);
-  }, [activeGroup]);
+    if (activeGroup && !collapsed) setOpenGroup(activeGroup);
+  }, [activeGroup, collapsed]);
+  useEffect(() => { if (collapsed) setOpenGroup(null); }, [collapsed]);
+  useEffect(() => {
+    if (!collapsed || !openGroup) return;
+    const closeOnOutside = (event: PointerEvent) => {
+      if (!sidebarRef.current?.contains(event.target as Node)) setOpenGroup(null);
+    };
+    document.addEventListener("pointerdown", closeOnOutside);
+    return () => document.removeEventListener("pointerdown", closeOnOutside);
+  }, [collapsed, openGroup]);
 
   return (
-    <aside className="v2-sidebar gest-sidebar-new">
+    <aside ref={sidebarRef} className={`${mobileOpen ? "v2-sidebar gest-sidebar-new mobile-open" : "v2-sidebar gest-sidebar-new"}${collapsed ? " is-collapsed" : ""}`}>
       <div className="v2-brand">
-        <b>gest.</b>
+        <svg className="gest-brand-filter" aria-hidden="true" focusable="false">
+          <filter id="gest-doclin-on-dark" colorInterpolationFilters="sRGB">
+            <feColorMatrix type="matrix" values="0 0 0 0 1  -0.35 0 0 0 1  -0.75 0 0 0 1  0 0 0 1 0" />
+          </filter>
+        </svg>
+        <span className="gest-brand-mark"><img src="/brand/doclin-transparent.png" alt="DOCLIN" /></span>
+        <span className="gest-brand-compact" role="img" aria-label="DOCLIN">
+          <img src="/brand/doclin-doc.png" alt="" aria-hidden="true" />
+          <img src="/brand/doclin-clin.png" alt="" aria-hidden="true" />
+        </span>
+        <button type="button" className="gest-sidebar-collapse" aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={collapsed ? "Expandir menu" : "Recolher menu"} aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}</button>
+        <button type="button" className="gest-mobile-menu" aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"} aria-expanded={mobileOpen} onClick={() => setMobileOpen((current) => !current)}>{mobileOpen ? <X size={20} /> : <Menu size={20} />}</button>
       </div>
-      <strong className="gest-company-name">Bella Gestão</strong>
+      <strong className="gest-company-name">Gestão Clean</strong>
       <nav className="gest-nav-groups">
-        <button
+        {access.allowed("Início") && <button
           className={active === "Início" ? "active gest-main-nav" : "gest-main-nav"}
-          onClick={() => setActive("Início")}
+          aria-label="Início"
+          onClick={() => navigate("Início")}
         >
           <Home size={20} />
           <span>Início</span>
-        </button>
-        <button
+        </button>}
+        {access.allowed("Assistente") && <button
           className={active === "Assistente" ? "active gest-main-nav gest-assistant-nav" : "gest-main-nav gest-assistant-nav"}
-          onClick={() => setActive("Assistente")}
+          aria-label="Assistente"
+          onClick={() => navigate("Assistente")}
         >
           <Sparkles size={20} />
           <span>Assistente</span>
-        </button>
-        {navigationGroups.map((group) => {
+        </button>}
+        {navigationGroups.filter((group) => group.items.some(([view]) => access.allowed(view))).map((group) => {
           const GroupIcon = group.icon;
           const expanded = openGroup === group.label;
           const containsActive = group.items.some(([view]) => view === active || (active === "Detalhe" && view === "Clientes"));
@@ -307,6 +391,8 @@ function Sidebar({
               <button
                 className={containsActive ? "gest-group-trigger current" : "gest-group-trigger"}
                 onClick={() => setOpenGroup(expanded ? null : group.label)}
+                title={collapsed ? group.label : undefined}
+                aria-label={group.label}
                 aria-expanded={expanded}
               >
                 <GroupIcon size={20} />
@@ -315,14 +401,16 @@ function Sidebar({
               </button>
               {expanded && (
                 <div className="gest-group-children">
-                  {group.items.map(([label, Icon]) => (
+                  {group.items.filter(([label]) => access.allowed(label)).map(([label, Icon]) => (
                     <button
                       key={label}
+                      data-view={label}
                       className={active === label || (active === "Detalhe" && label === "Clientes") ? "active" : ""}
-                      onClick={() => setActive(label)}
+                      onClick={() => navigate(label)}
                     >
                       <Icon size={17} />
-                      <span>{label}</span>
+                      <span>{label === "Prontuário" ? "Atendimento" : label === "Atendimento" ? "Mensagens" : label === "Equipe" ? "Colaboradores" : label}</span>
+                      {(label === "Ponto" || label === "Compras") && <em className="gest-nav-new">New</em>}
                     </button>
                   ))}
                 </div>
@@ -330,15 +418,18 @@ function Sidebar({
             </div>
           );
         })}
+        {access.allowed("Investimentos") && <button aria-label="Investimentos" className={active === "Investimentos" ? "active gest-main-nav" : "gest-main-nav"} onClick={() => navigate("Investimentos")}><TrendingUp size={20} /><span>Investimentos</span></button>}
       </nav>
       <div className="gest-sidebar-bottom">
-        <button
+        {access.allowed("Primeiros passos") && <button aria-label="Primeiros passos" className={active === "Primeiros passos" ? "active" : ""} onClick={() => navigate("Primeiros passos")}><BookOpen size={19} /><span>Primeiros passos</span></button>}
+        {access.allowed("Configurações") && <button
+          aria-label="Configurações"
           className={active === "Configurações" ? "active" : ""}
-          onClick={() => setActive("Configurações")}
+          onClick={() => navigate("Configurações")}
         >
           <Settings size={19} />
           <span>Configurações</span>
-        </button>
+        </button>}
       </div>
       <div className="v2-theme gest-theme-toggle">
         <Sun size={19} />
@@ -357,78 +448,91 @@ function Sidebar({
 }
 
 function Topbar({
+  active,
   notificationOpen,
   setNotificationOpen,
-  onCreate,
+  onNavigate,
+  onTutorial,
 }: {
+  active: View;
   notificationOpen: boolean;
   setNotificationOpen: (open: boolean) => void;
-  onCreate: () => void;
+  onNavigate: (view: View, settingsTab?: string) => void;
+  onTutorial: () => void;
 }) {
   const [accountOpen, setAccountOpen] = useState(false);
+  const access = useAccess();
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [unreadNotifications, setUnreadNotifications] = useState(3);
+  const handleUnreadCount = useCallback((count: number) => setUnreadNotifications(count), []);
+
+  useEffect(() => {
+    const closeFloatingPanels = (event: PointerEvent) => {
+      const target = event.target as Element;
+      if (notificationOpen && !target.closest(".v2-bell, .gest-notification-popover")) setNotificationOpen(false);
+      if (accountOpen && !target.closest(".gest-account-trigger, .gest-account-menu")) setAccountOpen(false);
+      if (helpOpen && !target.closest(".gest-help-trigger, .gest-help-menu")) setHelpOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setNotificationOpen(false);
+      setAccountOpen(false);
+      setHelpOpen(false);
+    };
+    document.addEventListener("pointerdown", closeFloatingPanels);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeFloatingPanels);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [accountOpen, helpOpen, notificationOpen, setNotificationOpen]);
 
   return (
     <header className="v2-topbar">
-      <div className="v2-search">
+      <form className="lab-search-form gest-topbar-search" role="search" onSubmit={(event) => event.preventDefault()}>
         <Search size={20} />
-        <span>Buscar clientes, pedidos, produtos...</span>
-        <kbd>⌘ K</kbd>
-      </div>
+        <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Pesquisar..." aria-label="Pesquisar no Gest" />
+        <button type="button" className={searchQuery ? "visible" : ""} onClick={() => setSearchQuery("")} aria-label="Limpar pesquisa"><X size={16} /></button>
+      </form>
       <div className="v2-user">
-        <button className="gest-create-button" onClick={onCreate}><Plus size={17} /> Criar</button>
+        <div className="gest-help-wrap">
+          <button type="button" className="v2-bell gest-help-trigger" aria-label="Ajuda e suporte" aria-expanded={helpOpen} onClick={() => { setAccountOpen(false); setNotificationOpen(false); setHelpOpen((open) => !open); }}><HelpCircle size={19} /></button>
+          {helpOpen ? <div className="gest-help-menu" role="menu" aria-label="Ajuda e suporte">
+            <button type="button" role="menuitem" onClick={() => { setHelpOpen(false); onTutorial(); }}><BookOpen size={17} /><span><b>Tutorial</b><small>Aprenda a usar esta página</small></span><ChevronRight size={15} /></button>
+            <a role="menuitem" href={`mailto:suporte@gest.app?subject=${encodeURIComponent(`Suporte GEST - ${active}`)}`}><Mail size={17} /><span><b>Suporte</b><small>Enviar e-mail para a equipe</small></span></a>
+          </div> : null}
+        </div>
         <button
           className="v2-bell"
-          onClick={() => setNotificationOpen(!notificationOpen)}
+          onClick={() => { setAccountOpen(false); setHelpOpen(false); setNotificationOpen(!notificationOpen); }}
+          aria-label="Abrir notificações"
+          aria-expanded={notificationOpen}
         >
           <Bell size={22} />
-          <b>3</b>
+          {access.manage && unreadNotifications > 0 ? <b>{unreadNotifications}</b> : null}
         </button>
-        <button className="gest-account-trigger" type="button" aria-haspopup="menu" aria-expanded={accountOpen} onClick={() => setAccountOpen((open) => !open)}>
-          <span className="v2-avatar">MO<i /></span>
+        <button className="gest-account-trigger" type="button" aria-haspopup="menu" aria-expanded={accountOpen} onClick={() => { setNotificationOpen(false); setHelpOpen(false); setAccountOpen((open) => !open); }}>
+          <span className="v2-avatar">{access.member?.name.split(" ").slice(0, 2).map((part) => part[0]).join("")}<i /></span>
           <span>
-            <strong>Mariana Oliveira</strong>
-            <small>mariana@bellagestao.com.br</small>
+            <strong>{access.member?.name}</strong>
+            <small>{access.member?.email}</small>
           </span>
           <ChevronDown size={18} className={accountOpen ? "open" : ""} />
         </button>
         {accountOpen && (
-          <div className="gest-account-menu" role="menu" aria-label="Menu de Mariana Oliveira">
-            <button type="button" role="menuitem"><UserRound size={18} /><span>Meu perfil</span></button>
-            <button type="button" role="menuitem"><Settings size={18} /><span>Configurações da conta</span></button>
-            <button type="button" role="menuitem"><MessageCircle size={18} /><span>Mensagens</span></button>
+          <div className="gest-account-menu" role="menu" aria-label="Menu da conta">
+            <button type="button" role="menuitem" onClick={() => { onNavigate("Configurações", "Conta"); setAccountOpen(false); }}><UserRound size={18} /><span>Meu perfil</span></button>
+            <button type="button" role="menuitem" onClick={() => { onNavigate("Configurações", "Conta"); setAccountOpen(false); }}><Settings size={18} /><span>Configurações da conta</span></button>
+            {access.allowed("Atendimento") && <button type="button" role="menuitem" onClick={() => { onNavigate("Atendimento"); setAccountOpen(false); }}><MessageCircle size={18} /><span>Mensagens</span></button>}
             <hr />
-            <button type="button" role="menuitem" className="danger"><LogOut size={18} /><span>Sair</span></button>
+            <button type="button" role="menuitem" className="danger" onClick={() => void access.signOut()}><LogOut size={18} /><span>Sair</span></button>
           </div>
         )}
       </div>
-      {notificationOpen && (
-        <div className="v2-notifications">
-          <header>
-            <b>Notificações</b>
-            <button>Ver todas</button>
-          </header>
-          {[
-            ["Estoque", "23 itens com estoque abaixo do mínimo.", "orange"],
-            ["Financeiro", "3 contas a pagar vencem hoje.", "blue"],
-            [
-              "Vendas",
-              "Novo pedido #VND-1278 no valor de R$ 3.250,00.",
-              "green",
-            ],
-            ["CRM", "Lucas Lima abriu um novo atendimento.", "purple"],
-            ["Documentos", "2 contratos aguardando assinatura.", "blue"],
-          ].map(([tag, text, tone]) => (
-            <article key={tag}>
-              <i className={tone}>!</i>
-              <div>
-                <span>{tag}</span>
-                <p>{text}</p>
-              </div>
-            </article>
-          ))}
-          <footer>Ver todas as notificações</footer>
-        </div>
-      )}
+      <div className={notificationOpen ? "gest-notification-popover is-open" : "gest-notification-popover"} aria-hidden={!notificationOpen}>
+        {access.manage ? <NotificationCenterPreview onUnreadCountChange={handleUnreadCount} /> : <p>Nenhuma notificação disponível para este perfil.</p>}
+      </div>
     </header>
   );
 }
@@ -446,10 +550,48 @@ function Metric({
   tone?: string;
 }) {
   const normalized = label.toLocaleLowerCase("pt-BR");
-  const Icon: LucideIcon = normalized.includes("clientes ativos")
-    ? UserCheck
+  const Icon: LucideIcon = normalized.includes("a responder")
+    ? MessageCircle
+    : normalized.includes("em atendimento")
+      ? ClipboardList
+      : normalized.includes("intensificar")
+        ? Siren
+        : normalized.includes("sem agendamento")
+          ? CalendarDays
+          : normalized.includes("faltaram")
+            ? X
+            : normalized.includes("remarcação")
+              ? CalendarClock
+              : normalized.includes("retornos no prazo")
+                ? Clock3
+                : normalized.includes("clientes ativos")
+                  ? UserCheck
     : normalized.includes("clientes inativos")
       ? UserRound
+      : normalized.includes("lead") || normalized.includes("oportunidade")
+        ? Target
+        : normalized.includes("conversão")
+          ? TrendingUp
+        : normalized.includes("sem resposta") || normalized.includes("aguardando resposta")
+          ? MessageCircle
+          : normalized.includes("planejad")
+            ? ClipboardList
+            : normalized.includes("no prazo")
+              ? Clock3
+          : normalized.includes("aberto") || normalized.includes("pendente")
+            ? ClipboardList
+            : normalized.includes("urgente") || normalized.includes("crítico") || normalized.includes("atrasad") || normalized.includes("em atraso")
+              ? Siren
+              : normalized.includes("resolvid") || normalized.includes("conclu") || normalized.includes("em dia")
+                ? CheckCircle2
+                : normalized.includes("tempo médio") || normalized.includes("próxim")
+                  ? Clock3
+                  : normalized.includes("venda")
+                    ? ShoppingCart
+                    : normalized.includes("equipamento") || normalized.includes("manutenção")
+                      ? Wrench
+                      : normalized.includes("entrada")
+                        ? PackageCheck
       : normalized.includes("cliente")
         ? Users
         : normalized.includes("responsável") || normalized.includes("membro") || normalized.includes("equipe")
@@ -464,9 +606,7 @@ function Metric({
                   ? ArrowDownRight
                   : normalized.includes("contas a receber") || normalized.includes("saldo") || normalized.includes("crédito") || normalized.includes("disponível")
                     ? WalletCards
-                    : normalized.includes("oportunidade")
-                      ? Target
-                      : normalized.includes("negócio") || normalized.includes("vendas abertas") || normalized.includes("plano")
+                    : normalized.includes("negócio") || normalized.includes("plano")
                         ? BriefcaseBusiness
                       : normalized.includes("status")
                         ? CheckCircle2
@@ -475,24 +615,17 @@ function Metric({
                           : normalized.includes("documento") || normalized.includes("arquivo") || normalized.includes("upload")
                             ? FileText
                             : CircleDollarSign;
-  return (
-    <article className="v2-card v2-metric">
-      <div>
-        <span>{label}<InfoHint text={`Entenda o indicador ${label.toLowerCase()} e como ele é calculado.`} /></span>
-        <strong>{value}</strong>
-        {detail && <small className={tone}>↑ {detail}</small>}
-      </div>
-      <i className={tone}>
-        <Icon size={20} strokeWidth={1.75} />
-      </i>
-    </article>
-  );
+  const cardTone: CardTone = tone === "red" ? "rose" : tone === "orange" ? "amber" : tone === "green" ? "teal" : tone === "gray" ? "gray" : tone === "violet" ? "violet" : "blue";
+  return <InformativeMetricCardPreview tone={cardTone} icon={Icon} title={label} value={value} change={detail || "0%"} />;
 }
-function PageIntro({ title, subtitle }: { title: string; subtitle: string }) {
+function PageIntro({ title, subtitle, action }: { title: string; subtitle: string; action?: ReactNode }) {
   return (
-    <div className="v2-intro">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
+    <div className={`v2-intro client-compact-intro${action ? " has-action" : ""}`}>
+      <h1>
+        {title}
+        <InfoHint text={subtitle} />
+      </h1>
+      {action ? <div className="module-title-action">{action}</div> : null}
     </div>
   );
 }
@@ -506,6 +639,7 @@ function ActionLink({ children }: { children: React.ReactNode }) {
 
 // Bloco reutilizável para manter a indicação profissional no rodapé das áreas.
 function ProfessionalRecommendation({ area }: { area: string }) {
+  const [contactsOpen, setContactsOpen] = useState(false);
   const suggestions: Record<string, [string, string]> = {
     Agenda: [
       "Consultor de produtividade",
@@ -524,18 +658,40 @@ function ProfessionalRecommendation({ area }: { area: string }) {
       "Ajuste processos e permissões com segurança.",
     ],
   };
-  const [name, detail] = suggestions[area] ?? [
+  const [name] = suggestions[area] ?? [
     "Especialista Gest",
     "Apoio prático para esta área da operação.",
   ];
+  useEffect(() => setContactsOpen(false), [area]);
+  const contacts = [
+    { initials: "MC", name: "Marina Costa", role: name, availability: "Disponível hoje" },
+    { initials: "LA", name: "Lucas Almeida", role: "Consultor parceiro", availability: "Resposta em até 1h" },
+    { initials: "AS", name: "Ana Souza", role: "Especialista verificada", availability: "Disponível amanhã" },
+  ];
   return (
-    <article className="v2-professional">
-      <div>
+    <article className={`v2-professional professional-recommendation${contactsOpen ? " is-open" : ""}`}>
+      <div className="professional-summary">
         <span>INDICAÇÃO PARA ESTA ÁREA</span>
-        <strong>{name}</strong>
-        <small>{detail}</small>
       </div>
-      <button>Ver contato</button>
+      <button className="professional-toggle" type="button" aria-expanded={contactsOpen} onClick={() => setContactsOpen((open) => !open)}>
+        Ver contatos
+        <ChevronDown size={16} aria-hidden />
+      </button>
+      {contactsOpen ? (
+        <div className="professional-contact-grid">
+          {contacts.map((contact) => (
+            <article className="professional-contact-card" key={contact.name}>
+              <i>{contact.initials}</i>
+              <div>
+                <strong>{contact.name}</strong>
+                <span>{contact.role}</span>
+                <small>{contact.availability}</small>
+              </div>
+              <ChevronRight size={16} aria-hidden />
+            </article>
+          ))}
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -637,43 +793,184 @@ function TodayTimeline({ setActive }: { setActive: (view: View) => void }) {
   );
 }
 
-function HomeView({ setActive }: { setActive: (view: View) => void }) {
+function HomeView({ setActive, onOpenClinical }: { setActive: (view: View) => void; onOpenClinical: (event: { id: string; patientName: string; service: string; coverage: { kind: "Particular" | "Plano"; insurer: string; category: string; authorization: string } }) => void }) {
+  const homeNow = new Date();
+  const homeGreeting = homeNow.getHours() < 12 ? "Bom dia" : homeNow.getHours() < 18 ? "Boa tarde" : "Boa noite";
+  const homeDate = homeNow.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" }).toLocaleUpperCase("pt-BR");
   const [question, setQuestion] = useState("");
-  const recommendations: Array<[string, string, string, View, string]> = [
-    ["Seu faturamento perdeu ritmo", "Você pode fechar 12% abaixo da meta. Reativar 18 clientes pode recuperar até R$ 14.600.", "Preparar campanha", "CRM", "critical"],
-    ["Dia das Mães está a 24 dias", "Comece a campanha esta semana para aproveitar o período.", "Criar planejamento", "Agenda", "seasonal"],
-    ["7 pacientes ainda não confirmaram amanhã", "R$ 2.850 da agenda depende dessas confirmações.", "Enviar lembretes", "Agenda", "agenda"],
-    ["Seu estoque está saudável", "Você tem cobertura para os próximos 18 dias. Nenhuma compra urgente.", "Ver estoque", "Estoque", "positive"],
+  const [widgetPickerOpen, setWidgetPickerOpen] = useState(false);
+  const defaultHomeWidgets = ["Faturamento do período", "Lucro líquido", "Saldo de caixa", "Contas a receber", "Contas a pagar", "Meta de faturamento", "Despesas do período", "Receita recebida", "Vendas realizadas", "Ticket médio"];
+  const [homeWidgets, setHomeWidgets] = useState<string[]>(defaultHomeWidgets);
+  const [widgetTypes, setWidgetTypes] = useState<Record<string, string>>({});
+  const [widgetSizes, setWidgetSizes] = useState<Record<string, { cols: number; rows: number }>>({});
+  const [widgetMenu, setWidgetMenu] = useState<string | null>(null);
+  useEffect(() => {
+    const close = (event: PointerEvent) => { if (!(event.target as HTMLElement).closest(".gest-widget-type-control")) setWidgetMenu(null); if (!(event.target as HTMLElement).closest(".gest-widget-picker")) setWidgetPickerOpen(false); };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
+  const [draggedWidget, setDraggedWidget] = useState<string | null>(null);
+  const touchDrag = useRef<{ name: string; x: number; y: number; timer: ReturnType<typeof setTimeout> | null; ready: boolean } | null>(null);
+  const resizeRef = useRef<{ name: string; edge: "left" | "right" | "bottom"; x: number; y: number; cols: number; rows: number; stepX: number; stepY: number; maxCols: number } | null>(null);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(appStorage.getItem("gest-home-widget-order") || "null");
+      const previous = JSON.parse(appStorage.getItem("gest-home-widgets") || "[]");
+      setHomeWidgets(Array.isArray(saved) ? saved.filter((name): name is string => typeof name === "string") : [...defaultHomeWidgets, ...(Array.isArray(previous) ? previous.filter((name: string) => !defaultHomeWidgets.includes(name)) : [])]);
+      const types = JSON.parse(appStorage.getItem("gest-home-widget-types") || "{}");
+      const sizes = JSON.parse(appStorage.getItem("gest-home-widget-sizes") || "{}");
+      setWidgetTypes(types && typeof types === "object" && !Array.isArray(types) ? Object.fromEntries(Object.entries(types).filter((entry): entry is [string,string] => typeof entry[1] === "string")) : {});
+      setWidgetSizes(sizes && typeof sizes === "object" && !Array.isArray(sizes) ? Object.fromEntries(Object.entries(sizes).filter(([, value]) => { const size = value as { cols?: number; rows?: number } | null; return size && Number.isFinite(size.cols) && Number.isFinite(size.rows) && size.cols! > 0 && size.rows! > 0 && size.cols! <= 32 && size.rows! <= 32; })) as Record<string, { cols: number; rows: number }> : {});
+    } catch { setHomeWidgets(defaultHomeWidgets); }
+  }, []);
+  const saveHomeWidgets = (next: string[]) => { setHomeWidgets(next); appStorage.setItem("gest-home-widget-order", JSON.stringify(next)); };
+  const setWidgetType = (name: string, type: string) => { const next = { ...widgetTypes, [name]: type }; setWidgetTypes(next); appStorage.setItem("gest-home-widget-types", JSON.stringify(next)); setWidgetMenu(null); };
+  const updateWidgetSize = (name: string, size: { cols: number; rows: number }, persist = false) => { const next = { ...widgetSizes, [name]: size }; setWidgetSizes(next); if (persist) appStorage.setItem("gest-home-widget-sizes", JSON.stringify(next)); };
+  const resizeWidget = (name: string, x: number, y: number) => { const drag = resizeRef.current; if (!drag || drag.name !== name) return; const horizontal = drag.edge === "left" ? drag.x - x : x - drag.x; updateWidgetSize(name, { cols: drag.edge === "bottom" ? drag.cols : Math.max(1, Math.min(drag.maxCols, drag.cols + Math.round(horizontal / drag.stepX))), rows: drag.edge === "bottom" ? Math.max(1, Math.min(5, drag.rows + Math.round((y - drag.y) / drag.stepY))) : drag.rows }, true); };
+  useEffect(() => {
+    const move = (event: PointerEvent) => { const drag = resizeRef.current; if (drag) resizeWidget(drag.name, event.clientX, event.clientY); };
+    const end = () => { resizeRef.current = null; };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end); };
+  });
+  const reorderWidget = (fromName: string, toName: string) => {
+    if (fromName === toName) return;
+    const next = [...homeWidgets];
+    const from = next.indexOf(fromName);
+    const to = next.indexOf(toName);
+    if (from < 0 || to < 0) return;
+    next.splice(to, 0, ...next.splice(from, 1));
+    saveHomeWidgets(next);
+  };
+  const widgetCatalog = [
+    { name: "Faturamento do período", type: "line", value: 82450, change: 10.5, tone: "blue" as CardTone, icon: TrendingUp, view: "Financeiro" as View },
+    { name: "Saldo de caixa", type: "metric", value: "R$ 124.800", change: "+6,1%", tone: "blue" as CardTone, icon: WalletCards, view: "Financeiro" as View },
+    { name: "Contas a receber", type: "metric", value: "R$ 48.300", change: "+5,4%", tone: "violet" as CardTone, icon: ArrowDownRight, view: "Financeiro" as View },
+    { name: "Contas a pagar", type: "metric", value: "R$ 21.600", change: "−2,8%", tone: "amber" as CardTone, icon: ArrowUpRight, view: "Financeiro" as View },
+    { name: "Meta de faturamento", type: "gauge", value: 68000, change: 8.4, tone: "teal" as CardTone, icon: Target, view: "Financeiro" as View },
+    { name: "Despesas do período", type: "columns", value: 31280, change: -3.6, tone: "amber" as CardTone, icon: CircleDollarSign, view: "Financeiro" as View },
+    { name: "Vendas realizadas", type: "metric", value: "124", change: "+9,7%", tone: "teal" as CardTone, icon: ShoppingCart, view: "Vendas" as View },
+    { name: "Clientes ativos", type: "line", value: 1284, change: 7.1, tone: "blue" as CardTone, icon: UsersRound, view: "Clientes" as View },
+    { name: "Vendas no mês", type: "line", value: 86, change: 9.7, tone: "teal" as CardTone, icon: ShoppingCart, view: "Vendas" as View },
+    { name: "Custos do mês", type: "columns", value: 28420, change: -4.8, tone: "amber" as CardTone, icon: CircleDollarSign, view: "Financeiro" as View },
+    { name: "Agenda de hoje", type: "line", value: 18, change: 12.5, tone: "violet" as CardTone, icon: CalendarDays, view: "Agenda" as View },
+    { name: "Estoque em alerta", type: "line", value: 3, change: -2.1, tone: "rose" as CardTone, icon: Package, view: "Estoque" as View },
+    { name: "Receita recebida", type: "line", value: 68900, change: 8.2, tone: "blue" as CardTone, icon: TrendingUp, view: "Financeiro" as View },
+    { name: "Lucro líquido", type: "line", value: 37620, change: 12.4, tone: "teal" as CardTone, icon: TrendingUp, view: "Financeiro" as View },
+    { name: "Contas vencidas", type: "line", value: 3240, change: -4.1, tone: "rose" as CardTone, icon: Clock3, view: "Financeiro" as View },
+    { name: "Manutenções no mês", type: "line", value: 42, change: 6.3, tone: "violet" as CardTone, icon: Wrench, view: "Manutenção" as View },
+    { name: "Novos contatos", type: "line", value: 37, change: 11.2, tone: "amber" as CardTone, icon: UserCheck, view: "Atendimento" as View },
+    { name: "Ticket médio", type: "metric", value: "R$ 665", change: "+4,3%", tone: "teal" as CardTone, icon: ShoppingBag, view: "Relatórios" as View },
+    { name: "Tarefas concluídas", type: "line", value: 24, change: 8.0, tone: "blue" as CardTone, icon: CheckCircle2, view: "Tarefas" as View },
+  ];
+  const WidgetControls = ({ name, defaultRows }: { name: string; defaultRows: number }) => <><div className="gest-widget-type-control"><button type="button" aria-label={`Escolher visualização de ${name}`} aria-expanded={widgetMenu === name} onClick={() => setWidgetMenu(widgetMenu === name ? null : name)}><LineChart size={15} /></button><InfoHint text={`Altere apenas o formato de ${name}. O valor e a variação permanecem os mesmos.`} />{widgetMenu === name ? <div className="gest-widget-type-menu">{[["columns", "Colunas"], ["line", "Linha"], ["donut", "Rosca"], ["metric", "Card"]].map(([type, label]) => <button type="button" key={type} onClick={() => setWidgetType(name, type)}>{label}</button>)}</div> : null}</div>{(["left", "right", "bottom"] as const).map((edge) => <span key={edge} className={`gest-widget-edge edge-${edge}`} role="separator" aria-label={`Redimensionar ${name} pela borda ${edge}`} onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); const grid = event.currentTarget.closest<HTMLElement>(".gest-dashboard-grid"); const styles = grid ? getComputedStyle(grid) : null; const maxCols = styles?.gridTemplateColumns.split(" ").length || 6; resizeRef.current = { name, edge, x: event.clientX, y: event.clientY, cols: widgetSizes[name]?.cols || 2, rows: widgetSizes[name]?.rows || defaultRows, stepX: ((grid?.clientWidth || 900) + 14) / maxCols, stepY: (parseFloat(styles?.gridAutoRows || "125") || 125) + (parseFloat(styles?.rowGap || "14") || 14), maxCols }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { if (resizeRef.current?.name === name && resizeRef.current.edge === edge) resizeWidget(name, event.clientX, event.clientY); }} onPointerUp={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); resizeRef.current = null; }} onPointerCancel={() => { resizeRef.current = null; }} />)}</>;
+  const renderHomeWidget = (name: string, index: number) => {
+    const item = widgetCatalog.find((widget) => widget.name === name);
+    if (!item) return null;
+    const type = widgetTypes[name] || item.type;
+    const numericValue = typeof item.value === "number" ? item.value : Number(item.value.replace(/[^\d,]/g, "").replace(",", "."));
+    const change = typeof item.change === "number" ? item.change : Number(item.change.replace("−", "-").replace(/[^\d,-]/g, "").replace(",", "."));
+    const isMoney = /faturamento|saldo|contas|despesa|receita|lucro|custo|ticket/i.test(name);
+    const defaultRows = type === "metric" ? 1 : 2;
+    const size = widgetSizes[name] || { cols: 2, rows: defaultRows };
+    const dragProps = {
+      "data-widget-name": name,
+      "data-widget-rows": size.rows,
+      "data-widget-cols": size.cols,
+      style: { gridColumn: `span ${size.cols}`, gridRow: `span ${size.rows}` },
+      draggable: true,
+      onDragStart: (event: React.DragEvent) => { if (resizeRef.current || (event.target as HTMLElement).closest(".gest-widget-edge")) { event.preventDefault(); return; } setDraggedWidget(name); event.dataTransfer.setDragImage(event.currentTarget, Math.min(100, event.currentTarget.clientWidth / 2), 25); },
+      onDragOver: (event: React.DragEvent) => event.preventDefault(),
+      onDrop: (event: React.DragEvent) => {
+        event.preventDefault();
+        if (!draggedWidget) return;
+        reorderWidget(draggedWidget, name);
+        setDraggedWidget(null);
+      },
+      onDragEnd: () => setDraggedWidget(null),
+      onTouchStart: (event: React.TouchEvent) => {
+        if ((event.target as HTMLElement).closest("button")) return;
+        const touch = event.touches[0];
+        const item = { name, x: touch.clientX, y: touch.clientY, timer: null as ReturnType<typeof setTimeout> | null, ready: false };
+        item.timer = setTimeout(() => { item.ready = true; setDraggedWidget(name); }, 320);
+        touchDrag.current = item;
+      },
+      onTouchMove: (event: React.TouchEvent) => {
+        const item = touchDrag.current;
+        if (!item) return;
+        const touch = event.touches[0];
+        if (item.ready) { event.preventDefault(); return; }
+        if (Math.hypot(touch.clientX - item.x, touch.clientY - item.y) > 9) { if (item.timer) clearTimeout(item.timer); touchDrag.current = null; }
+      },
+      onTouchEnd: (event: React.TouchEvent) => {
+        const item = touchDrag.current;
+        if (!item) return;
+        if (item.timer) clearTimeout(item.timer);
+        const touch = event.changedTouches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY) as HTMLElement | null;
+        if (item.ready && target?.closest(".gest-widget-trash")) saveHomeWidgets(homeWidgets.filter((entry) => entry !== item.name));
+        else if (item.ready) { const slot = target?.closest<HTMLElement>("[data-widget-name]"); if (slot?.dataset.widgetName) reorderWidget(item.name, slot.dataset.widgetName); }
+        touchDrag.current = null;
+        setDraggedWidget(null);
+      },
+    };
+    if (type === "gauge") return <div className={`gest-custom-widget-slot widget-chart ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><RevenueGoalGaugePreview current={68000} target={100000} change={8.4} /><WidgetControls name={name} defaultRows={defaultRows} /></div>;
+    if (type === "line") {
+      return <div className={`gest-custom-widget-slot widget-chart ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><LineChartMetricCardPreview label={name} value={numericValue} valuePrefix={isMoney ? "R$ " : ""} change={change} onAction={() => setActive(item.view)} /><WidgetControls name={name} defaultRows={defaultRows} /></div>;
+    }
+    if (type === "columns") {
+      const data = Array.from({ length: 8 }, (_, month) => ({ month: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago"][month], value: month === 7 ? numericValue : month === 6 ? Math.round(numericValue / (1 + change / 100)) : Math.round(numericValue * (0.68 + (((month * 7 + index * 3) % 11) / 25))) }));
+      return <div className={`gest-custom-widget-slot widget-chart ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><MonthlyColumnChartPreview label={name} data={data} changeOverride={change} isCurrency={isMoney} goodWhenDown={name.includes("Custos") || name.includes("Despesas")} onAction={() => setActive(item.view)} /><WidgetControls name={name} defaultRows={defaultRows} /></div>;
+    }
+    if (type === "donut") { const previous = numericValue / (1 + change / 100); const share = Math.max(5, Math.min(95, numericValue / (numericValue + previous) * 100)); return <div className={`gest-custom-widget-slot widget-chart ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><article className="lab-analytics-card gest-widget-donut"><header>{name}</header><div className="gest-widget-donut-body"><i style={{ background: `conic-gradient(#69b8df 0 ${share}%,#dfebf4 ${share}% 100%)` }} /><span><strong>{isMoney ? `R$ ${numericValue.toLocaleString("pt-BR")}` : numericValue.toLocaleString("pt-BR")}</strong><small className="gest-widget-donut-change">{change >= 0 ? "+" : "−"}{Math.abs(change).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% · mês anterior</small></span></div></article><WidgetControls name={name} defaultRows={defaultRows} /></div>; }
+    return <div className={`gest-custom-widget-slot widget-metric ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><InformativeMetricCardPreview title={name} value={isMoney ? `R$ ${numericValue.toLocaleString("pt-BR")}` : numericValue.toLocaleString("pt-BR")} change={typeof item.change === "number" ? `${item.change >= 0 ? "+" : ""}${item.change.toLocaleString("pt-BR")}%` : String(item.change).replace("−", "-")} tone={item.tone} icon={item.icon} /><WidgetControls name={name} defaultRows={defaultRows} /></div>;
+  };
+  const recommendations: Array<[string, string, string, View, CardTone, string]> = [
+    ["Seu faturamento perdeu ritmo", "Você pode fechar 12% abaixo da meta. Reativar 18 clientes pode recuperar até R$ 14.600.", "Preparar campanha", "CRM", "rose", "CRÍTICO"],
+    ["Dia das Mães está a 24 dias", "Comece a campanha esta semana para aproveitar o período.", "Criar planejamento", "Agenda", "amber", "SAZONAL"],
+    ["7 pacientes ainda não confirmaram amanhã", "R$ 2.850 da agenda depende dessas confirmações.", "Enviar lembretes", "Agenda", "violet", "AGENDA"],
+    ["Seu estoque está saudável", "Você tem cobertura para os próximos 18 dias. Nenhuma compra urgente.", "Ver estoque", "Estoque", "teal", "POSITIVO"],
   ];
   return (
     <section className="gest-ai-home">
-      <small className="gest-home-date">QUINTA-FEIRA, 13 DE AGOSTO</small>
+      <div className="gest-home-heading">
+        <h1 className="gest-home-greeting">{homeGreeting}, Mariana.</h1>
+        <small className="gest-home-heading-date">{homeDate}</small>
+      </div>
       <section className="gest-ai-command">
-        <header>
-          <span className="gest-ai-label"><Sparkles size={15} /> Gest IA</span>
-          <h1>Bom dia, Marina.</h1>
-          <p>Analisei seu negócio e encontrei 4 pontos que merecem atenção.</p>
-        </header>
-        <h2>O que eu faria agora</h2>
-        <div className="gest-ai-recommendations">
-          {recommendations.map(([title, detail, action, view, tone], index) => (
-            <article className={tone} key={title}>
-              <small>{index === 0 ? "Crítico" : index === 1 ? "Sazonal" : index === 2 ? "Agenda" : "Positivo"}</small>
-              <strong>{title}</strong>
-              <p>{detail}</p>
-              <button onClick={() => setActive(view)}>{action}</button>
-            </article>
-          ))}
+        <div className="gest-insights-heading">
+          <h2>O que eu faria agora</h2>
+          <button className="gest-all-insights" onClick={() => setActive("Assistente")}>Ver todos os insights <span>→</span></button>
         </div>
-        <button className="gest-all-insights" onClick={() => setActive("Assistente")}>Ver todos os insights <span>→</span></button>
-        <form className="gest-ai-question" onSubmit={(event) => { event.preventDefault(); if (question.trim()) setActive("Assistente"); }}>
-          <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Pergunte qualquer coisa sobre o seu negócio..." />
-          <button type="submit" aria-label="Enviar pergunta">→</button>
+        <div className="home-ai-analysis">
+          <div className="home-ai-thinking-layer" aria-live="polite">
+            <AiThinkingPreview />
+          </div>
+          <div className="gest-ai-recommendations home-insight-grid">
+            {recommendations.map(([title, detail, action, view, tone, classification]) => (
+              <InsightActionCardPreview
+                key={title}
+                tone={tone}
+                classification={classification}
+                title={title}
+                description={detail}
+                action={action}
+                onAction={() => setActive(view)}
+              />
+            ))}
+          </div>
+        </div>
+        <form className="lab-search-form gest-ai-question" onSubmit={(event) => { event.preventDefault(); if (question.trim()) setActive("Assistente"); }}>
+          <span className="gest-ai-question-brand"><Sparkles size={13} /> Gest IA</span>
+          <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Pergunte qualquer coisa ao Gest IA sobre o seu negócio..." />
+          <button className="visible" type="submit" aria-label="Enviar pergunta">→</button>
         </form>
       </section>
 
       <div className="gest-today-grid">
-        <TodayTimeline setActive={setActive} />
+        <TimelinePreview onOpenAgenda={() => setActive("Agenda")} onOpenClinical={onOpenClinical} />
         <section className="gest-pending-panel">
           <h2>Pendências do dia</h2>
           {[
@@ -689,24 +986,20 @@ function HomeView({ setActive }: { setActive: (view: View) => void }) {
         </section>
       </div>
 
-      <div className="gest-home-summary">
-        <section>
-          <h2>Negócio agora</h2>
-          <div>{[
-            ["Receita hoje", "R$ 82.450", CircleDollarSign, "Financeiro"],
-            ["Resultado hoje", "R$ 31.280", WalletCards, "Financeiro"],
-            ["Vendas este mês", "68% da meta", ShoppingCart, "Vendas"],
-            ["Ticket médio", "R$ 245", TrendingUp, "Relatórios"],
-          ].map(([label, value, Icon, view]) => {
-            const SummaryIcon = Icon as LucideIcon;
-            return <button className="gest-summary-link" key={label as string} onClick={() => setActive(view as View)}><i><SummaryIcon size={17} /></i><span><small>{label as string}</small><strong>{value as string}</strong></span><ChevronRight size={15} /></button>;
-          })}</div>
-        </section>
-        <section>
-          <header><h2>Movimento recente</h2><button onClick={() => setActive("Relatórios")}>Ver visão completa →</button></header>
-          <div>{[["Venda concluída", "Bella Modas · Há 1h"], ["Pagamento recebido", "R$ 3.250 · Há 3h"], ["Novo cliente", "Studio Aurora · Há 5h"]].map(([label, detail]) => <article key={label}><strong>{label}</strong><small>{detail}</small></article>)}</div>
-        </section>
-      </div>
+      <section className="gest-home-analytics">
+        <header>
+          <h2>Dados do meu negócio</h2>
+          <button type="button" onClick={() => setActive("Relatórios")}>Ver visão completa →</button>
+        </header>
+        <div className="gest-custom-widgets gest-dashboard-grid" aria-label="Indicadores do negócio">
+          {homeWidgets.map(renderHomeWidget)}
+          <div className="gest-widget-picker">
+            <button type="button" className="gest-widget-add" aria-label="Adicionar indicador à tela inicial" aria-expanded={widgetPickerOpen} onClick={() => setWidgetPickerOpen((value) => !value)}><Plus size={24} /><span>Indicador</span></button>
+            {widgetPickerOpen ? <div className="gest-widget-menu">{widgetCatalog.filter(({ name }) => !homeWidgets.includes(name)).map(({ name, type }) => <button type="button" key={name} onClick={() => { saveHomeWidgets([...homeWidgets, name]); setWidgetPickerOpen(false); }}><i>{type === "line" ? <LineChart size={15} /> : <Grid2X2 size={15} />}</i>{name}</button>)}</div> : null}
+          </div>
+        </div>
+        {draggedWidget ? <div className="gest-widget-trash" role="button" aria-label={`Solte aqui para remover ${draggedWidget}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); saveHomeWidgets(homeWidgets.filter((entry) => entry !== draggedWidget)); setDraggedWidget(null); showAppToast("Indicador removido."); }}><Trash2 size={20} />Solte para remover</div> : null}
+      </section>
     </section>
   );
 }
@@ -1393,7 +1686,7 @@ function DetailView({ setActive }: { setActive: (view: View) => void }) {
           </button>
         ))}
       </nav>
-      <section className="v2-metrics detail-metrics">
+      <section className="v2-metrics detail-metrics client-overview-metrics">
         <Metric
           label="Saldo em aberto"
           value="R$ 8.430,20"
@@ -1599,93 +1892,129 @@ function SettingsView({
   setDark,
   sidebarColor,
   setSidebarColor,
+  appScale,
+  setAppScale,
+  initialTab = "Negócio",
 }: {
   dark: boolean;
   setDark: (value: boolean) => void;
   sidebarColor: string;
   setSidebarColor: (value: string) => void;
+  appScale: number;
+  setAppScale: (value: number) => void;
+  initialTab?: string;
 }) {
-  const [tab, setTab] = useState("Negócio");
+  const initialBusiness = {
+  // Dados de demonstração; a empresa real é definida pelo vínculo autenticado.
+    name: "Demonstração Serviços Automotivos Ltda.",
+    email: "contato@demonstracaoservicos.com.br",
+    address: "Rua das Oficinas, 500",
+    document: "29.123.456/0001-78",
+    neighborhood: "Vila Operária",
+    phone: "+55 (11) 98765-4321",
+    cep: "03177-000",
+    city: "São Paulo",
+    state: "SP",
+  };
+  const [settingsTabValue, setTab] = useState(initialTab);
+  const [clinicalLetterhead,setClinicalLetterhead]=useState(emptyLetterhead);
+  const access = useAccess();
+  const tab = access.manage || ["Conta", "Aparência"].includes(settingsTabValue) ? settingsTabValue : "Conta";
+  useEffect(() => setTab(initialTab), [initialTab]);
+  const [notice, setNotice] = useState("");
+  const [business, setBusiness] = useState(initialBusiness);
+  const [savedBusiness, setSavedBusiness] = useState(initialBusiness);
+  const [logoName, setLogoName] = useState("Demonstração Serviços Automotivos");
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [salesIntegration, setSalesIntegration] = useState(true);
+  const [calendarIntegration, setCalendarIntegration] = useState(false);
   const stats = [
-    [Crown, "Plano atual", "Standard", "Teste grátis de 30 dias", "orange"],
-    [
-      CalendarClock,
-      "Dias restantes do teste",
-      "23 dias",
-      "Expira em 18/06/2025",
-      "green",
-    ],
-    [Users, "Usuários utilizados", "3 / 10", "30% de utilização", "blue"],
-    [
-      UserRound,
-      "Clientes utilizados",
-      "1.248 / 5.000",
-      "25% de utilização",
-      "green",
-    ],
-    [
-      Package,
-      "Produtos/serviços utilizados",
-      "230 / 2.000",
-      "12% de utilização",
-      "purple",
-    ],
-    [
-      CircleDollarSign,
-      "Vendas mensais utilizadas",
-      "R$ 24.680,50",
-      "24,68% de utilização",
-      "orange",
-    ],
+    [Crown, "Plano atual", "Standard", "23 dias de teste", "amber"],
+    [Users, "Usuários", "3 de 10", "30% da capacidade", "blue"],
+    [UserRound, "Clientes", "1.248", "25% da capacidade", "teal"],
+    [Package, "Catálogo", "230 itens", "12% da capacidade", "violet"],
   ] as const;
   const tabs = [
     [BriefcaseBusiness, "Negócio"],
+    [FileText, "Documentos clínicos"],
     [Palette, "Aparência"],
     [UserRound, "Conta"],
+    [Users, "Usuários e acessos"],
     [Crown, "Plano"],
     [CheckCircle2, "Segurança"],
     [Settings, "Integrações"],
+    [Database, "Dados"],
   ] as const;
+  const notify = (message: string) => {
+    setNotice(message);
+    window.setTimeout(() => setNotice(""), 2600);
+  };
+  useEffect(() => {
+    const storedBusiness = appStorage.getItem("gest-business-settings");
+    if (!storedBusiness) return;
+    try {
+      const stored = JSON.parse(storedBusiness);
+      const parsedBusiness = { ...initialBusiness, ...Object.fromEntries(Object.entries(stored ?? {}).filter(([key, value]) => key in initialBusiness && typeof value === "string")) };
+      setBusiness(parsedBusiness);
+      setSavedBusiness(parsedBusiness);
+    } catch {
+      appStorage.removeItem("gest-business-settings");
+    }
+  }, []);
+  const updateBusiness = (field: keyof typeof business, value: string) => {
+    setBusiness((current) => ({ ...current, [field]: value }));
+  };
+  const saveBusiness = () => {
+    appStorage.setItem("gest-business-settings", JSON.stringify(business));
+    setSavedBusiness(business);
+    notify("Alterações salvas com sucesso.");
+  };
+  const cancelBusinessChanges = () => {
+    setBusiness(savedBusiness);
+    notify("Alterações restauradas.");
+  };
+  const resetLocalGestData = () => {
+    if (!window.confirm("Limpar os dados personalizados e as preferências do GEST salvos neste navegador?")) return;
+    if (window.prompt('Digite ZERAR para confirmar a limpeza local:') !== "ZERAR") return;
+    appStorage.clearNamespace();
+    window.location.reload();
+  };
+  const Toggle = ({ label, detail, checked, onChange }: { label: string; detail: string; checked: boolean; onChange: (value: boolean) => void }) => (
+    <button type="button" className="settings-toggle" onClick={() => onChange(!checked)}>
+      <span><b>{label}</b><small>{detail}</small></span>
+      <i className={checked ? "switch on" : "switch"}><em /></i>
+    </button>
+  );
   return (
-    <>
-      <PageIntro
+    <section className="settings-modern">
+      <StandardModuleTop
         title="Configurações"
-        subtitle="Gerencie as informações do seu negócio, conta e preferências da plataforma."
-      />
-      <section className="v2-settings-stats">
-        {stats.map(([Icon, label, value, detail, tone]) => (
-          <article className="v2-card" key={label}>
-            <i className={tone}>
-              <Icon size={17} />
-            </i>
-            <span>{label}</span>
-            <strong>{value}</strong>
-            <small>{detail}</small>
-          </article>
+        help="Gerencie as informações do negócio, sua conta e as preferências da plataforma."
+      >
+        {(access.manage ? stats : []).map(([Icon, label, value, detail, tone]) => (
+          <InformativeMetricCardPreview key={label} title={label} value={value} change={detail} tone={tone} icon={Icon} />
         ))}
-      </section>
-      <nav className="v2-settings-tabs">
-        {tabs.map(([Icon, label]) => (
+      </StandardModuleTop>
+      <ScrollableTabBar className="v2-settings-tabs settings-modern-tabs" label="Seções de configurações">
+        {tabs.filter(([, label]) => access.manage || ["Conta", "Aparência"].includes(label)).map(([Icon, label]) => (
           <button
             key={label}
             className={tab === label ? "active" : ""}
             onClick={() => setTab(label)}
           >
-            <Icon size={14} />　{label}
+            <Icon size={15} />{label}
           </button>
         ))}
-      </nav>
-      {tab === "Aparência" ? (
-        <section className="gest-appearance-settings v2-card">
-          <header>
-            <div>
-              <h2>Aparência do aplicativo</h2>
-              <p>Personalize a cor da navegação e escolha entre modo claro e escuro.</p>
-            </div>
-            <Palette size={24} />
+      </ScrollableTabBar>
+      {tab === "Documentos clínicos" && access.manage ? <ClinicalLetterhead businessId={access.member?.businessId??"demo"} value={clinicalLetterhead} onChange={setClinicalLetterhead}/> : tab === "Usuários e acessos" && access.manage ? <AccessSettings /> : tab === "Aparência" ? (
+        <section className="gest-appearance-settings settings-section-card v2-card">
+          <header className="settings-section-head">
+            <div><small>PERSONALIZAÇÃO</small><h2>Aparência do aplicativo</h2></div>
+            <Palette size={21} />
           </header>
+          <p>Personalize a cor da navegação e escolha entre modo claro e escuro.</p>
           <div className="gest-appearance-grid">
-            <div>
+            <div className="settings-appearance-group">
               <h3>Cor da barra lateral</h3>
               <p>A alteração fica salva neste dispositivo.</p>
               <div className="gest-color-options">
@@ -1718,10 +2047,19 @@ function SettingsView({
                 </label>
               </div>
             </div>
-            <div>
+            <div className="settings-appearance-group gest-scale-setting">
+              <h3>Tamanho da interface</h3>
+              <p>Aumente ou diminua todo o aplicativo.</p>
+              <div className="gest-scale-control" role="group" aria-label="Tamanho da interface">
+                <button type="button" onClick={() => setAppScale(Math.max(75, appScale - 5))} disabled={appScale <= 75} aria-label="Diminuir tamanho da interface"><ZoomOut size={19} /></button>
+                <span><b>{appScale}%</b><small>Tamanho atual</small></span>
+                <button type="button" onClick={() => setAppScale(Math.min(125, appScale + 5))} disabled={appScale >= 125} aria-label="Aumentar tamanho da interface"><ZoomIn size={19} /></button>
+              </div>
+            </div>
+            <div className="settings-appearance-group">
               <h3>Tema da interface</h3>
               <p>Altere o contraste de toda a área de trabalho.</p>
-              <button className="gest-theme-setting" onClick={() => setDark(!dark)}>
+              <button className="gest-theme-setting" onClick={() => { setDark(!dark); notify(`Modo ${dark ? "claro" : "escuro"} ativado.`); }}>
                 <span>{dark ? <Moon size={20} /> : <Sun size={20} />}<b>{dark ? "Modo escuro" : "Modo claro"}</b></span>
                 <i className={dark ? "switch on" : "switch"}><em /></i>
               </button>
@@ -1731,94 +2069,92 @@ function SettingsView({
             <b>gest.</b><span>Prévia da barra lateral</span>
           </aside>
         </section>
-      ) : (
-      <div className="v2-settings-layout">
-        <article className="v2-card v2-business-form">
-          <h2>Informações do negócio</h2>
+      ) : tab === "Negócio" ? (
+        <article className="v2-card v2-business-form settings-section-card">
+          <header className="settings-section-head"><div><small>CADASTRO DO NEGÓCIO</small><h2>Informações do negócio</h2></div><BriefcaseBusiness size={21} /></header>
           <p>
             Atualize os dados principais da sua empresa. Essas informações serão
             utilizadas em documentos, propostas e comunicados.
           </p>
-          <div className="v2-form-grid">
-            <label>
-              Nome do negócio
-              <input defaultValue="Demonstração Serviços Automotivos Ltda." />
+          <div className="settings-business-grid">
+            <label className="settings-form-field">
+              <BriefcaseBusiness size={18} />
+              <span><small>Nome do negócio</small><input value={business.name} onChange={(event) => updateBusiness("name", event.target.value)} /></span>
             </label>
-            <label className="logo-field">
-              Logo do negócio
-              <div>
-                <i>
-                  <Wrench size={18} />
-                </i>
-                <b>Demonstração</b>
-                <small>Serviços Automotivos</small>
-                <button>Alterar logo</button>
-              </div>
+            <div className="settings-form-field settings-logo-field">
+              <Wrench size={18} />
+              <span><small>Logo do negócio</small><strong>{logoName}</strong></span>
+              <input
+                ref={logoInputRef}
+                className="settings-logo-input"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  setLogoName(file.name);
+                  notify("Nova logo selecionada.");
+                }}
+              />
+              <button type="button" onClick={() => logoInputRef.current?.click()}>Alterar logo</button>
+            </div>
+            <label className="settings-form-field">
+              <MessageCircle size={18} />
+              <span><small>E-mail</small><input type="email" value={business.email} onChange={(event) => updateBusiness("email", event.target.value)} /></span>
             </label>
-            <label>
-              E-mail
-              <input defaultValue="contato@demonstracaoservicos.com.br" />
+            <label className="settings-form-field">
+              <Home size={18} />
+              <span><small>Endereço</small><input value={business.address} onChange={(event) => updateBusiness("address", event.target.value)} /></span>
             </label>
-            <label>
-              Endereço
-              <input defaultValue="Rua das Oficinas, 500" />
+            <label className="settings-form-field">
+              <FileText size={18} />
+              <span><small>CPF/CNPJ</small><input value={business.document} onChange={(event) => updateBusiness("document", event.target.value)} /></span>
             </label>
-            <label>
-              CPF/CNPJ
-              <input defaultValue="29.123.456/0001-78" />
+            <label className="settings-form-field">
+              <Home size={18} />
+              <span><small>Bairro</small><input value={business.neighborhood} onChange={(event) => updateBusiness("neighborhood", event.target.value)} /></span>
             </label>
-            <label>
-              {" "}
-              Bairro
-              <input defaultValue="Vila Operária" />
+            <label className="settings-form-field">
+              <UserRound size={18} />
+              <span><small>Telefone</small><input value={business.phone} onChange={(event) => updateBusiness("phone", event.target.value)} /></span>
             </label>
-            <label>
-              Telefone
-              <input defaultValue="🇧🇷　+55 (11) 98765-4321" />
+            <label className="settings-form-field">
+              <Home size={18} />
+              <span><small>CEP</small><input value={business.cep} onChange={(event) => updateBusiness("cep", event.target.value)} /></span>
             </label>
-            <label>
-              CEP
-              <input defaultValue="03177-000" />
+            <label className="settings-form-field">
+              <Home size={18} />
+              <span><small>Cidade</small><input value={business.city} onChange={(event) => updateBusiness("city", event.target.value)} /></span>
             </label>
-            <label>
-              Cidade
-              <input defaultValue="São Paulo" />
-            </label>
-            <label>
-              Estado
-              <select>
-                <option>SP</option>
-              </select>
-            </label>
+            <div className="settings-form-field settings-select-field">
+              <Settings size={18} />
+              <ClientSelect compact label="Estado" value={business.state} onChange={(value) => updateBusiness("state", value)} options={["SP", "RJ", "MG", "AM"]} />
+            </div>
           </div>
-          <footer>
-            <button className="v2-primary">Salvar alterações</button>
-            <button>Cancelar</button>
+          <footer className="settings-form-actions">
+            <button type="button" onClick={cancelBusinessChanges}>Cancelar</button>
+            <button type="button" className="primary" onClick={saveBusiness}><CheckCircle2 size={15} />Salvar alterações</button>
           </footer>
+          {notice && <div className="settings-save-confirmation" role="status"><CheckCircle2 size={15} />{notice}</div>}
         </article>
-        <aside>
-          <article className="v2-card v2-plan-card">
-            <small>Teste grátis</small>
-            <h2>
-              <Crown size={18} /> Standard
-            </h2>
-            <p>Ideal para empresas em crescimento.</p>
-            {[
-              "Até 10 usuários",
-              "Até 5.000 clientes",
-              "Até 2.000 produtos/serviços",
-              "Relatórios avançados",
-              "Suporte por e-mail",
-            ].map((x) => (
-              <span key={x}>✓　{x}</span>
-            ))}
-            <button>Upgrade de plano</button>
-          </article>
-          <AccountActions />
-        </aside>
-      </div>
+      ) : tab === "Conta" ? (
+        <section className="settings-content-grid">
+          <article className="v2-card settings-section-card settings-profile-card"><header className="settings-section-head"><div><small>CONTA PRINCIPAL</small><h2>Perfil e notificações</h2></div><UserRound size={21} /></header><div className="settings-profile-summary"><i>{access.member?.name.split(" ").slice(0,2).map((part) => part[0]).join("")}</i><span><b>{access.member?.name}</b><small>{access.member?.email}</small></span><button type="button" onClick={() => notify("Os dados abaixo correspondem ao seu perfil de acesso.")}>Editar perfil</button></div><div className="settings-form-grid"><label>Nome completo<input defaultValue={access.member?.name} /></label><label>E-mail de acesso<input defaultValue={access.member?.email} /></label></div><Toggle label="Resumo por e-mail" detail="Receba um resumo semanal com os principais indicadores." checked={salesIntegration} onChange={setSalesIntegration} /><footer><button className="v2-primary" onClick={() => notify("A gravação do perfil deve ser conectada ao Supabase antes do uso real.")}><CheckCircle2 size={15} />Salvar conta</button></footer></article>
+          <article className="v2-card settings-section-card settings-side-card"><small>ACESSOS</small><h2>Sessão atual</h2><p>Você está usando este dispositivo agora.</p><span className="settings-status">● Sessão neste dispositivo</span><button type="button" onClick={() => notify("Use Sair no menu da conta para encerrar a sessão deste dispositivo.")}>Gerenciar sessões</button></article>
+        </section>
+      ) : tab === "Plano" ? (
+        <section className="settings-content-grid"><article className="v2-card settings-section-card settings-plan-modern"><header className="settings-section-head"><div><small>PLANO ATUAL</small><h2><Crown size={19} />Standard</h2></div><span>Teste grátis</span></header><p>Ideal para empresas em crescimento, com recursos completos para gestão.</p><div>{["Até 10 usuários", "Até 5.000 clientes", "Até 2.000 produtos ou serviços", "Relatórios avançados", "Suporte por e-mail"].map((item) => <span key={item}><CheckCircle2 size={15} />{item}</span>)}</div><footer><button className="v2-primary" onClick={() => notify("Opções de upgrade preparadas.")}>Ver planos e upgrade</button></footer></article><article className="v2-card settings-section-card settings-side-card"><small>USO DO PLANO</small><h2>Capacidade atual</h2><div className="settings-usage"><span>Usuários <b>3 / 10</b><i><em style={{ width: "30%" }} /></i></span><span>Clientes <b>1.248 / 5.000</b><i><em style={{ width: "25%" }} /></i></span><span>Catálogo <b>230 / 2.000</b><i><em style={{ width: "12%" }} /></i></span></div></article></section>
+      ) : tab === "Segurança" ? (
+        <section className="settings-content-grid"><article className="v2-card settings-section-card"><header className="settings-section-head"><div><small>PROTEÇÃO DA CONTA</small><h2>Segurança e acesso</h2></div><CheckCircle2 size={21} /></header><p>A autenticação em duas etapas exige configuração e validação pelo provedor de acesso. Não está ativada nesta versão.</p><a className="lab-create-activity" href="/entrar">Gerenciar acesso e recuperação de senha</a></article><article className="v2-card settings-section-card settings-side-card"><small>AMBIENTE</small><h2>{access.mode === "demo" ? "Demonstração local" : "Autenticação Supabase"}</h2><p>{access.mode === "demo" ? "Não utilize informações reais de clientes neste ambiente. Os perfis locais servem para testar os acessos." : "As permissões são carregadas do empreendimento vinculado à sua conta."}</p></article></section>
+      ) : tab === "Dados" ? (
+        <section className="settings-content-grid">
+          <article className="v2-card settings-section-card settings-data-reset-card"><header className="settings-section-head"><div><small>PREPARAÇÃO PARA NOVO CLIENTE</small><h2>Limpar dados salvos neste navegador</h2></div><Database size={21} /></header><p>Remove configurações do negócio, organização de documentos, indicadores personalizados e outras preferências locais do GEST neste navegador. A ação exige confirmação digitada.</p><button type="button" className="settings-reset-button" onClick={resetLocalGestData}><Trash2 size={16} />Limpar dados locais</button><small className="settings-reset-note">Esta prévia guarda dados apenas no navegador. Informações demonstrativas incorporadas às telas voltam ao recarregar; a limpeza completa da base de um cliente será configurada quando houver armazenamento real.</small></article>
+          <article className="v2-card settings-section-card settings-side-card"><small>ESCOPO ATUAL</small><h2>Dados locais da prévia</h2><p>A limpeza afeta somente chaves do GEST neste navegador e não altera outros sites.</p></article>
+        </section>
+      ) : (
+        <section className="settings-content-grid"><article className="v2-card settings-section-card"><header className="settings-section-head"><div><small>CONEXÕES</small><h2>Integrações do Gest</h2></div><Settings size={21} /></header><Toggle label="Vendas integradas" detail="Envie vendas concluídas automaticamente ao Financeiro." checked={salesIntegration} onChange={setSalesIntegration} /><Toggle label="Agenda externa" detail="Sincronize a agenda do Gest com seu calendário." checked={calendarIntegration} onChange={setCalendarIntegration} /></article><article className="v2-card settings-section-card settings-side-card"><small>INTEGRAÇÕES ATIVAS</small><h2>{salesIntegration ? "1 conexão ativa" : "Nenhuma conexão ativa"}</h2><p>Você pode ativar ou desativar integrações a qualquer momento.</p><button type="button" onClick={() => notify("Integrações atualizadas.")}>Salvar integrações</button></article></section>
       )}
-    </>
+    </section>
   );
 }
 
@@ -1838,8 +2174,8 @@ const modules: Record<
     subtitle: "Controle pedidos, pagamentos, comprovantes e recebimentos.",
     label: "Nova venda",
     metrics: [
-      ["Total vendido", "R$ 82.450", "no mês", "blue"],
-      ["Vendas abertas", "18", "em andamento", "orange"],
+      ["Total vendido", "R$ 82.450", "no mês", "green"],
+      ["Vendas abertas", "18", "em andamento", "blue"],
       ["Pendentes", "R$ 21.200", "a receber", "orange"],
       ["Canceladas", "3", "este mês", "red"],
     ],
@@ -1871,40 +2207,14 @@ const modules: Record<
       "Organize produtos e serviços, preços, categorias e disponibilidade.",
     label: "Novo item",
     metrics: [
-      ["Itens cadastrados", "230", "produtos e serviços", "blue"],
+      ["Itens cadastrados", "230", "produtos e serviços", "gray"],
       ["Ativos", "215", "disponíveis para venda", "green"],
       ["Estoque baixo", "12", "precisam de reposição", "orange"],
       ["Valor do catálogo", "R$ 96.300", "valor estimado", "blue"],
     ],
     filters: ["Tipo", "Status"],
     tabs: ["Dados", "Preço", "Estoque", "Histórico", "Categorias"],
-    rows: [
-      [
-        "230",
-        "Consultoria estratégica",
-        "Serviço",
-        "16 jul 2026",
-        "R$ 1.800",
-        "Ativo",
-      ],
-      ["229", "Shampoo premium", "Produto", "14 jul 2026", "R$ 89", "Ativo"],
-      [
-        "228",
-        "Manutenção preventiva",
-        "Serviço",
-        "10 jul 2026",
-        "R$ 420",
-        "Ativo",
-      ],
-      [
-        "227",
-        "Kit de boas-vindas",
-        "Produto",
-        "08 jul 2026",
-        "R$ 150",
-        "Inativo",
-      ],
-    ],
+    rows: catalogDefaults,
   },
   Financeiro: {
     subtitle:
@@ -1951,10 +2261,10 @@ const modules: Record<
       "Centralize contratos, arquivos de clientes, vendas e documentos internos.",
     label: "Upload",
     metrics: [
-      ["Total de arquivos", "128", "no sistema", "blue"],
-      ["Vinculados a clientes", "74", "clientes e vendas", "green"],
-      ["Arquivos da empresa", "38", "sem cliente", "blue"],
-      ["Uploads recentes", "12", "nos últimos 7 dias", "green"],
+      ["Total de arquivos", "128", "no sistema", "gray"],
+      ["Vinculados a clientes", "74", "clientes e vendas", "blue"],
+      ["Arquivos da empresa", "38", "sem cliente", "gray"],
+      ["Uploads recentes", "12", "nos últimos 7 dias", "blue"],
     ],
     filters: ["Categoria", "Tipo", "Vínculo"],
     tabs: ["Dados", "Vínculos", "Histórico"],
@@ -1976,10 +2286,10 @@ const modules: Record<
   },
   Estoque: {
     subtitle: "Monitore quantidades, entradas, saídas, alertas e responsáveis.",
-    label: "Registrar movimentação",
+    label: "Adicionar produto",
     metrics: [
-      ["Produtos em estoque", "218", "itens cadastrados", "blue"],
-      ["Estoque crítico", "12", "abaixo do mínimo", "orange"],
+      ["Produtos em estoque", "218", "itens cadastrados", "gray"],
+      ["Estoque crítico", "12", "abaixo do mínimo", "red"],
       ["Valor em estoque", "R$ 41.800", "valor atual", "blue"],
       ["Entradas no mês", "56", "movimentações", "green"],
     ],
@@ -2071,7 +2381,7 @@ const modules: Record<
     metrics: [
       ["Insights ativos", "12", "recomendações atuais", "blue"],
       ["Oportunidades", "5", "potenciais identificados", "green"],
-      ["Riscos", "3", "precisam de atenção", "orange"],
+      ["Riscos", "3", "precisam de atenção", "red"],
       ["Impacto estimado", "R$ 12.400", "em oportunidades", "green"],
     ],
     filters: ["Área", "Impacto", "Status"],
@@ -2109,7 +2419,7 @@ const modules: Record<
       "Gerencie equipamentos, custos, manutenções programadas e alertas.",
     label: "Novo equipamento",
     metrics: [
-      ["Equipamentos", "42", "cadastrados", "blue"],
+      ["Equipamentos", "42", "cadastrados", "gray"],
       ["Próximas manutenções", "6", "nos próximos 30 dias", "orange"],
       ["Custo no mês", "R$ 5.820", "despesa de manutenção", "orange"],
       ["Em dia", "36", "equipamentos revisados", "green"],
@@ -2155,8 +2465,8 @@ const modules: Record<
     subtitle: "Organize membros, cargos, permissões e acessos ao sistema.",
     label: "Adicionar membro",
     metrics: [
-      ["Usuários utilizados", "3 / 10", "30% do plano", "blue"],
-      ["Administradores", "1", "com acesso total", "blue"],
+      ["Usuários utilizados", "3 / 10", "30% do plano", "gray"],
+      ["Administradores", "1", "com acesso total", "gray"],
       ["Membros ativos", "3", "na equipe", "green"],
       ["Convites pendentes", "1", "aguardando aceite", "orange"],
     ],
@@ -2179,10 +2489,10 @@ const modules: Record<
     subtitle: "Calcule preços sustentáveis para produtos e serviços.",
     label: "Nova precificação",
     metrics: [
-      ["Itens precificados", "86", "produtos e serviços", "blue"],
+      ["Itens precificados", "86", "produtos e serviços", "gray"],
       ["Margem média", "41%", "carteira atual", "green"],
       ["A revisar", "7", "custos desatualizados", "orange"],
-      ["Última atualização", "Hoje", "às 09:20", "blue"],
+      ["Última atualização", "Hoje", "às 09:20", "gray"],
     ],
     filters: ["Tipo", "Status"],
     tabs: ["Custos", "Impostos", "Margem", "Preço sugerido", "Histórico"],
@@ -2194,7 +2504,7 @@ Object.assign(modules, {
   Tarefas: {
     subtitle: "Organize pendências, responsáveis e prazos da equipe.",
     label: "Nova tarefa",
-    metrics: [["Tarefas abertas", "18", "5 para hoje", "blue"], ["Atrasadas", "3", "precisam de atenção", "orange"], ["Concluídas", "42", "neste mês", "green"], ["Responsáveis", "6", "com tarefas ativas", "blue"]],
+    metrics: [["Tarefas abertas", "18", "5 para hoje", "blue"], ["Atrasadas", "3", "precisam de atenção", "red"], ["Concluídas", "42", "neste mês", "green"], ["Responsáveis", "6", "com tarefas ativas", "gray"]],
     filters: ["Status", "Prioridade", "Responsável"],
     tabs: ["Dados", "Checklist", "Comentários", "Histórico"],
     rows: [["TR-018", "Enviar proposta comercial", "Comercial", "Hoje, 14:00", "Marina", "Em andamento"], ["TR-017", "Validar orçamento", "Financeiro", "Hoje, 16:00", "João", "Pendente"], ["TR-016", "Repor materiais", "Operação", "Amanhã", "Carlos", "Pendente"]],
@@ -2202,13 +2512,13 @@ Object.assign(modules, {
   Projetos: {
     subtitle: "Acompanhe entregas, etapas e trabalho em equipe.",
     label: "Novo projeto",
-    metrics: [["Projetos ativos", "8", "em andamento", "blue"], ["No prazo", "6", "75% da carteira", "green"], ["Em atenção", "2", "com risco de atraso", "orange"], ["Entregas", "12", "neste mês", "blue"]],
+    metrics: [["Projetos ativos", "8", "em andamento", "blue"], ["No prazo", "6", "75% da carteira", "green"], ["Em atenção", "2", "com risco de atraso", "orange"], ["Entregas", "12", "neste mês", "gray"]],
     filters: ["Status", "Responsável"], tabs: ["Visão geral", "Tarefas", "Equipe", "Arquivos", "Histórico"],
     rows: [["PR-008", "Implantação Bella Modas", "Cliente", "18 ago 2026", "72% concluído", "Em andamento"], ["PR-007", "Expansão unidade Centro", "Interno", "25 ago 2026", "48% concluído", "Atenção"]],
   },
   Atendimento: {
     subtitle: "Centralize solicitações e acompanhe cada resolução.", label: "Novo atendimento",
-    metrics: [["Abertos", "14", "aguardando solução", "blue"], ["Urgentes", "2", "prioridade alta", "orange"], ["Resolvidos", "86", "neste mês", "green"], ["Tempo médio", "2h 18m", "até a resolução", "blue"]],
+    metrics: [["Abertos", "14", "aguardando solução", "blue"], ["Urgentes", "2", "prioridade alta", "red"], ["Resolvidos", "86", "neste mês", "green"], ["Tempo médio", "2h 18m", "até a resolução", "gray"]],
     filters: ["Status", "Canal", "Responsável"], tabs: ["Atendimento", "Cliente", "Interações", "Histórico"],
     rows: [["AT-214", "Dúvida sobre cobrança", "WhatsApp", "Hoje, 09:12", "Marina", "Em atendimento"], ["AT-213", "Alteração de serviço", "E-mail", "Ontem, 16:40", "João", "Pendente"]],
   },
@@ -2220,19 +2530,19 @@ Object.assign(modules, {
   },
   "Ordens de Serviço": {
     subtitle: "Controle execução, equipe, materiais e prazos dos serviços.", label: "Nova ordem de serviço",
-    metrics: [["Em execução", "9", "serviços ativos", "blue"], ["Atrasadas", "2", "requerem ação", "orange"], ["Concluídas", "34", "neste mês", "green"], ["Aguardando peças", "3", "ordens pausadas", "orange"]],
+    metrics: [["Em execução", "9", "serviços ativos", "blue"], ["Atrasadas", "2", "requerem ação", "red"], ["Concluídas", "34", "neste mês", "green"], ["Aguardando peças", "3", "ordens pausadas", "orange"]],
     filters: ["Status", "Responsável", "Prazo"], tabs: ["Serviço", "Cliente", "Equipe", "Materiais", "Histórico"],
     rows: [["OS-1024", "Instalação de balcão", "Instalação", "Hoje, 14:00", "João Paulo", "Em execução"], ["OS-1021", "Manutenção preventiva", "Manutenção", "Ontem", "Carlos", "Atrasada"]],
   },
   Compras: {
-    subtitle: "Planeje compras, aprovações e recebimentos.", label: "Novo pedido de compra",
-    metrics: [["Pedidos abertos", "7", "em andamento", "blue"], ["Aprovação", "2", "aguardando decisão", "orange"], ["A receber", "4", "entregas previstas", "blue"], ["Comprado no mês", "R$ 18.920", "total aprovado", "green"]],
+    subtitle: "Acompanhe preços, identifique boas oportunidades e escolha quando comprar.", label: "Acompanhar produto",
+    metrics: [["Produtos em avaliação", "0", "itens acompanhados", "blue"], ["Bom momento de compra", "0", "com sinal verde", "green"], ["Compras do mês", "R$ 18.920", "valor demonstrativo", "violet"], ["Economia estimada", "R$ 0", "0% abaixo da referência", "green"]],
     filters: ["Status", "Fornecedor", "Entrega"], tabs: ["Pedido", "Itens", "Fornecedor", "Recebimento", "Histórico"],
     rows: [["PC-087", "Reposição de materiais", "Tech Solutions", "18 ago 2026", "R$ 4.280", "Aprovado"], ["PC-086", "Produtos de limpeza", "Casa Norte", "20 ago 2026", "R$ 890", "Pendente"]],
   },
   Fornecedores: {
     subtitle: "Gerencie parceiros, condições e histórico de compras.", label: "Novo fornecedor",
-    metrics: [["Fornecedores ativos", "38", "cadastrados", "blue"], ["Compras no mês", "R$ 18.920", "valor acumulado", "green"], ["Com pendências", "3", "documentos ou entregas", "orange"], ["Categorias", "12", "grupos de fornecimento", "blue"]],
+    metrics: [["Fornecedores ativos", "38", "cadastrados", "green"], ["Compras no mês", "R$ 18.920", "valor acumulado", "blue"], ["Com pendências", "3", "documentos ou entregas", "orange"], ["Categorias", "12", "grupos de fornecimento", "gray"]],
     filters: ["Categoria", "Status"], tabs: ["Dados", "Compras", "Financeiro", "Documentos", "Histórico"],
     rows: [["FOR-038", "Tech Solutions", "Equipamentos", "12 ago 2026", "R$ 24.300", "Ativo"], ["FOR-037", "Casa Norte", "Suprimentos", "10 ago 2026", "R$ 8.950", "Ativo"]],
   },
@@ -2246,47 +2556,81 @@ modules["Clientes"] = {
   tabs: [
     "Dados",
     "Histórico",
-    "Vendas",
-    "Financeiro",
     "Documentos",
     "Observações",
   ],
   rows: clients,
 };
 
+type ClientAttachment = { name: string; type: string; date: string; url?: string };
+const sampleClientAttachments: ClientAttachment[] = [
+  { name: "Contrato_assinado.pdf", type: "Contrato", date: "23/05/2025" },
+  { name: "Comprovante_pix.pdf", type: "Comprovante", date: "12/05/2025" },
+  { name: "Proposta_comercial.pdf", type: "Proposta", date: "08/05/2025" },
+];
+
 /** Conteúdo específico do cliente: cada aba usa o formato adequado ao tipo de informação. */
-function ClientDetailContent({ tab, record }: { tab: string; record: string[] }) {
+function ClientDetailContent({ tab, record, documentStorageKey = `gest-client-documents-${record[0]}`, initialDocuments = sampleClientAttachments }: { tab: string; record: string[]; documentStorageKey?: string; initialDocuments?: ClientAttachment[] }) {
   const [observation, setObservation] = useState("Cliente com potencial para novos serviços no próximo trimestre.");
   const [clientPhoto, setClientPhoto] = useState<string | null>(null);
+  const [clientDocuments, setClientDocuments] = useState<ClientAttachment[]>(initialDocuments);
+  const [documentPreview, setDocumentPreview] = useState<ClientAttachment | null>(null);
+  const [pendingDocumentDeletion, setPendingDocumentDeletion] = useState<number | null>(null);
+  const [attachmentError, setAttachmentError] = useState("");
+  useEffect(() => { try { setObservation(appStorage.getItem(`gest-client-observation-${record[0]}`) ?? "Cliente com potencial para novos serviços no próximo trimestre."); } catch { /* Keep the sample note visible. */ } }, [record[0]]);
+  useEffect(() => { try { const stored = JSON.parse(appStorage.getItem(documentStorageKey) || "null"); setClientDocuments(Array.isArray(stored) ? stored.filter((item): item is ClientAttachment => item && typeof item.name === "string" && typeof item.type === "string" && typeof item.date === "string") : initialDocuments); } catch { setClientDocuments(initialDocuments); } }, [documentStorageKey]);
+  const saveDocuments = (next: ClientAttachment[]) => {
+    setClientDocuments(next);
+    try { appStorage.setItem(documentStorageKey, JSON.stringify(next)); } catch { /* Keep attachments available for this visit. */ }
+  };
+  const printDocument = async (document: ClientAttachment) => {
+    const frame = window.document.createElement("iframe");
+    frame.title = `Imprimir ${document.name}`;
+    frame.setAttribute("sandbox", "allow-same-origin allow-modals");
+    frame.style.cssText = "position:fixed;left:-10000px;width:800px;height:1000px;border:0";
+    frame.onload = () => { frame.contentWindow?.focus(); frame.contentWindow?.print(); };
+    let printUrl: string | undefined;
+    if (safeAttachmentUrl(document.url)) {
+      try {
+        printUrl = URL.createObjectURL(await (await fetch(document.url)).blob());
+        frame.src = printUrl;
+      } catch { setDocumentPreview(document); return; }
+    }
+    else {
+      const escapeText = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]!);
+      frame.srcdoc = `<html><head><title>${escapeText(document.name)}</title><style>body{font:16px Arial;padding:32px;color:#17243e}h1{font-size:22px}</style></head><body><h1>${escapeText(document.name)}</h1><p>${escapeText(document.type)} · ${escapeText(document.date)}</p><p>Arquivo de exemplo. Anexe o documento original para imprimir seu conteúdo.</p></body></html>`;
+    }
+    window.document.body.appendChild(frame);
+    window.setTimeout(() => { frame.remove(); if (printUrl) URL.revokeObjectURL(printUrl); }, 60_000);
+  };
   const email = `${record[1].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ".")}@email.com.br`;
+  const birthDate = record[6] ? (/^\d{4}-\d{2}-\d{2}$/.test(record[6]) ? new Date(`${record[6]}T12:00:00`).toLocaleDateString("pt-BR") : record[6]) : "Não informada";
   const history = [
-    ["23/05/2025 · 14:20", "Venda realizada", "Pedido #VND-1278 concluído no valor de R$ 3.250,00."],
-    ["21/05/2025 · 10:15", "Follow-up registrado", "Mariana Oliveira entrou em contato por WhatsApp."],
-    ["16/05/2025 · 09:40", "Documento enviado", "Contrato de prestação de serviço anexado."],
-    ["12/05/2025 · 16:00", "Pagamento recebido", "Pagamento via Pix confirmado."],
-    ["10/05/2025 · 11:30", "Cadastro atualizado", "Telefone e origem do cliente revisados."],
+    { date: "23/05/2025 · 14:20", service: "Avaliação e limpeza", reference: "#VND-1278", payment: "Crédito · Visa", installments: "2x", amount: "R$ 3.250,00", status: "Concluída" },
+    { date: "21/05/2025 · 10:15", service: "Procedimento estético", reference: "#VND-1264", payment: "Pix", installments: "À vista", amount: "R$ 12.800,00", status: "Pendente" },
+    { date: "16/05/2025 · 09:40", service: "Kit de cuidados", reference: "#VND-1258", payment: "Débito · Mastercard", installments: "À vista", amount: "R$ 420,00", status: "Concluída" },
+    { date: "12/05/2025 · 16:00", service: "Pagamento recebido", reference: "#VND-1278", payment: "Pix", installments: "À vista", amount: "R$ 3.250,00", status: "Recebido" },
+    { date: "10/05/2025 · 11:30", service: "Cadastro atualizado", reference: "Telefone e origem revisados", payment: "—", installments: "—", amount: "—", status: "Atualizado" },
   ];
-  const sales = [
-    ["#VND-1278", "23/05/2025", "R$ 3.250,00", "Concluída"],
-    ["#VND-1264", "15/05/2025", "R$ 12.800,00", "Pendente"],
-    ["#SRV-2311", "08/05/2025", "R$ 2.700,00", "Em andamento"],
-  ];
-  const documents = [
-    ["Contrato_assinado.pdf", "Contrato", "23/05/2025"],
-    ["Comprovante_pix.pdf", "Comprovante", "12/05/2025"],
-    ["Proposta_comercial.pdf", "Proposta", "08/05/2025"],
-  ];
+  const attachClientDocument = async (file?: File) => {
+    if (!file) return;
+    try { await validateAttachment(file); setAttachmentError(""); } catch (cause) { setAttachmentError(cause instanceof Error ? cause.message : "Arquivo inválido."); return; }
+    const add = (url?: string) => {
+      const next = [{ name: file.name, type: file.type || "Arquivo", date: new Date().toLocaleDateString("pt-BR"), ...(url ? { url } : {}) }, ...clientDocuments];
+      saveDocuments(next);
+    };
+    const reader = new FileReader(); reader.onload = () => add(typeof reader.result === "string" ? reader.result : undefined); reader.readAsDataURL(file);
+  };
   if (tab === "Dados") return (
-    <DetailPanel eyebrow="CLIENTES · DADOS" title="Dados do cadastro" description="Informações de contato, identificação e origem deste cliente.">
-      <section className="v2-client-photo-editor">
-        <div className="v2-client-photo-preview">
+    <DetailPanel title="Dados do cliente">
+      <section className="client-record-photo">
+        <div className="client-record-avatar">
           {clientPhoto ? <img src={clientPhoto} alt={`Foto de ${record[1]}`} /> : <UserRound size={34} strokeWidth={1.6} />}
         </div>
         <div>
-          <strong>Foto do cliente</strong>
-          <small>Use uma foto ou mantenha o ícone padrão.</small>
+          <span>Foto do cliente</span>
         </div>
-        <label>
+        <label className="lab-create-activity">
           <Edit3 size={15} /> Editar foto
           <input
             type="file"
@@ -2298,23 +2642,36 @@ function ClientDetailContent({ tab, record }: { tab: string; record: string[] })
           />
         </label>
       </section>
-      <div className="v2-detail-fields">{[["ID", record[0]], ["Nome", record[1]], ["CPF/CNPJ", record[2].includes("Jurídica") ? "27.456.789/0001-33" : "123.456.789-10"], ["E-mail", email], ["Telefone / WhatsApp", "(92) 98422-1200"], ["Endereço", "Rua das Palmeiras, 250 · Centro"], ["Origem", "Instagram · campanha de maio"], ["Último contato", record[3]]].map(([label, value]) => <DetailField key={label} label={label} value={value} />)}</div>
+      <dl className="client-record-fields">{[["Nº", record[0]], ["Nome", record[1]], ["CPF/CNPJ", record[2].includes("Jurídica") ? "27.456.789/0001-33" : "123.456.789-10"], ["E-mail", email], ["Telefone / WhatsApp", "(92) 98422-1200"], ["Data de nascimento", birthDate], ["Endereço", "Rua das Palmeiras, 250 · Centro"], ["Origem", "Instagram · campanha de maio"], ["Último contato", record[3]]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
     </DetailPanel>
   );
-  // O histórico é uma linha do tempo: evento à esquerda e data/hora sempre alinhadas à direita.
-  if (tab === "Histórico") return <DetailPanel eyebrow="CLIENTES · HISTÓRICO" title="Histórico de relacionamento" description="Eventos, movimentações e alterações registradas para este cliente."><div className="v2-detail-list v2-history-list">{history.map(([date, title, description], index) => <article key={date}><i className={`history-dot dot-${index}`} /><div><strong>{title}</strong><small>{description}</small></div><time>{date}</time></article>)}</div></DetailPanel>;
-  if (tab === "Vendas") return <DetailPanel eyebrow="CLIENTES · VENDAS" title="Vendas, pedidos e serviços" description="Operações relacionadas a este cliente." action="Registrar nova venda"><div className="v2-detail-list v2-history-list v2-timeline-list">{sales.map(([id, date, value, status], index) => <article key={id}><i className={`history-dot dot-${index}`} /><div><strong>Venda {id}</strong><small>{value} · {status}</small></div><time>{date}</time></article>)}</div></DetailPanel>;
-  if (tab === "Financeiro") return <DetailPanel eyebrow="CLIENTES · FINANCEIRO" title="Resumo financeiro" description="Pagamentos, pendências e contas a receber deste cliente." action="Registrar pagamento"><section className="v2-client-financial-summary"><DetailField label="Valores pagos" value="R$ 24.850,00" /><DetailField label="Valores pendentes" value="R$ 12.800,00" /><DetailField label="Contas a receber" value="R$ 8.400,00" /></section><div className="v2-detail-list v2-history-list v2-timeline-list"><article><i className="history-dot dot-3" /><div><strong>Pagamento recebido</strong><small>Pix · Venda #VND-1278 · R$ 3.250,00</small></div><time>23/05/2025</time></article><article><i className="history-dot dot-1" /><div><strong>Conta a receber</strong><small>Boleto · Venda #VND-1264 · R$ 12.800,00</small></div><time>15/05/2025</time></article></div></DetailPanel>;
-  if (tab === "Documentos") return <DetailPanel eyebrow="CLIENTES · DOCUMENTOS" title="Documentos do cliente" description="Arquivos enviados e vinculados a este cadastro."><div className="v2-detail-list v2-history-list v2-timeline-list">{documents.map(([name, type, date], index) => <article key={name}><i className={`history-dot dot-${index}`} /><div><strong>{name}</strong><small>{type} · enviado em {date}</small></div><time>{date}</time></article>)}</div></DetailPanel>;
-  return <DetailPanel eyebrow="CLIENTES · OBSERVAÇÕES" title="Observações" description="Notas internas sobre este cliente."><textarea className="v2-client-observation" value={observation} onChange={(event) => setObservation(event.target.value)} placeholder="Escreva uma observação sobre o cliente..." /><footer className="v2-client-observation-actions"><button className="v2-primary">Salvar observação</button></footer></DetailPanel>;
+  if (tab === "Histórico") return (
+    <DetailPanel title="Histórico">
+      <div className="client-record-table-scroll">
+        <table className="client-record-table"><thead><tr><th scope="col">Nº</th><th scope="col">Serviço / item</th><th scope="col">Data</th><th scope="col">Valor</th><th scope="col">Pagamento</th><th scope="col">Parcelas</th><th scope="col">Situação</th></tr></thead>
+          <tbody>{history.map((item, index) => <tr key={item.date}><td>{index + 1}</td><td><span>{item.service}</span><small>{item.reference}</small></td><td>{item.date}</td><td>{item.amount}</td><td>{item.payment}</td><td>{item.installments}</td><td><span className={`client-record-status${item.status === "Pendente" ? " is-pending" : ""}`}>{item.status}</span></td></tr>)}</tbody>
+        </table>
+      </div>
+    </DetailPanel>
+  );
+  if (tab === "Documentos") return <>
+    <DetailPanel title="Documentos" actions={<label className="lab-create-activity client-record-upload"><Plus size={15} />Anexar documento<input aria-label="Anexar documento" type="file" accept="application/pdf,image/png,image/jpeg,image/webp" onChange={(event) => { void attachClientDocument(event.target.files?.[0]); event.target.value = ""; }} /></label>}>
+      <div className="client-record-table-scroll">
+        <table className="client-record-table client-record-documents"><thead><tr><th scope="col">Nº</th><th scope="col">Documento</th><th scope="col">Tipo</th><th scope="col">Data</th><th scope="col">Ações</th></tr></thead>
+          <tbody>{clientDocuments.map((document, index) => <tr key={`${document.name}-${index}`}><td>{index + 1}</td><td><span className="client-record-file"><FileText size={17} />{document.name}</span></td><td>{document.type || "Arquivo"}</td><td>{document.date}</td><td><div className="client-record-document-actions"><button type="button" className="lab-create-activity" onClick={() => setDocumentPreview(document)}>Abrir</button><button type="button" className="lab-create-activity" aria-label={`Imprimir ${document.name}`} onClick={() => printDocument(document)}><Printer size={15} />Imprimir</button><button type="button" className="lab-create-activity" aria-label={`Apagar ${document.name}`} onClick={() => setPendingDocumentDeletion(index)}><Trash2 size={15} />Apagar</button></div></td></tr>)}</tbody>
+        </table>
+      </div>
+      {attachmentError ? <p role="alert">{attachmentError}</p> : null}
+      {clientDocuments.length === 0 ? <p className="client-record-empty">Nenhum documento anexado.</p> : null}
+    </DetailPanel>
+    {documentPreview ? <div className="client-document-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDocumentPreview(null); }}><section className="client-document-preview" role="dialog" aria-modal="true" aria-label={`Prévia de ${documentPreview.name}`}><header><h2>{documentPreview.name}</h2><button type="button" className="lab-create-activity" onClick={() => setDocumentPreview(null)}>Voltar</button></header>{safeAttachmentUrl(documentPreview.url) ? <iframe sandbox="allow-same-origin allow-modals" title={`Prévia de ${documentPreview.name}`} src={documentPreview.url} /> : <div><FileText size={38} /><strong>Arquivo de exemplo</strong><p>Este item ilustra um anexo do cliente. Envie o arquivo real para abrir o conteúdo nesta prévia.</p></div>}</section></div> : null}
+    {pendingDocumentDeletion !== null ? <div className="client-document-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setPendingDocumentDeletion(null); }}><section className="client-record-panel client-document-delete-dialog" role="dialog" aria-modal="true" aria-label="Apagar documento"><header><h2>Apagar documento?</h2></header><p>{clientDocuments[pendingDocumentDeletion]?.name}</p><footer className="client-record-footer"><button type="button" className="lab-create-activity" onClick={() => setPendingDocumentDeletion(null)}>Cancelar</button><button type="button" className="lab-create-activity" onClick={() => { saveDocuments(clientDocuments.filter((_, index) => index !== pendingDocumentDeletion)); setPendingDocumentDeletion(null); }}>Apagar documento</button></footer></section></div> : null}
+  </>;
+  return <DetailPanel title="Observações"><textarea className="client-record-note" aria-label="Observações do cliente" value={observation} onChange={(event) => setObservation(event.target.value)} placeholder="Escreva uma observação sobre este cliente..." /><footer className="client-record-footer"><button type="button" className="lab-create-activity" onClick={() => { try { appStorage.setItem(`gest-client-observation-${record[0]}`, observation); } catch { /* Keep the current note visible for this visit. */ } }}><CheckCircle2 size={15} />Salvar observação</button></footer></DetailPanel>;
 }
 
-function DetailField({ label, value }: { label: string; value: string }) {
-  return <article><span>{label}</span><strong>{value}</strong></article>;
-}
-
-function DetailPanel({ eyebrow, title, description, action, children }: { eyebrow: string; title: string; description: string; action?: string; children: ReactNode }) {
-  return <article className="v2-card v2-full-detail-content v2-client-detail-specific"><header><div><small>{eyebrow}</small><h2>{title}</h2><p>{description}</p></div>{action && <button className="v2-primary"><Plus size={16} />{action}</button>}</header>{children}</article>;
+function DetailPanel({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
+  return <section className="client-record-panel"><header><h2>{title}</h2>{actions}</header>{children}</section>;
 }
 
 /** Página de detalhe compartilhada: mantém o fluxo de página inteira usado em Clientes. */
@@ -2322,13 +2679,18 @@ function FullDetailView({
   view,
   record,
   onBack,
+  onOpenClinical,
 }: {
   view: string;
   record: string[];
   onBack: () => void;
+  onOpenClinical?: (record: string[]) => void;
 }) {
+  const access = useAccess();
   const config = modules[view] ?? modules["Vendas"];
   const [tab, setTab] = useState(config.tabs[0]);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const contents: Record<
     string,
     { title: string; description: string; items: [string, string][] }
@@ -2337,7 +2699,7 @@ function FullDetailView({
       title: "Dados do cadastro",
       description: "Informações principais e identificação deste registro.",
       items: [
-        ["ID", record[0]],
+        ["Nº", record[0]],
         ["Nome", record[1]],
         ["Categoria / tipo", record[2]],
         ["Status", record[5]],
@@ -2650,14 +3012,11 @@ function FullDetailView({
     ...content.items,
     ["Responsável pelo registro", "Mariana Oliveira"],
     ["Última sincronização", "Hoje, 09:20"],
-  ].slice(0, 6);
+  ].slice(0, 6).map(([label, value]) => [label, editedValues[`${tab}:${label}`] ?? value] as [string, string]);
   return (
-    <>
-      <button className="v2-back" onClick={onBack}>
-        ←　Voltar
-      </button>
+    <section className="module-detail-page">
       <div className="v2-detail-head">
-        <div>
+        <div className="detail-heading-copy">
           <h1>
             {record[1]}
             {clientRank && (
@@ -2676,24 +3035,17 @@ function FullDetailView({
           </p>
         </div>
         <div>
+          {view === "Clientes" && onOpenClinical && access.allowed("Prontuário") ? <button type="button" className="lab-create-activity" onClick={() => onOpenClinical(record)}><Heart size={16} />Abrir prontuário</button> : null}
           <button className="danger">
             <Trash2 size={17} />
             Excluir
           </button>
+          <button type="button" className="lab-create-activity detail-back-button" onClick={onBack}>
+            <ChevronLeft size={16} /> Voltar
+          </button>
         </div>
       </div>
-      <nav className="v2-tabs v2-full-tabs">
-        {config.tabs.map((item) => (
-          <button
-            key={item}
-            className={tab === item ? "active" : ""}
-            onClick={() => setTab(item)}
-          >
-            {item}
-          </button>
-        ))}
-      </nav>
-      <section className="v2-metrics detail-metrics">
+      <section className="v2-metrics detail-metrics client-overview-metrics">
         <Metric
           label="Status atual"
           value={record[5]}
@@ -2721,35 +3073,38 @@ function FullDetailView({
           tone="green"
         />
       </section>
+      <nav className="detail-category-tabs" aria-label={`Seções de ${view}`} style={{ gridTemplateColumns: `repeat(${config.tabs.length}, minmax(0, 1fr))` }}>
+          {config.tabs.map((item) => (
+            <button type="button" key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>
+          ))}
+      </nav>
       {/* Clientes possui uma ficha própria: cada aba usa o formato mais útil para sua informação. */}
       {view === "Clientes" ? (
         <ClientDetailContent tab={tab} record={record} />
+      ) : ["Documentos", "Documento", "Comprovantes", "Recibo / PDF"].includes(tab) ? (
+        <ClientDetailContent key={`${view}-${record[0]}-${tab}`} tab="Documentos" record={record} documentStorageKey={`gest-record-documents-${view}-${record[0]}-${tab}`} initialDocuments={content.items.filter(([, value]) => /\.(pdf|png|jpe?g|docx?|xlsx?)$/i.test(value)).map(([type, name]) => ({ name, type, date: record[3] }))} />
       ) : (
-      <article className="v2-card v2-full-detail-content">
-        <header>
-          <div>
-            <small>
-              {view.toUpperCase()} · {tab.toUpperCase()}
-            </small>
-            <h2>{content.title}</h2>
-            <p>{content.description}</p>
-          </div>
-          <button className="v2-primary">
+      <DetailPanel title={content.title} actions={
+          <button type="button" className="lab-create-activity" onClick={() => setEditOpen(true)}>
             <Edit3 size={16} />
             Editar {tab.toLowerCase()}
           </button>
-        </header>
-        <div>
+      }>
+        <dl className="client-record-fields">
           {detailedItems.map((item) => (
-            <article key={item[0]}>
-              <span>{item[0]}</span>
-              <strong>{item[1]}</strong>
-            </article>
+            <div key={item[0]}><dt>{item[0]}</dt><dd>{item[1]}</dd></div>
           ))}
-        </div>
-      </article>
+        </dl>
+      </DetailPanel>
       )}
-    </>
+      {editOpen ? <div className="v2-record-drawer" onMouseDown={(event) => { if (event.target === event.currentTarget) setEditOpen(false); }}>
+        <section className="v2-dialog detail-edit-dialog" role="dialog" aria-modal="true" aria-label={`Editar ${tab.toLowerCase()}`}>
+          <header><div><small>{view.toUpperCase()}</small><h2>Editar {tab.toLowerCase()}</h2><p>Atualize os dados deste registro.</p></div><button type="button" className="v2-icon-button" onClick={() => setEditOpen(false)} aria-label="Fechar"><X size={17} /></button></header>
+          <div>{detailedItems.map(([label, value]) => <label key={label}><span>{label}</span><input value={value} onChange={(event) => setEditedValues((current) => ({ ...current, [`${tab}:${label}`]: event.target.value }))} /></label>)}</div>
+          <footer><button type="button" onClick={() => setEditOpen(false)}>Cancelar</button><button type="button" className="v2-primary" onClick={() => setEditOpen(false)}><CheckCircle2 size={15} />Salvar alterações</button></footer>
+        </section>
+      </div> : null}
+    </section>
   );
 }
 
@@ -2759,6 +3114,8 @@ function FullModuleView({ view }: { view: View }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("Mais recentes");
   const [chartPeriod, setChartPeriod] = useState("30 dias");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const records = config.rows;
   if (selected)
     return (
       <FullDetailView
@@ -2769,6 +3126,7 @@ function FullModuleView({ view }: { view: View }) {
     );
   const rows = [...config.rows]
     .filter((row) => row.join(" ").toLowerCase().includes(query.toLowerCase()))
+    .filter((row) => config.filters.every((filter) => !filterValues[filter] || filterValues[filter] === "Todos" || moduleFilterValue(row, filter) === filterValues[filter]))
     .sort((a, b) =>
       sort === "A–Z"
         ? a[1].localeCompare(b[1])
@@ -2779,7 +3137,7 @@ function FullModuleView({ view }: { view: View }) {
   return (
     <>
       <PageIntro title={view} subtitle={config.subtitle} />
-      <section className="v2-metrics client-metrics">
+      <section className="v2-metrics client-metrics client-overview-metrics">
         {config.metrics.map((metric) => (
           <Metric
             key={metric[0]}
@@ -2803,8 +3161,18 @@ function FullModuleView({ view }: { view: View }) {
           {config.filters.map((filter) => (
             <label key={filter}>
               {filter}
-              <select>
-                <option>Todos</option>
+              <select
+                value={filterValues[filter] ?? "Todos"}
+                onChange={(event) =>
+                  setFilterValues((current) => ({
+                    ...current,
+                    [filter]: event.target.value,
+                  }))
+                }
+              >
+                {["Todos", ...Array.from(new Set(records.map((row) => moduleFilterValue(row, filter)).filter(Boolean)))].map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
               </select>
             </label>
           ))}
@@ -2896,9 +3264,9 @@ function FullModuleView({ view }: { view: View }) {
         </footer>
       </article>
       {view === "Manutenção" && (
-        <article className="v2-card v2-module-chart maintenance-chart-below">
-          <header><div><h2>Custo de manutenção</h2><p>Despesas de manutenção por período.</p></div><div className="v2-segment">{["30 dias", "3 meses", "6 meses", "12 meses"].map((item) => <button key={item} className={chartPeriod === item ? "selected" : ""} onClick={() => setChartPeriod(item)}>{item}</button>)}</div></header>
-          <Chart title="custo de manutenção" period={chartPeriod} />
+        <article className="v2-card v2-module-chart maintenance-chart-below maintenance-chart-modern">
+          <header><div><small>EVOLUÇÃO DE CUSTOS</small><h2>Custo de manutenção</h2><p>Despesas de manutenção por período.</p></div><ClientSelect compact hideLabel label="Período do gráfico" value={chartPeriod} onChange={setChartPeriod} options={["30 dias", "3 meses", "6 meses", "12 meses"]} /></header>
+          <ComparisonChart labels={["Manutenção · Custo"]} period={chartPeriod} maintenanceBreakdown />
         </article>
       )}
     </>
@@ -2926,7 +3294,7 @@ function ModuleDirectory({ view }: { view: View }) {
   return (
     <>
       <PageIntro title={view} subtitle={config.subtitle} />
-      <section className="v2-metrics client-metrics">
+      <section className="v2-metrics client-metrics client-overview-metrics">
         {config.metrics.map((metric) => (
           <Metric
             key={metric[0]}
@@ -3142,13 +3510,15 @@ function RecordDialog({
   onClose,
   onSave,
   fields,
+  initialValues,
 }: {
   title: string;
   onClose: () => void;
   onSave: (values: Record<string, string>) => void;
   fields: string[];
+  initialValues?: Record<string, string>;
 }) {
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, string>>(initialValues ?? {});
   return (
     <aside className="v2-record-drawer">
       <form
@@ -3164,13 +3534,13 @@ function RecordDialog({
         <small>CADASTRO</small>
         <h2>{title}</h2>
         <div>
-          {fields.map((field, index) => (
+          {fields.filter((field) => field !== "Duração estimada do serviço (opcional)" || /servi/i.test(values.Tipo ?? "")).map((field) => (
             <label key={field}>
               {field}
               {field === "Descrição" ? (
                 <textarea required placeholder={`Informe ${field.toLowerCase()}`} value={values[field] ?? ""} onChange={(event) => setValues((current) => ({ ...current, [field]: event.target.value }))} />
               ) : (
-                <input required placeholder={field} value={values[field] ?? ""} onChange={(event) => setValues((current) => ({ ...current, [field]: event.target.value }))} />
+                <input type={field === "Validade" ? "date" : "text"} required={!field.includes("opcional") && !["Lote", "Validade"].includes(field)} placeholder={field.includes("Duração") ? "Ex.: 60 minutos" : field} value={values[field] ?? ""} onChange={(event) => setValues((current) => ({ ...current, [field]: event.target.value }))} />
               )}
             </label>
           ))}
@@ -3188,10 +3558,41 @@ function RecordDialog({
   );
 }
 
+function ModuleSettingsDialog({ view, onClose }: { view: "Estoque" | "Manutenção"; onClose: () => void }) {
+  const storageKey = view === "Estoque" ? "gest-stock-alert-settings" : "gest-maintenance-alert-settings";
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    const defaults = view === "Estoque"
+      ? { threshold: "10", warning: "5", frequency: "Diariamente" }
+      : { threshold: "30", warning: "7", frequency: "Diariamente" };
+    if (typeof window === "undefined") return defaults;
+    try { return { ...defaults, ...JSON.parse(appStorage.getItem(storageKey) || "{}") }; } catch { return defaults; }
+  });
+  const fields = view === "Estoque"
+    ? [["threshold", "Estoque mínimo", "Quantidade que passa a ser considerada crítica"], ["warning", "Avisar com antecedência", "Unidades antes de atingir o mínimo"], ["frequency", "Frequência da verificação", "Ex.: diariamente ou semanalmente"]]
+    : [["threshold", "Antecedência principal (dias)", "Ex.: 30 dias antes da manutenção"], ["warning", "Reforçar alerta (dias)", "Segundo aviso antes do vencimento"], ["frequency", "Frequência da verificação", "Ex.: diariamente ou semanalmente"]];
+  return <aside className="v2-record-drawer module-settings-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <form className="v2-dialog module-settings-dialog" onSubmit={(event) => { event.preventDefault(); appStorage.setItem(storageKey, JSON.stringify(values)); onClose(); }}>
+      <button type="button" className="close" onClick={onClose}><X /></button>
+      <small>CONFIGURAÇÃO RÁPIDA</small>
+      <h2>Alertas de {view.toLowerCase()}</h2>
+      <p>Defina quando o GEST deve destacar informações que precisam de atenção.</p>
+      <div>{fields.map(([key, label, help]) => <label key={key}><span>{label}<small>{help}</small></span><input type={key === "frequency" ? "text" : "number"} min={key === "frequency" ? undefined : "0"} value={values[key]} onChange={(event) => setValues((current) => ({ ...current, [key]: event.target.value }))} required /></label>)}</div>
+      <footer><button type="button" onClick={onClose}>Cancelar</button><button className="v2-primary" type="submit">Salvar configuração</button></footer>
+    </form>
+  </aside>;
+}
+
 function ReportsView() {
-  const [type, setType] = useState("Vendas");
-  const [indicator, setIndicator] = useState("Faturamento");
-  const [crosses, setCrosses] = useState<string[]>([]);
+  const [period, setPeriod] = useState("6 meses");
+  const [primaryMode, setPrimaryMode] = useState<ChartMode>("Padrão");
+  const [category, setCategory] = useState("Visão executiva");
+  const [slots, setSlots] = useState(["Financeiro · Receita", "Clientes · Quantidade", "Financeiro · Despesa"]);
+  const [customCards, setCustomCards] = useState<Record<string, string[]>>({});
+  const [hiddenCharts, setHiddenCharts] = useState<string[]>([]);
+  const [chartOrder, setChartOrder] = useState(["principal", "colunas", "servicos", "origem", "agenda"]);
+  const [draggedChart, setDraggedChart] = useState<string | null>(null);
+  const [draggedCard, setDraggedCard] = useState<string | null>(null);
+  const [insertMenu, setInsertMenu] = useState<"cards" | "charts" | null>(null);
   const options: Record<string, string[]> = {
     Vendas: ["Quantidade", "Lucro", "Faturamento"],
     Clientes: ["Quantidade", "Faixa etária", "Sexo"],
@@ -3201,142 +3602,193 @@ function ReportsView() {
     Catálogo: ["Quantidade"],
     Agenda: ["Quantidade de atividades"],
     CRM: ["Quantidade por etapa"],
+    Compras: ["Produtos em avaliação", "Bom preço", "Economia estimada"],
+    Atendimento: ["Conversas", "A responder", "Retornos"],
+    Equipe: ["Pessoas", "Horas trabalhadas", "Atrasos"],
   };
-  const crossing = [
-    "Financeiro · Receita",
-    "Financeiro · Despesa",
-    "Clientes · Quantidade",
-    "CRM · Qtd. por etapa",
-    "Agenda · Qtd. atividades",
-    "Manutenção · Custo",
-  ];
-  const toggle = (item: string) =>
-    setCrosses((current) =>
-      current.includes(item)
-        ? current.filter((value) => value !== item)
-        : [...current, item],
-    );
+  const indicatorOptions = Object.entries(options).flatMap(([group, indicators]) => indicators.map((item) => `${group} · ${item}`));
+  const categories = ["Visão executiva", "Financeiro", "Vendas", "Clientes", "CRM e marketing", "Agenda", "Serviços e OS", "Estoque", "Compras", "Atendimento", "Equipe", "Personalizados"];
+  const categoryIcons: Record<string, LucideIcon> = {
+    "Visão executiva": LineChart, Financeiro: CircleDollarSign, Vendas: ShoppingCart, Clientes: UsersRound,
+    "CRM e marketing": Target, Agenda: CalendarDays, "Serviços e OS": Wrench, Estoque: Package,
+    Compras: PackageCheck, Atendimento: MessageCircle, Equipe: UserCheck, Personalizados: Settings,
+  };
+  const categoryDefaults: Record<string, string[]> = {
+    "Visão executiva": ["Financeiro · Receita", "Clientes · Quantidade", "Financeiro · Despesa"],
+    Financeiro: ["Financeiro · Receita", "Financeiro · Lucro", "Financeiro · Despesa"],
+    Vendas: ["Vendas · Faturamento", "Vendas · Quantidade", "Vendas · Lucro"],
+    Clientes: ["Clientes · Quantidade", "Clientes · Faixa etária", "Clientes · Sexo"],
+    "CRM e marketing": ["CRM · Quantidade por etapa", "Clientes · Quantidade", "Vendas · Quantidade"],
+    Agenda: ["Agenda · Quantidade de atividades", "Clientes · Quantidade", "Vendas · Quantidade"],
+    "Serviços e OS": ["Vendas · Quantidade", "Manutenção · Quantidade", "Manutenção · Custo"],
+    Estoque: ["Estoque · Quantidade", "Estoque · Valor do estoque", "Vendas · Quantidade"],
+    Compras: ["Compras · Produtos em avaliação", "Compras · Bom preço", "Compras · Economia estimada"],
+    Atendimento: ["Atendimento · Conversas", "Atendimento · A responder", "Atendimento · Retornos"],
+    Equipe: ["Equipe · Pessoas", "Equipe · Horas trabalhadas", "Equipe · Atrasos"],
+    Personalizados: ["Financeiro · Receita", "Clientes · Quantidade", "Agenda · Quantidade de atividades"],
+  };
+  const categoryCards: Record<string, string[]> = {
+    "Visão executiva": ["Vendas · Faturamento", "Financeiro · Lucro", "Clientes · Quantidade", "Agenda · Quantidade de atividades"],
+    Financeiro: ["Financeiro · Receita", "Financeiro · Lucro", "Financeiro · Despesa", "Vendas · Faturamento"],
+    Vendas: ["Vendas · Faturamento", "Vendas · Quantidade", "Vendas · Lucro", "Clientes · Quantidade"],
+    Clientes: ["Clientes · Quantidade", "Clientes · Faixa etária", "Clientes · Sexo", "Agenda · Quantidade de atividades"],
+    "CRM e marketing": ["CRM · Quantidade por etapa", "Clientes · Quantidade", "Vendas · Quantidade", "Atendimento · Conversas"],
+    Agenda: ["Agenda · Quantidade de atividades", "Atendimento · Retornos", "Clientes · Quantidade", "Vendas · Quantidade"],
+    "Serviços e OS": ["Vendas · Quantidade", "Manutenção · Quantidade", "Manutenção · Custo", "Vendas · Faturamento"],
+    Estoque: ["Estoque · Quantidade", "Estoque · Valor do estoque", "Vendas · Quantidade", "Compras · Bom preço"],
+    Compras: ["Compras · Produtos em avaliação", "Compras · Bom preço", "Compras · Economia estimada", "Estoque · Quantidade"],
+    Atendimento: ["Atendimento · Conversas", "Atendimento · A responder", "Atendimento · Retornos", "CRM · Quantidade por etapa"],
+    Equipe: ["Equipe · Pessoas", "Equipe · Horas trabalhadas", "Equipe · Atrasos", "Agenda · Quantidade de atividades"],
+    Personalizados: ["Financeiro · Receita", "Clientes · Quantidade", "Agenda · Quantidade de atividades", "Vendas · Quantidade"],
+  };
+  const cards = customCards[category] ?? categoryCards[category];
+  const chartLabels: Record<string, string> = { principal: "Comparativo de indicadores", colunas: "Receita, despesas e lucro", servicos: "Quantidade por serviço", origem: "Origem da receita", agenda: "Agenda, clientes e CRM", ...Object.fromEntries(chartOrder.filter((key) => key.startsWith("extra:")).map((key) => [key, key.slice(6)])) };
+  const moveChart = (target: string) => { if (!draggedChart || draggedChart === target) return; const next = [...chartOrder]; next.splice(next.indexOf(target), 0, ...next.splice(next.indexOf(draggedChart), 1)); setChartOrder(next); setDraggedChart(null); };
+  const primaryLabel = slots[0];
+  const primaryValues = reportValues(primaryLabel);
+  const visibleCount = period === "Últimos 30 dias" ? 1 : period === "3 meses" ? 3 : period === "6 meses" ? 6 : 12;
+  const currentValue = primaryValues.slice(-visibleCount).at(-1) ?? 0;
+  const isCurrency = reportIsCurrency(primaryLabel);
   return (
     <>
-      <PageIntro
+      <StandardModuleTop
         title="Relatórios"
-        subtitle="Analise dados do negócio e compare indicadores em um único lugar."
-      />
-      <article className="v2-card v2-reports">
-        <header>
-          <div>
-            <small>RELATÓRIOS</small>
-            <h2>Visão consolidada</h2>
-          </div>
-          <button className="v2-primary">
-            <FileText size={16} />
-            Exportar PDF
-          </button>
+        help="Analise dados do negócio e compare indicadores em um único lugar."
+        action={<div className="reports-top-actions"><button className="lab-create-activity is-secondary" onClick={() => setInsertMenu(insertMenu === "cards" ? null : "cards")}><Plus size={16} />Inserir indicador</button><button className="lab-create-activity" onClick={() => window.print()}><FileText size={16} />Exportar PDF</button></div>}
+        beforeCards={<ScrollableTabBar className="v2-settings-tabs settings-modern-tabs reports-category-tabs" label="Categorias de relatórios">{categories.map((item) => { const Icon = categoryIcons[item]; return <button type="button" key={item} className={category === item ? "active" : ""} onClick={() => { setCategory(item); if (categoryDefaults[item]) setSlots(categoryDefaults[item]); }}><Icon size={15} />{item}</button>; })}</ScrollableTabBar>}
+      >
+        {cards.map((label, index) => { const values = reportValues(label); const value = values.at(-1) ?? 0; const previous = values.at(-2) ?? value; const change = previous ? (value - previous) / Math.abs(previous) * 100 : 0; return <div className="reports-summary-card" key={label} draggable onDragStart={(event) => { setDraggedCard(label); setExactDragPreview(event); }} onDragEnd={() => setDraggedCard(null)} onDragOver={(event) => event.preventDefault()} onDrop={() => { if (!draggedCard || draggedCard === label) return; const next = [...cards]; next.splice(next.indexOf(label), 0, ...next.splice(next.indexOf(draggedCard), 1)); setCustomCards({ ...customCards, [category]: next }); setDraggedCard(null); }}><Metric label={label} value={reportIsCurrency(label) ? value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }) : value.toLocaleString("pt-BR")} detail={`${change >= 0 ? "+" : ""}${change.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`} tone={["blue", "green", "violet", "orange"][index % 4]} /></div>; })}
+      </StandardModuleTop>
+      {draggedCard ? <div className="gest-widget-trash reports-card-trash" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); setCustomCards({ ...customCards, [category]: cards.filter((item) => item !== draggedCard) }); setDraggedCard(null); showAppToast("Indicador removido."); }}><Trash2 size={18} />Solte para remover o indicador</div> : null}
+      {insertMenu === "cards" ? <div className="reports-insert-menu" aria-label="Inserir indicador">{indicatorOptions.filter((item) => !cards.includes(item)).map((item) => <button type="button" key={item} onClick={() => { setCustomCards({ ...customCards, [category]: [...cards, item] }); setInsertMenu(null); }}>{item}</button>)}</div> : null}
+      <article className="v2-reports reports-modern reports-unwrapped">
+        <header className="reports-filter-row">
+          <ClientSelect compact hideLabel label="Período" value={period} onChange={setPeriod} options={["Últimos 30 dias", "3 meses", "6 meses", "12 meses"]} />
+          {slots.map((slot, index) => <ClientSelect compact hideLabel key={index} label={`Indicador ${index + 1}`} value={slot} onChange={(value) => setSlots((current) => current.map((item, slotIndex) => slotIndex === index ? value : item))} options={indicatorOptions} />)}
         </header>
-        <div className="v2-report-filters">
-          <label>
-            Período
-            <select>
-              <option>Últimos 30 dias</option>
-              <option>3 meses</option>
-              <option>6 meses</option>
-              <option>12 meses</option>
-            </select>
-          </label>
-          <label>
-            Tipo
-            <select
-              value={type}
-              onChange={(e) => {
-                setType(e.target.value);
-                setIndicator(options[e.target.value][0]);
-              }}
-            >
-              {Object.keys(options).map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Indicador
-            <select
-              value={indicator}
-              onChange={(e) => setIndicator(e.target.value)}
-            >
-              {options[type].map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div className="v2-cross">
-          <span>Cruzar com</span>
-          {crossing.map((item) => (
-            <label key={item}>
-              <input
-                type="checkbox"
-                checked={crosses.includes(item)}
-                onChange={() => toggle(item)}
-              />
-              {item}
-            </label>
-          ))}
-        </div>
-        <article className="v2-card v2-report-chart">
+        {!hiddenCharts.includes("principal") ? <article className="v2-card v2-report-chart" draggable onDragStart={() => setDraggedChart("principal")} onDragEnd={() => setDraggedChart(null)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveChart("principal")}>
           <header>
             <div>
-              <small>
-                {type.toUpperCase()} · {indicator.toUpperCase()}
-              </small>
-              <h2>{indicator === "Quantidade" ? "1.248" : "R$ 73 mil"}</h2>
+              <div className="report-primary-heading"><h2>{primaryLabel}</h2><ReportTrend label={primaryLabel} /></div>
+              <strong className="report-primary-value">{isCurrency ? currentValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }) : currentValue.toLocaleString("pt-BR")}</strong>
             </div>
             <span>
-              {[`${type} · ${indicator}`, ...crosses].map((item, index) => (
-                <i className={`legend-${index}`} key={item}>
+              {slots.map((item, index) => (
+                <i className={`legend-${index}`} key={`${item}-${index}`}>
                   ● {item}
                 </i>
               ))}
             </span>
           </header>
-          <ComparisonChart labels={[`${type} · ${indicator}`, ...crosses]} />
-        </article>
+          <div className="report-primary-mode"><ChartModeSelect value={primaryMode} onChange={setPrimaryMode} /></div>
+          <ComparisonChart labels={slots} period={period} visual={primaryMode} />
+        </article> : null}
+        <section className="reports-secondary-grid">
+          {chartOrder.filter((key) => key !== "principal" && !hiddenCharts.includes(key)).map((key, index) => <div className="reports-draggable-chart" key={key} draggable onDragStart={() => setDraggedChart(key)} onDragEnd={() => setDraggedChart(null)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveChart(key)}>{key.startsWith("extra:") ? <ReportColumnChart title={key.slice(6)} labels={[key.slice(6)]} period={period} /> : category === "Visão executiva" ? (key === "colunas" ? <ReportColumnChart title="Receita, despesas e lucro" labels={["Financeiro · Receita", "Financeiro · Despesa", "Vendas · Lucro"]} period={period} /> : key === "servicos" ? <ReportRankingChart title="Quantidade por serviço" /> : key === "origem" ? <ReportDonutChart title="Origem da receita" /> : <ReportColumnChart title="Agenda, clientes e CRM" labels={["Agenda · Quantidade de atividades", "Clientes · Quantidade", "CRM · Quantidade por etapa"]} period={period} />) : <ReportColumnChart title={`${category} · ${slots[index % slots.length]?.split(" · ").at(-1) ?? "Indicadores"}`} labels={[slots[index % slots.length], slots[(index + 1) % slots.length]].filter(Boolean)} period={period} />}</div>)}
+        </section>
+        {draggedChart ? <div className="gest-widget-trash" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); setHiddenCharts([...hiddenCharts, draggedChart]); setDraggedChart(null); }}><X size={18} />Solte para remover o gráfico</div> : null}
+        <div className="reports-chart-actions"><button type="button" className="lab-create-activity is-secondary" onClick={() => setInsertMenu(insertMenu === "charts" ? null : "charts")}><Plus size={15} />Inserir indicador</button>{insertMenu === "charts" ? <div className="reports-insert-menu">{Object.entries(chartLabels).filter(([key]) => hiddenCharts.includes(key)).map(([key, label]) => <button type="button" key={key} onClick={() => { setHiddenCharts(hiddenCharts.filter((item) => item !== key)); setInsertMenu(null); }}>Restaurar: {label}</button>)}{indicatorOptions.filter((label) => !chartOrder.includes(`extra:${label}`)).map((label) => <button type="button" key={label} onClick={() => { setChartOrder([...chartOrder, `extra:${label}`]); setInsertMenu(null); }}>Novo: {label}</button>)}</div> : null}</div>
       </article>
     </>
   );
 }
 
 /** Linhas comparáveis para os relatórios. O olho mostra valores sem poluir o gráfico. */
-function ComparisonChart({ labels }: { labels: string[] }) {
-  const data = [
-    { name: "Mar", Lucro: 46200, Transações: 38 },
-    { name: "Abr", Lucro: 54800, Transações: 44 },
-    { name: "Mai", Lucro: 51200, Transações: 41 },
-    { name: "Jun", Lucro: 63800, Transações: 49 },
-    { name: "Jul", Lucro: 58600, Transações: 46 },
-    { name: "Ago", Lucro: 73100, Transações: 55 },
-  ];
-  return <div className="report-finance-chart">
+const reportMonths = ["Set", "Out", "Nov", "Dez", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago"];
+
+function reportIsCurrency(label: string) {
+  return /(faturamento|lucro|receita|despesa|custo|valor|economia)/i.test(label);
+}
+
+function reportValues(label: string) {
+  const normalized = label.toLocaleLowerCase("pt-BR");
+  if (normalized.includes("faturamento")) return [42100, 44800, 47200, 49500, 51800, 50600, 55200, 58400, 61300, 63800, 68100, 73100];
+  if (normalized.includes("lucro")) return [18400, 20100, 21800, 22700, 23900, 23100, 25400, 27800, 29100, 30600, 32900, 37600];
+  if (normalized.includes("receita")) return [39800, 42500, 45100, 46700, 48600, 47900, 52100, 54900, 57800, 60100, 64300, 69200];
+  if (normalized.includes("despesa") || normalized.includes("custo")) return [21400, 22300, 23100, 24800, 25100, 26400, 26700, 27100, 28900, 29500, 31200, 33500];
+  if (normalized.includes("valor do estoque")) return [82000, 84500, 83100, 87200, 89100, 90400, 92800, 91600, 94700, 97200, 99100, 102400];
+  if (normalized.includes("economia estimada")) return [340, 380, 410, 390, 460, 490, 520, 550, 570, 600, 640, 690];
+  if (normalized.includes("bom preço")) return [2, 3, 2, 4, 3, 5, 4, 5, 6, 5, 7, 6];
+  if (normalized.includes("produtos em avaliação")) return [4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9];
+  if (normalized.includes("horas trabalhadas")) return [142, 148, 153, 149, 158, 162, 165, 168, 171, 174, 176, 178];
+  if (normalized.includes("atrasos")) return [5, 4, 5, 3, 4, 4, 3, 3, 2, 3, 2, 2];
+  if (normalized.includes("equipe · pessoas")) return [5, 5, 5, 6, 6, 6, 6, 6, 7, 7, 7, 7];
+  if (normalized.includes("a responder")) return [8, 7, 9, 8, 6, 7, 5, 6, 5, 4, 4, 3];
+  if (normalized.includes("atendimento · retornos")) return [4, 5, 6, 5, 7, 6, 8, 7, 9, 8, 10, 9];
+  if (normalized.includes("atendimento · conversas")) return [24, 26, 25, 29, 31, 30, 34, 35, 36, 39, 41, 43];
+  if (normalized.includes("faixa etária")) return [24, 28, 31, 29, 34, 36, 38, 41, 40, 44, 47, 51];
+  if (normalized.includes("sexo")) return [51, 52, 53, 54, 55, 54, 56, 57, 58, 57, 59, 60];
+  if (normalized.includes("crm")) return [18, 21, 24, 23, 27, 29, 31, 30, 34, 36, 39, 42];
+  if (normalized.includes("agenda")) return [32, 35, 39, 37, 41, 44, 46, 43, 49, 51, 54, 58];
+  if (normalized.includes("clientes")) return [82, 88, 91, 96, 101, 104, 110, 116, 121, 127, 133, 141];
+  if (normalized.includes("estoque")) return [143, 151, 148, 157, 162, 169, 173, 178, 184, 191, 197, 204];
+  if (normalized.includes("manutenção")) return [12, 15, 13, 17, 19, 18, 21, 23, 22, 25, 27, 29];
+  return [31, 34, 38, 36, 41, 43, 46, 44, 49, 52, 55, 59];
+}
+
+function ReportTrend({ label }: { label: string }) {
+  const values = reportValues(label);
+  const previous = values.at(-2) ?? 0;
+  const change = previous ? ((values.at(-1)! - previous) / Math.abs(previous)) * 100 : 0;
+  return <span className={`finance-chart-trend ${change >= 0 ? "positive" : "negative"}`} title={`${label}: variação em relação ao mês anterior`}>{change >= 0 ? <ArrowUp size={14} /> : <ArrowDown size={14} />}{Math.abs(change).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</span>;
+}
+
+function ComparisonChart({ labels, period, maintenanceBreakdown = false, visual = "Padrão" }: { labels: string[]; period: string; maintenanceBreakdown?: boolean; visual?: ChartMode }) {
+  const visibleCount = period === "Últimos 30 dias" ? 1 : period === "3 meses" ? 3 : period === "6 meses" ? 6 : 12;
+  const visibleMonths = reportMonths.slice(-visibleCount);
+  const series = labels.map((label, index) => ({ label, key: `series${index}`, values: reportValues(label).slice(-visibleCount), currency: reportIsCurrency(label) }));
+  const maintenanceChart = maintenanceBreakdown;
+  const hasCurrency = series.some((item) => item.currency);
+  const hasQuantity = maintenanceChart || series.some((item) => !item.currency);
+  const maintenanceCounts = reportValues("Manutenção · Quantidade").slice(-visibleCount);
+  const data = visibleMonths.map((name, monthIndex) => Object.fromEntries([["name", name], ...series.map((item) => [item.key, item.values[monthIndex]]), ...(maintenanceChart ? [["maintenanceCount", maintenanceCounts[monthIndex]]] : [])]));
+  const colors = ["#62b3e0", "#df858f", "#67b996", "#e5b266", "#a88acb", "#4f8bd6", "#667085"];
+  const animationKey = `${period}-${labels.join("-")}`;
+  if (visual !== "Padrão") return <div className="report-finance-chart report-line-modern"><FlexibleChart mode={visual} data={data as Record<string, string | number>[]} series={series.map((item, index) => ({ key:item.key, name:item.label, color:colors[index % colors.length], currency:item.currency }))} currency={hasCurrency && !hasQuantity} /></div>;
+  return <div className="report-finance-chart report-line-modern">
     <ResponsiveContainer width="100%" height="100%">
-      <RechartsLineChart data={data} margin={{ top: 16, right: 24, left: 4, bottom: 2 }}>
-        <CartesianGrid strokeDasharray="3 4" vertical={false} stroke="#dfe8f3" />
-        <XAxis dataKey="name" tickLine={false} axisLine={false} />
-        <YAxis yAxisId="money" width={72} tickLine={false} axisLine={false} tickFormatter={(value) => `R$ ${Math.round(Number(value) / 1000)} mil`} />
-        <YAxis yAxisId="count" orientation="right" width={32} allowDecimals={false} tickLine={false} axisLine={false} />
-        <Tooltip formatter={(value, name) => name === "Lucro" ? Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : `${value} transações`} />
-        <Legend iconType="circle" iconSize={8} formatter={(value) => value === "Lucro" ? labels[0] : "Transações"} />
-        <Area yAxisId="money" type="monotone" dataKey="Lucro" stroke="#0a58ad" fill="#dcecff" strokeWidth={3} />
-        <Line yAxisId="count" type="monotone" dataKey="Transações" stroke="#8b5cc7" strokeWidth={3} dot={{ r: 4, fill: "#8b5cc7" }} />
-      </RechartsLineChart>
+      <ComposedChart key={animationKey} data={data} margin={{ top: 20, right: 24, left: 4, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="2 7" vertical={false} stroke="#dbe5ef" />
+        <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#738295", fontSize: 11 }} />
+        <YAxis yAxisId="currency" hide={!hasCurrency} width={72} tickLine={false} axisLine={false} tick={{ fill: "#8491a0", fontSize: 10 }} tickFormatter={(value) => Number(value) >= 1000 ? `${Math.round(Number(value) / 1000)} mil` : String(value)} />
+        <YAxis yAxisId="quantity" hide={!hasQuantity} orientation="right" width={44} tickLine={false} axisLine={false} tick={{ fill: "#8b5cc7", fontSize: 10 }} />
+        <Tooltip cursor={{ stroke: "#aac5df", strokeDasharray: "4 4" }} contentStyle={chartTooltipStyle} formatter={(value, name) => { const item = series.find((entry) => entry.key === name); return [item?.currency ? Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : Number(value).toLocaleString("pt-BR"), item?.label ?? name]; }} />
+        <Legend iconType="circle" iconSize={8} formatter={(value) => series.find((item) => item.key === value)?.label ?? (value === "maintenanceCount" ? "Quantidade de manutenções" : value)} />
+        {series.map((item, index) => <Line key={item.key} yAxisId={item.currency ? "currency" : "quantity"} type="linear" dataKey={item.key} stroke={colors[index % colors.length]} strokeWidth={index === 0 ? 3 : 2.4} dot={visibleCount === 1 ? { r: 4 } : { r: 2.5 }} activeDot={{ r: 5 }} isAnimationActive animationBegin={index * 90} animationDuration={850} animationEasing="ease-out" />)}
+        {maintenanceChart ? <Bar yAxisId="quantity" dataKey="maintenanceCount" name="Quantidade de manutenções" fill="#e5b266" fillOpacity={0.76} radius={[5, 5, 0, 0]} maxBarSize={28} /> : null}
+      </ComposedChart>
     </ResponsiveContainer>
   </div>;
+}
+
+function ReportColumnChart({ title, labels, period }: { title: string; labels: string[]; period: string }) {
+  const [visual, setVisual] = useState<ChartMode>("Padrão");
+  const visibleCount = period === "Últimos 30 dias" ? 1 : period === "3 meses" ? 3 : period === "6 meses" ? 6 : 12;
+  const data = reportMonths.slice(-visibleCount).map((name, monthIndex) => Object.fromEntries([["name", name], ...labels.map((label, index) => [`series${index}`, reportValues(label).slice(-visibleCount)[monthIndex]])]));
+  const colors = ["#72bce5", "#e7a29b", "#70bea2"];
+  return <article className="v2-card v2-report-chart report-model-card"><header><h2>{title}</h2><ReportTrend label={labels[0]} /><ChartModeSelect value={visual} onChange={setVisual} /></header>{visual === "Padrão" ? <div className="report-finance-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={data} margin={{ top: 12, right: 6, left: -14, bottom: 0 }}><CartesianGrid stroke="#e1e8ee" strokeDasharray="3 5" vertical={false} /><XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#788695", fontSize: 9 }} /><YAxis tickLine={false} axisLine={false} tick={{ fill: "#8793a0", fontSize: 9 }} tickFormatter={(value) => Number(value) >= 1000 ? `${Math.round(Number(value) / 1000)} mil` : String(value)} /><Tooltip contentStyle={chartTooltipStyle} formatter={(value, name) => { const label = labels[Number(String(name).replace("series", ""))] ?? String(name); return [Number(value).toLocaleString("pt-BR", reportIsCurrency(label) ? { style: "currency", currency: "BRL" } : {}), label]; }} /><Legend iconType="circle" iconSize={7} formatter={(value) => labels[Number(String(value).replace("series", ""))]} />{labels.map((label, index) => <Bar key={label} dataKey={`series${index}`} fill={colors[index]} radius={[6, 6, 2, 2]} />)}</BarChart></ResponsiveContainer></div> : <div className="report-finance-chart"><FlexibleChart mode={visual} data={data as Record<string,string|number>[]} series={labels.map((label,index)=>({key:`series${index}`,name:label,color:colors[index % colors.length],currency:reportIsCurrency(label)}))} currency={labels.every(reportIsCurrency)} /></div>}</article>;
+}
+
+function ReportRankingChart({ title }: { title: string }) {
+  const [visual, setVisual] = useState<ChartMode>("Padrão");
+  const data = [{ name: "Clareamento", value: 84 }, { name: "Avaliação", value: 72 }, { name: "Limpeza", value: 58 }, { name: "Manutenção", value: 47 }, { name: "Prótese", value: 35 }];
+  return <article className="v2-card v2-report-chart report-model-card"><header><h2>{title}</h2><ReportTrend label="Vendas · Quantidade" /><ChartModeSelect value={visual} onChange={setVisual} /></header>{visual === "Padrão" ? <div className="report-finance-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={data} layout="vertical" margin={{ top: 12, right: 20, left: 8, bottom: 0 }}><CartesianGrid stroke="#e1e8ee" strokeDasharray="3 5" horizontal={false} /><XAxis type="number" tickLine={false} axisLine={false} tick={{ fill: "#8793a0", fontSize: 9 }} /><YAxis width={72} type="category" dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#788695", fontSize: 9 }} /><Tooltip contentStyle={chartTooltipStyle} /><Bar dataKey="value" name="Quantidade" fill="#73bea5" radius={[0, 7, 7, 0]} /></BarChart></ResponsiveContainer></div> : <div className="report-finance-chart"><FlexibleChart mode={visual} data={data} series={[{key:"value",name:"Quantidade",color:"#73bea5"}]} /></div>}</article>;
+}
+
+function ReportDonutChart({ title }: { title: string }) {
+  const [visual, setVisual] = useState<ChartMode>("Padrão");
+  const data = [{ name: "Serviços", value: 42, color: "#70bce5" }, { name: "Produtos", value: 26, color: "#73c0a5" }, { name: "Planos", value: 18, color: "#e8b16d" }, { name: "Outros", value: 14, color: "#a895d8" }];
+  return <article className="v2-card v2-report-chart report-model-card"><header><h2>{title}</h2><ReportTrend label="Financeiro · Receita" /><ChartModeSelect value={visual} onChange={setVisual} /></header>{visual === "Padrão" ? <div className="reports-donut-layout"><div><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data} dataKey="value" nameKey="name" innerRadius={58} outerRadius={85} paddingAngle={3} stroke="none">{data.map((item) => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip contentStyle={chartTooltipStyle} formatter={(value) => `${Number(value).toLocaleString("pt-BR")}%`} /></PieChart></ResponsiveContainer><strong>{reportValues("Financeiro · Receita").at(-1)!.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}<small>Receita total</small></strong></div><aside>{data.map((item) => <span key={item.name}><i style={{ background: item.color }} />{item.name}<b>{item.value}%</b></span>)}</aside></div> : <div className="report-finance-chart"><FlexibleChart mode={visual} data={[{name:"Origem",...Object.fromEntries(data.map(item=>[item.name,item.value]))}]} series={data.map(item=>({key:item.name,name:item.name,color:item.color}))} /></div>}</article>;
 }
 
 function ClientDetailPage({
   onBack,
   record,
+  onOpenClinical,
 }: {
   onBack: () => void;
   record?: string[];
+  onOpenClinical?: (record: string[]) => void;
 }) {
   const client = clients[0];
   return (
@@ -3350,9 +3802,11 @@ function ClientDetailPage({
           client[5],
           client[7],
           client[8],
+          client[9],
         ]
       }
       onBack={onBack}
+      onOpenClinical={onOpenClinical}
     />
   );
 }
@@ -3364,7 +3818,6 @@ function DocumentCards({
   sort,
   onQuery,
   onSort,
-  onView,
   onEdit,
   onNew,
 }: {
@@ -3373,16 +3826,35 @@ function DocumentCards({
   sort: string;
   onQuery: (value: string) => void;
   onSort: (value: string) => void;
-  onView: (row: string[]) => void;
   onEdit: (row: string[]) => void;
   onNew: () => void;
 }) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [order, setOrder] = useState<string[]>([]);
+  const [category, setCategory] = useState("Todos");
+  const [type, setType] = useState("Todos");
+  const [link, setLink] = useState("Todos");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [previewRow, setPreviewRow] = useState<string[] | null>(null);
+  const [previewZoom, setPreviewZoom] = useState(1);
+  const [previewWidth, setPreviewWidth] = useState(42);
+  const previewResize = useRef<{ x: number; width: number; container: number } | null>(null);
+
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      const drag = previewResize.current;
+      if (drag) setPreviewWidth(Math.max(28, Math.min(65, drag.width + (drag.x - event.clientX) / drag.container * 100)));
+    };
+    const end = () => { previewResize.current = null; };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end); };
+  }, []);
 
   useEffect(() => {
     try {
-      setOrder(JSON.parse(window.localStorage.getItem("gest-document-order") || "[]"));
+      setOrder(JSON.parse(appStorage.getItem("gest-document-order") || "[]"));
     } catch {
       setOrder([]);
     }
@@ -3403,64 +3875,49 @@ function DocumentCards({
     const next = ids.filter((id) => id !== draggedId);
     next.splice(next.indexOf(targetId), 0, draggedId);
     setOrder(next);
-    window.localStorage.setItem("gest-document-order", JSON.stringify(next));
+    appStorage.setItem("gest-document-order", JSON.stringify(next));
     setDraggedId(null);
   };
 
-  const descriptionFor = (row: string[]) =>
-    row[2] === "Serviço" ? "Contrato de prestação de serviço vinculado ao cliente e à operação." :
-      row[2] === "Produto" ? "Contrato comercial de fornecimento ou venda de produto." :
-        row[1].toLowerCase().includes("recibo") ? "Recibo financeiro vinculado à venda e ao atendimento realizado." :
-          row[1].toLowerCase().includes("comprovante") ? "Comprovante de pagamento vinculado ao registro financeiro." :
-            "Documento organizado e pronto para consulta.";
+  const visibleRows = orderedRows.filter((row) =>
+    (category === "Todos" || row[2] === category) &&
+    (type === "Todos" || row[4] === type) &&
+    (link === "Todos" || row[2] === link),
+  );
+  const categories = ["Todos", ...Array.from(new Set(rows.map((row) => row[2]).filter(Boolean)))];
+  const types = ["Todos", ...Array.from(new Set(rows.map((row) => row[4]).filter(Boolean)))];
 
   return (
-    <article className="v2-card shelf-document-directory">
-      <header className="shelf-document-toolbar">
-        <div className="v2-local-search">
+    <article className="v2-card v2-client-table v2-ranked-client-table v2-module-table document-modern-directory">
+      <header>
+        <div className="lab-search-form client-local-search">
           <Search size={19} />
           <input
             value={query}
             onChange={(event) => onQuery(event.target.value)}
             placeholder="Buscar em documentos..."
           />
+          <button type="button" className={query ? "visible" : ""} onClick={() => onQuery("")} aria-label="Limpar busca"><X size={16} /></button>
         </div>
-        <label>
-          Categoria
-          <select>
-            <option>Todos</option>
-          </select>
-        </label>
-        <label>
-          Tipo
-          <select>
-            <option>Todos</option>
-          </select>
-        </label>
-        <label>
-          Vínculo
-          <select>
-            <option>Todos</option>
-          </select>
-        </label>
-        <label>
-          Ordenar por
-          <select value={sort} onChange={(event) => onSort(event.target.value)}>
-            <option>Mais recentes</option>
-            <option>Mais antigos</option>
-            <option>A–Z</option>
-            <option>Z–A</option>
-          </select>
-        </label>
-        <button className="v2-primary" onClick={onNew}>
+        <ClientSelect label="Categoria" value={category} onChange={setCategory} options={categories} />
+        <ClientSelect label="Tipo" value={type} onChange={setType} options={types} />
+        <ClientSelect label="Vínculo" value={link} onChange={setLink} options={categories} />
+        <ClientSelect label="Ordenar por" value={sort} onChange={onSort} options={["Mais recentes", "Mais antigos", "A–Z", "Z–A"]} />
+        <button className="lab-create-activity" onClick={onNew}>
           <Plus size={17} />
-          Upload
+          Novo documento
         </button>
+        <div className="client-view-toggle module-view-toggle" role="group" aria-label="Visualização de documentos">
+          <button type="button" className={viewMode === "list" ? "active" : ""} aria-label="Visualizar em lista" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")}><List size={17} /></button>
+          <button type="button" className={viewMode === "grid" ? "active" : ""} aria-label="Visualizar em grade" aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")}><Grid2X2 size={16} /></button>
+        </div>
       </header>
-      <div className="shelf-document-grid" aria-label="Documentos organizáveis">
-        {orderedRows.map((row, index) => (
-          <article
-            className={`shelf-document-folder tone-${index % 4}`}
+      <div className={previewRow ? "document-browser has-preview" : "document-browser"} style={{ "--document-preview-width": `${previewWidth}%` } as React.CSSProperties}>
+      <div className="document-results">
+      {viewMode === "grid" ? <div className="document-lab-grid" aria-label="Documentos organizáveis">
+        {visibleRows.map((row) => (
+          <div
+            className="document-lab-item"
             key={row[0]}
             draggable
             onDragStart={() => setDraggedId(row[0])}
@@ -3468,25 +3925,39 @@ function DocumentCards({
             onDragOver={(event) => event.preventDefault()}
             onDrop={() => moveDocument(row[0])}
           >
-            <span className="shelf-document-tab" aria-hidden="true" />
-            <div className="shelf-document-sheet">
-              <div className="shelf-document-heading">
-                <i><FileText size={20} /></i>
-                <div><small>{row[2]}</small><h3>{row[1].replace(/_/g, " ").replace(/\.[^.]+$/, "")}</h3></div>
-              </div>
-              <p>{descriptionFor(row)}</p>
-              <div className="shelf-document-meta">
-                <span>Atualizado em <b>{row[3]}</b></span>
-                <span>{row[4]} · {row[5]}</span>
-              </div>
-              <footer>
-                <button className="shelf-document-details" onClick={() => onView(row)}>Ver detalhes <ArrowUpRight size={14} /></button>
-                <button className="shelf-document-icon" onClick={() => onEdit(row)} aria-label="Editar"><Edit3 size={16} /></button>
-                <button className="shelf-document-icon shelf-document-drag" aria-label="Arrastar para reordenar"><Menu size={17} /></button>
-              </footer>
-            </div>
-          </article>
+            <DocumentCardPreview
+              title={row[1].replace(/_/g, " ").replace(/\.[^.]+$/, "")}
+              fileType={row[4]}
+              updated={`Atualizado em ${row[3]}`}
+              onEdit={() => onEdit(row)}
+              onOpen={() => { setPreviewRow(row); setPreviewZoom(1); }}
+            />
+          </div>
         ))}
+      </div> : (
+        <table className="document-modern-list">
+          <thead><tr><th>Documento</th><th>Vínculo</th><th>Atualização</th><th>Tipo</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody>
+            {visibleRows.map((row) => (
+              <tr key={row[0]} className={previewRow?.[0] === row[0] ? "selected" : ""} onClick={() => { setPreviewRow(row); setPreviewZoom(1); }}>
+                <td><strong>{row[1].replace(/_/g, " ")}</strong></td>
+                <td><span className="type">{row[2]}</span></td>
+                <td>{row[3]}</td>
+                <td>{row[4]}</td>
+                <td><span className="status active"><i />{row[5]}</span></td>
+                <td><button type="button" className="v2-icon-button" onClick={(event) => { event.stopPropagation(); onEdit(row); }} aria-label={`Editar ${row[1]}`}><Edit3 size={16} /></button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      </div>
+      {previewRow ? <aside className="document-side-preview" aria-label={`Pré-visualização de ${previewRow[1]}`}>
+        <div className="document-side-resize" role="separator" tabIndex={0} aria-label="Redimensionar pré-visualização" aria-orientation="vertical" aria-valuemin={28} aria-valuemax={65} aria-valuenow={Math.round(previewWidth)} onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); const container = event.currentTarget.closest<HTMLElement>(".document-browser"); previewResize.current = { x: event.clientX, width: previewWidth, container: container?.clientWidth || 1 }; event.currentTarget.setPointerCapture(event.pointerId); }} onKeyDown={(event) => { if (event.key === "ArrowLeft") setPreviewWidth((width) => Math.min(65, width + 4)); if (event.key === "ArrowRight") setPreviewWidth((width) => Math.max(28, width - 4)); }} />
+        <header><div><FileText size={19} /><span><strong>{previewRow[1].replace(/_/g, " ")}</strong><small>{previewRow[4]} · Atualizado em {previewRow[3]}</small></span></div><div className="document-preview-actions"><button type="button" onClick={() => setPreviewZoom((value) => Math.max(.8, value - .2))} aria-label="Diminuir zoom"><ZoomOut size={17} /></button><b>{Math.round(previewZoom * 100)}%</b><button type="button" onClick={() => setPreviewZoom((value) => Math.min(2, value + .2))} aria-label="Aumentar zoom"><ZoomIn size={17} /></button><button type="button" onClick={() => setPreviewRow(null)} aria-label="Fechar pré-visualização"><X size={18} /></button></div></header>
+        <div className="document-side-canvas"><div className="document-side-sheet" style={{ transform: `scale(${previewZoom})` }}><span>{previewRow[1].replace(/_/g, " ").replace(/\.[^.]+$/, "").toLocaleUpperCase("pt-BR")}</span><i /><i /><i /><i /><i /><b>Assinatura do cliente</b></div></div>
+        <footer><button type="button" onClick={() => onEdit(previewRow)}><Edit3 size={15} />Editar</button><button type="button" className="primary" onClick={() => window.print()}><Printer size={15} />Imprimir</button></footer>
+      </aside> : null}
       </div>
     </article>
   );
@@ -3500,19 +3971,38 @@ const crmSeed = [
   { id: "CRM-305", name: "PrimePet Store", initials: "PS", source: "Google", objective: "Atendimento técnico", value: "R$ 2.150", stage: "Agendamento", priority: "Média", progress: 78, comments: 5, files: 2, owner: "Carlos" },
 ];
 
+function StageSettingsDialog({ title, stages, onClose, onSave, showTaskOptions = false }: { title: string; stages: string[]; onClose: () => void; onSave: (stages: string[]) => void; showTaskOptions?: boolean }) {
+  const [draft, setDraft] = useState(stages);
+  const [newStage, setNewStage] = useState("");
+  const [requireOwner, setRequireOwner] = useState(true);
+  const [deadlineAlerts, setDeadlineAlerts] = useState(true);
+  return <div className="lab-agenda-modal" role="dialog" aria-modal="true" aria-label={title} onClick={onClose}><form className="workflow-settings-dialog" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); if (draft.length) onSave(draft); }}>
+    <header><div><small>CONFIGURAÇÃO</small><h2>{title}</h2><p>Organize as etapas usadas no quadro.</p></div><button type="button" aria-label="Fechar" onClick={onClose}><X size={18} /></button></header>
+    <section><strong>Etapas do fluxo</strong><div className="workflow-stage-list">{draft.map((stage, index) => <label key={`${stage}-${index}`}><span>{index + 1}</span><input value={stage} onChange={(event) => setDraft((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} /><button type="button" aria-label={`Remover ${stage}`} disabled={draft.length <= 2} onClick={() => setDraft((current) => current.filter((_, itemIndex) => itemIndex !== index))}><X size={15} /></button></label>)}</div><div className="workflow-stage-add"><input value={newStage} onChange={(event) => setNewStage(event.target.value)} placeholder="Nova etapa" /><button type="button" onClick={() => { const value = newStage.trim(); if (!value || draft.includes(value)) return; setDraft((current) => [...current, value]); setNewStage(""); }}><Plus size={15} />Adicionar</button></div></section>
+    {showTaskOptions ? <section className="workflow-extra-options"><strong>Parâmetros das tarefas</strong><label><span><b>Responsável obrigatório</b><small>Solicita um responsável ao criar a tarefa.</small></span><button type="button" className={requireOwner ? "switch on" : "switch"} onClick={() => setRequireOwner((value) => !value)}><i /></button></label><label><span><b>Alertas de prazo</b><small>Destaca tarefas próximas do vencimento.</small></span><button type="button" className={deadlineAlerts ? "switch on" : "switch"} onClick={() => setDeadlineAlerts((value) => !value)}><i /></button></label></section> : null}
+    <footer><button type="button" onClick={onClose}>Cancelar</button><button type="submit" className="primary">Salvar configuração</button></footer>
+  </form></div>;
+}
+
 function CrmKanban({ onDetails }: { onDetails: (record: string[]) => void }) {
   const [leads, setLeads] = useState(crmSeed);
+  const [stages, setStages] = useState(crmStages);
   const [dragged, setDragged] = useState<string | null>(null);
   const [dropStage, setDropStage] = useState<string | null>(null);
+  const [newLeadOpen, setNewLeadOpen] = useState(false);
+  const [newLeadStage, setNewLeadStage] = useState(crmStages[0]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const kanbanRef = useRef<HTMLElement>(null);
+  const [scrollPosition, setScrollPosition] = useState(0);
   return <>
-    <PageIntro title="CRM" subtitle="Acompanhe cada oportunidade da captação até a conversão." />
-    <section className="v2-metrics client-metrics">
+    <StandardModuleTop title="CRM" help="Acompanhe cada oportunidade da captação até a conversão." action={<div className="workflow-top-actions"><button type="button" className="lab-create-activity" onClick={() => { setNewLeadStage(stages[0]); setNewLeadOpen(true); }}><Plus size={16} />Novo lead</button><button type="button" className="module-settings-trigger" aria-label="Configurar etapas do CRM" onClick={() => setSettingsOpen(true)}><Settings size={17} /></button></div>}>
       {modules.CRM.metrics.map((metric) => <Metric key={metric[0]} label={metric[0]} value={metric[1]} detail={metric[2]} tone={metric[3]} />)}
-    </section>
-    <section className="shelf-kanban shelf-kanban-crm" aria-label="Funil comercial em Kanban">
-      {crmStages.map((stage) => {
+    </StandardModuleTop>
+    <CrmContactFollowups/>
+    <div className="crm-kanban-shell"><section ref={kanbanRef} onScroll={(event) => { const element = event.currentTarget; const max = element.scrollWidth - element.clientWidth; setScrollPosition(max > 0 ? element.scrollLeft / max * 100 : 0); }} className="shelf-kanban shelf-kanban-crm" aria-label="Funil comercial em Kanban">
+      {stages.map((stage, stageIndex) => {
         const stageLeads = leads.filter((lead) => lead.stage === stage);
-        return <article className={dropStage === stage ? "is-over" : ""} key={stage} onDragOver={(event) => { event.preventDefault(); setDropStage(stage); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropStage(null); }} onDrop={() => { if (dragged) setLeads((current) => current.map((lead) => lead.id === dragged ? { ...lead, stage } : lead)); setDragged(null); setDropStage(null); }}>
+        return <article className={`stage-${stageIndex + 1}${dropStage === stage ? " is-over" : ""}`} key={stage} onDragOver={(event) => { event.preventDefault(); setDropStage(stage); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropStage(null); }} onDrop={() => { if (dragged) setLeads((current) => current.map((lead) => lead.id === dragged ? { ...lead, stage } : lead)); setDragged(null); setDropStage(null); }}>
           <header><span className="shelf-kanban-dot" aria-hidden="true" /><strong>{stage}</strong><b>{stageLeads.length}</b></header>
           <div className="shelf-kanban-stack">{stageLeads.map((lead) => <button className={`shelf-kanban-card tone-${lead.priority.toLowerCase()}`} key={lead.id} draggable onDragStart={() => setDragged(lead.id)} onDragEnd={() => { setDragged(null); setDropStage(null); }} onClick={() => onDetails([lead.id, lead.name, lead.source, "Hoje", lead.value, stage])}>
             <span className="shelf-kanban-band">{lead.priority === "Alta" ? <Siren size={13} /> : lead.priority === "Média" ? <Clock3 size={13} /> : <CheckCircle2 size={13} />}{lead.priority === "Alta" ? "Retorno urgente" : lead.priority === "Média" ? "Atenção moderada" : "Tudo em dia"}</span>
@@ -3522,68 +4012,235 @@ function CrmKanban({ onDetails }: { onDetails: (record: string[]) => void }) {
               <span className="shelf-kanban-progress"><i style={{ width: `${lead.progress}%` }} /></span>
               <span className="shelf-kanban-meta"><span><i><MessageCircle size={12} />{lead.comments}</i><i><Paperclip size={12} />{lead.files}</i></span><span className="shelf-kanban-person"><em>{lead.owner.slice(0, 2).toUpperCase()}</em>{lead.owner}</span></span>
             </span>
-          </button>)}</div>
+          </button>)}<button type="button" className="workflow-quick-add crm-stage-quick-add" onClick={() => { setNewLeadStage(stage); setNewLeadOpen(true); }}><Plus size={15} />Adicionar novo lead</button></div>
         </article>;
       })}
-    </section>
+    </section><div className="workflow-scroll-control crm-scroll-control"><input type="range" min="0" max="100" step="1" value={scrollPosition} aria-label="Rolar as etapas do CRM para os lados" onChange={(event) => { const value = Number(event.target.value); const element = kanbanRef.current; if (element) element.scrollLeft = (element.scrollWidth - element.clientWidth) * value / 100; setScrollPosition(value); }} /></div></div>
     <p className="crm-kanban-help">Arraste os cards entre as etapas. Clique para ver os detalhes do contato.</p>
+    {newLeadOpen ? <RecordDialog title="Novo lead" fields={["Nome / título", "Origem", "Objetivo", "Valor", "Responsável"]} onClose={() => setNewLeadOpen(false)} onSave={(values) => {
+      const name = values["Nome / título"] || "Novo lead";
+      setLeads((current) => [{ id: `CRM-${String(309 + current.length).padStart(3, "0")}`, name, initials: name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase(), source: values["Origem"] || "Manual", objective: values["Objetivo"] || "Nova oportunidade", value: values["Valor"] || "R$ 0,00", stage: newLeadStage, priority: "Normal", progress: 5, comments: 0, files: 0, owner: values["Responsável"] || "Mariana" }, ...current]);
+      setNewLeadOpen(false);
+    }} /> : null}
+    {settingsOpen ? <StageSettingsDialog title="Etapas do CRM" stages={stages} onClose={() => setSettingsOpen(false)} onSave={(next) => { setStages(next); setLeads((current) => current.map((lead) => next.includes(lead.stage) ? lead : { ...lead, stage: next[0] })); setSettingsOpen(false); }} /> : null}
   </>;
 }
 
-type WorkflowCard = { id: string; title: string; detail: string; owner: string; due: string; priority: string; stage: string; progress?: number };
+type WorkflowProject = { id: string; name: string; detail: string; owner: string; due: string; priority: string };
+type WorkflowCard = {
+  id: string;
+  title: string;
+  detail: string;
+  owner: string;
+  due: string;
+  priority: string;
+  stage: string;
+  progress?: number;
+  projectId?: string;
+  daysInStage: number;
+  comments: string[];
+  files: string[];
+};
 const taskStages = ["Entrada", "A fazer", "Em andamento", "Em revisão", "Concluída"];
 const projectStages = ["Planejamento", "A iniciar", "Em andamento", "Em risco", "Concluído"];
-const taskCards: WorkflowCard[] = [
-  { id: "TR-018", title: "Enviar proposta comercial", detail: "Bella Modas", owner: "Marina", due: "Hoje, 14:00", priority: "Alta", stage: "A fazer" },
-  { id: "TR-017", title: "Validar orçamento", detail: "Revisar custos e margem", owner: "João", due: "Hoje, 16:00", priority: "Média", stage: "Em andamento" },
-  { id: "TR-016", title: "Repor materiais", detail: "Estoque da unidade Centro", owner: "Carlos", due: "Amanhã", priority: "Média", stage: "Entrada" },
-  { id: "TR-015", title: "Aprovar campanha", detail: "Dia das Mães", owner: "Marina", due: "Hoje", priority: "Alta", stage: "Em revisão" },
+const workflowProjects: WorkflowProject[] = [
+  { id: "PR-008", name: "Implantação Bella Modas", detail: "Cliente", owner: "Marina", due: "18 ago 2026", priority: "Normal" },
+  { id: "PR-007", name: "Expansão unidade Centro", detail: "Operação interna", owner: "Carlos", due: "25 ago 2026", priority: "Alta" },
+  { id: "PR-006", name: "Novo canal de vendas", detail: "Comercial", owner: "João", due: "02 set 2026", priority: "Normal" },
+  { id: "PR-005", name: "Revisão do catálogo", detail: "Produtos e serviços", owner: "Ana", due: "29 ago 2026", priority: "Média" },
 ];
-const projectCards: WorkflowCard[] = [
-  { id: "PR-008", title: "Implantação Bella Modas", detail: "Cliente · 18 ago", owner: "Marina", due: "18 ago 2026", priority: "Normal", stage: "Em andamento", progress: 72 },
-  { id: "PR-007", title: "Expansão unidade Centro", detail: "Operação interna", owner: "Carlos", due: "25 ago 2026", priority: "Alta", stage: "Em risco", progress: 48 },
-  { id: "PR-006", title: "Novo canal de vendas", detail: "Comercial", owner: "João", due: "02 set 2026", priority: "Normal", stage: "Planejamento", progress: 15 },
-  { id: "PR-005", title: "Revisão do catálogo", detail: "Produtos e serviços", owner: "Ana", due: "29 ago 2026", priority: "Média", stage: "A iniciar", progress: 0 },
+const taskCards: WorkflowCard[] = [
+  { id: "TR-018", title: "Enviar proposta comercial", detail: "Bella Modas", owner: "Marina", due: "Hoje, 14:00", priority: "Alta", stage: "A fazer", projectId: "PR-008", daysInStage: 2, comments: ["Proposta revisada pelo comercial."], files: ["proposta-bella.pdf"] },
+  { id: "TR-017", title: "Validar orçamento", detail: "Revisar custos e margem", owner: "João", due: "Hoje, 16:00", priority: "Média", stage: "Em andamento", projectId: "PR-006", daysInStage: 4, comments: ["Aguardando validação dos custos.", "Margem atualizada."], files: ["orcamento.xlsx"] },
+  { id: "TR-016", title: "Repor materiais", detail: "Estoque da unidade Centro", owner: "Carlos", due: "Amanhã", priority: "Média", stage: "Entrada", projectId: "PR-007", daysInStage: 1, comments: [], files: [] },
+  { id: "TR-015", title: "Aprovar campanha", detail: "Dia das Mães", owner: "Marina", due: "Hoje", priority: "Alta", stage: "Em revisão", projectId: "PR-006", daysInStage: 3, comments: ["Texto final aprovado."], files: ["campanha.png"] },
 ];
 
+function WorkflowComposer({ view, projects = [], defaultProjectId = "", initialStage, initialCard, onClose, onSave }: { view: "Tarefas" | "Projetos"; projects?: WorkflowProject[]; defaultProjectId?: string; initialStage?: string; initialCard?: WorkflowCard; onClose: () => void; onSave: (card: WorkflowCard) => void }) {
+  const singular = view === "Tarefas" ? "tarefa" : "projeto";
+  const firstStage = initialCard?.stage || initialStage || (view === "Tarefas" ? taskStages[0] : projectStages[0]);
+  const [title, setTitle] = useState(initialCard?.title ?? "");
+  const [detail, setDetail] = useState(initialCard?.detail ?? "");
+  const [owner, setOwner] = useState(initialCard?.owner ?? "Mariana");
+  const [due, setDue] = useState(initialCard?.due && /^\d{4}-\d{2}-\d{2}$/.test(initialCard.due) ? initialCard.due : "");
+  const [priority, setPriority] = useState(initialCard?.priority ?? "Média");
+  const [projectId, setProjectId] = useState(initialCard?.projectId ?? defaultProjectId);
+
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!title.trim()) return;
+    const prefix = view === "Tarefas" ? "TR" : "PR";
+    onSave({
+      id: initialCard?.id ?? `${prefix}-${String(Date.now()).slice(-4)}`,
+      title: title.trim(),
+      detail: detail.trim() || `Novo ${singular}`,
+      owner: owner.trim() || "Mariana",
+      due: due || initialCard?.due || "Sem prazo",
+      priority,
+      stage: firstStage,
+      progress: initialCard?.progress ?? 0,
+      projectId: view === "Tarefas" ? projectId : undefined,
+      daysInStage: initialCard?.daysInStage ?? 0,
+      comments: initialCard?.comments ?? [],
+      files: initialCard?.files ?? [],
+    });
+  };
+
+  return (
+    <form className="lab-event-card workflow-composer" onSubmit={submit}>
+      <header>
+        <h2>{initialCard ? "Editar" : "Adicionar"} {singular}</h2>
+        <button type="button" aria-label="Fechar" onClick={onClose}><X size={18} /></button>
+      </header>
+      <label className="lab-event-title">
+        <span>Título</span>
+        <input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} placeholder={`Adicionar título da ${singular}`} required />
+      </label>
+      <div className="workflow-composer-grid">
+        <label className="workflow-composer-field">
+          <CalendarDays size={18} />
+          <span><small>Prazo</small><input type="date" value={due} onChange={(event) => setDue(event.target.value)} /></span>
+        </label>
+        <label className="workflow-composer-field">
+          <UserRound size={18} />
+          <span><small>Responsável</small><input value={owner} onChange={(event) => setOwner(event.target.value)} placeholder="Digitar responsável" /></span>
+        </label>
+        <div className="workflow-composer-field workflow-composer-select">
+          <Siren size={18} />
+          <ClientSelect compact label="Prioridade" value={priority} onChange={setPriority} options={["Alta", "Média", "Normal"]} />
+        </div>
+        {view === "Tarefas" ? (
+          <div className="workflow-composer-field workflow-composer-select">
+            <BriefcaseBusiness size={18} />
+            <ClientSelect compact label="Projeto" value={projects.find((project) => project.id === projectId)?.name ?? "Tarefa sem projeto"} onChange={(value) => setProjectId(projects.find((project) => project.name === value)?.id ?? "")} options={["Tarefa sem projeto", ...projects.map((project) => project.name)]} />
+          </div>
+        ) : null}
+        <div className="workflow-composer-field is-readonly">
+          <ClipboardList size={18} />
+          <span><small>Etapa inicial</small><strong>{firstStage}</strong></span>
+        </div>
+      </div>
+      <label className="workflow-composer-description">
+        <span>Descrição</span>
+        <textarea value={detail} onChange={(event) => setDetail(event.target.value)} placeholder={`Adicionar detalhes do ${singular}`} rows={3} />
+      </label>
+      <footer>
+        <button type="button" onClick={onClose}>Cancelar</button>
+        <button type="submit" className="primary">Salvar {singular}</button>
+      </footer>
+    </form>
+  );
+}
+
 function WorkflowKanban({ view }: { view: "Tarefas" | "Projetos" }) {
-  const stages = view === "Tarefas" ? taskStages : projectStages;
-  const [cards, setCards] = useState<WorkflowCard[]>(view === "Tarefas" ? taskCards : projectCards);
+  const [stages, setStages] = useState(taskStages);
+  const [cards, setCards] = useState<WorkflowCard[]>(taskCards);
+  const [projects, setProjects] = useState<WorkflowProject[]>(workflowProjects);
+  const [projectFilter, setProjectFilter] = useState("all");
   const [dragged, setDragged] = useState<string | null>(null);
   const [dropStage, setDropStage] = useState<string | null>(null);
+  const [composerOpen, setComposerOpen] = useState<"task" | "project" | null>(null);
+  const [editingTask, setEditingTask] = useState<WorkflowCard | null>(null);
+  const [composerStage, setComposerStage] = useState(taskStages[0]);
+  const [cardDialog, setCardDialog] = useState<{ cardId: string; tab: "comments" | "files" } | null>(null);
+  const [commentDraft, setCommentDraft] = useState("");
+  const kanbanRef = useRef<HTMLElement>(null);
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => {
-    setCards(view === "Tarefas" ? taskCards : projectCards);
+    setCards(taskCards);
+    setProjects(workflowProjects);
+    setProjectFilter("all");
     setDragged(null);
     setDropStage(null);
+    setComposerOpen(null);
+    setEditingTask(null);
   }, [view]);
+  const visibleCards = cards.filter((card) => projectFilter === "all" ? true : projectFilter === "none" ? !card.projectId : card.projectId === projectFilter);
+  const selectedProject = projects.find((project) => project.id === projectFilter);
+  const activeDialogCard = cards.find((card) => card.id === cardDialog?.cardId);
+  const completedCount = visibleCards.filter((card) => card.stage.toLocaleLowerCase("pt-BR").includes("conclu")).length;
+  const overdueCount = visibleCards.filter((card) => card.due.toLocaleLowerCase("pt-BR").includes("atras")).length;
+  const plannedCount = visibleCards.length - completedCount;
+  const onTimeCount = Math.max(0, plannedCount - overdueCount);
+  const labels = ["Planejadas", "No prazo", "Concluídas", "Em atraso"];
+  const stageTone = (stage: string) => {
+    if (stage.toLocaleLowerCase("pt-BR").includes("conclu")) return "complete";
+    if (stage === "Em risco") return "danger";
+    if (stage.toLocaleLowerCase("pt-BR").includes("revisão")) return "review";
+    if (stage.toLocaleLowerCase("pt-BR").includes("andamento")) return "active";
+    if (stage === "A fazer" || stage === "A iniciar") return "queued";
+    return "planned";
+  };
   return <>
-    <PageIntro title={view} subtitle={view === "Tarefas" ? "Organize prioridades e acompanhe cada tarefa até a conclusão." : "Acompanhe projetos por etapa, prazo, responsável e progresso."} />
-    <section className="workflow-toolbar v2-card"><div><strong>{cards.length} {view.toLowerCase()}</strong><span>Arraste os cards para atualizar a etapa.</span></div><button className="v2-primary"><Plus size={16} />{view === "Tarefas" ? "Nova tarefa" : "Novo projeto"}</button></section>
-    <section className="shelf-kanban shelf-kanban-workflow">
+    <StandardModuleTop
+      title="Tarefas"
+      help="Organize tarefas avulsas ou filtre as atividades vinculadas a cada projeto."
+      action={<div className="workflow-top-actions"><button type="button" className="lab-create-activity is-secondary" onClick={() => setComposerOpen("project")}><BriefcaseBusiness size={16} /> Adicionar projeto</button><button type="button" className="lab-create-activity" onClick={() => { setComposerStage(stages[0]); setComposerOpen("task"); }}><Plus size={17} /> Adicionar tarefa</button><button type="button" className="module-settings-trigger" aria-label="Configurar etapas das tarefas" onClick={() => setSettingsOpen(true)}><Settings size={17} /></button></div>}
+    >
+      <Metric label={labels[0]} value={String(plannedCount)} detail="+8,0%" tone="blue" />
+      <Metric label={labels[1]} value={String(onTimeCount)} detail="+5,2%" tone="orange" />
+      <Metric label={labels[2]} value={String(completedCount)} detail="+11,4%" tone="green" />
+      <Metric label={labels[3]} value={String(overdueCount)} detail={overdueCount ? "-2,1%" : "0%"} tone="red" />
+    </StandardModuleTop>
+    <section className="workflow-project-filter" aria-label="Filtro de projeto">
+      <span className="workflow-project-prompt">Selecione o seu projeto</span>
+      <ClientSelect compact hideLabel label="Projeto" value={selectedProject?.name || (projectFilter === "none" ? "Sem projeto" : "Todos os projetos")} onChange={(value) => { if (value === "Todos os projetos") setProjectFilter("all"); else if (value === "Sem projeto") setProjectFilter("none"); else setProjectFilter(projects.find((project) => project.name === value)?.id ?? "all"); }} options={["Todos os projetos", "Sem projeto", ...projects.map((project) => project.name)]} />
+    </section>
+    <div className="workflow-kanban-shell">
+    <section ref={kanbanRef} className="shelf-kanban shelf-kanban-workflow" onScroll={(event) => { const element = event.currentTarget; const max = element.scrollWidth - element.clientWidth; setScrollPosition(max > 0 ? element.scrollLeft / max * 100 : 0); }}>
       {stages.map((stage, index) => {
-        const stageCards = cards.filter((card) => card.stage === stage);
-        return <article className={dropStage === stage ? "is-over" : ""} key={stage} onDragOver={(event) => { event.preventDefault(); setDropStage(stage); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropStage(null); }} onDrop={() => { if (dragged) setCards((current) => current.map((card) => card.id === dragged ? { ...card, stage } : card)); setDragged(null); setDropStage(null); }}>
+        const stageCards = visibleCards.filter((card) => card.stage === stage);
+        return <article className={`${dropStage === stage ? "is-over " : ""}stage-${stageTone(stage)}`} key={stage} onDragOver={(event) => { event.preventDefault(); setDropStage(stage); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropStage(null); }} onDrop={() => { if (dragged) { setCards((current) => current.map((card) => card.id === dragged ? { ...card, stage, daysInStage: 0 } : card)); showAppToast(/conclu/i.test(stage) ? "Tarefa concluída." : "Etapa da tarefa atualizada."); } setDragged(null); setDropStage(null); }}>
           <header><span className="shelf-kanban-dot" aria-hidden="true" /><strong>{stage}</strong><b>{stageCards.length}</b></header>
           <div className="shelf-kanban-stack">{stageCards.map((card, cardIndex) => {
             const progress = typeof card.progress === "number" ? card.progress : Math.min(90, 18 + index * 20);
-            return <button className={`shelf-kanban-card tone-${card.priority.toLowerCase()}`} key={card.id} draggable onDragStart={() => setDragged(card.id)} onDragEnd={() => { setDragged(null); setDropStage(null); }}>
+            const project = projects.find((item) => item.id === card.projectId);
+            return <article className={`shelf-kanban-card tone-${card.priority.toLowerCase()}`} key={card.id} draggable onDoubleClick={(event) => { if ((event.target as HTMLElement).closest("button")) return; setEditingTask(card); }} onDragStart={() => setDragged(card.id)} onDragEnd={() => { setDragged(null); setDropStage(null); }}>
             <span className="shelf-kanban-band">{card.priority === "Alta" ? <Siren size={13} /> : card.priority === "Média" ? <Clock3 size={13} /> : <CheckCircle2 size={13} />}{card.priority === "Alta" ? "Prioridade alta" : card.priority === "Média" ? "Atenção moderada" : "Tudo em dia"}</span>
             <span className="shelf-kanban-body">
-              <small>{card.id}</small><strong>{card.title}</strong><span>{card.detail}</span>
+              <span className="workflow-card-heading"><strong>{card.title}</strong><i title={`${card.daysInStage} ${card.daysInStage === 1 ? "dia" : "dias"} neste status`}>{card.daysInStage}</i></span><span>{card.detail}</span>
+              {project ? <small className="workflow-card-project"><BriefcaseBusiness size={11} />{project.name}</small> : null}
               <span className="shelf-kanban-progress-label"><span>Progresso</span><b>{progress}%</b></span>
               <span className="shelf-kanban-progress"><i style={{ width: `${progress}%` }} /></span>
-              <span className="shelf-kanban-meta"><span><i><MessageCircle size={12} />{cardIndex + 2}</i><i><Paperclip size={12} />{cardIndex + 1}</i></span><span className="shelf-kanban-person"><em>{card.owner.slice(0, 2).toUpperCase()}</em>{card.owner}<time>{card.due}</time></span></span>
+              <span className="shelf-kanban-meta"><span><button type="button" onClick={() => setCardDialog({ cardId: card.id, tab: "comments" })} aria-label={`Comentários de ${card.title}`}><MessageCircle size={12} />{card.comments.length}</button><button type="button" onClick={() => setCardDialog({ cardId: card.id, tab: "files" })} aria-label={`Anexos de ${card.title}`}><Paperclip size={12} />{card.files.length}</button></span><span className="shelf-kanban-person"><em>{card.owner.slice(0, 2).toUpperCase()}</em>{card.owner}<time>{card.due}</time></span></span>
             </span>
-          </button>; })}</div>
+          </article>; })}<button type="button" className="workflow-quick-add" onClick={() => { setComposerStage(stage); setComposerOpen("task"); }}><Plus size={15} />Adicionar tarefa</button></div>
         </article>;
       })}
     </section>
+    <div className="workflow-scroll-control"><input type="range" min="0" max="100" step="1" value={scrollPosition} aria-label="Rolar o Kanban para os lados" onChange={(event) => { const value = Number(event.target.value); const element = kanbanRef.current; if (element) element.scrollLeft = (element.scrollWidth - element.clientWidth) * value / 100; setScrollPosition(value); }} /></div>
+    </div>
+    {composerOpen ? (
+      <div className="lab-agenda-modal" role="dialog" aria-modal="true" aria-label={`Adicionar ${composerOpen === "task" ? "tarefa" : "projeto"}`} onClick={() => setComposerOpen(null)}>
+        <div onClick={(event) => event.stopPropagation()}>
+          <WorkflowComposer view={composerOpen === "task" ? "Tarefas" : "Projetos"} projects={projects} defaultProjectId={projectFilter !== "all" && projectFilter !== "none" ? projectFilter : ""} initialStage={composerOpen === "task" ? composerStage : undefined} onClose={() => setComposerOpen(null)} onSave={(card) => { if (composerOpen === "task") { setCards((current) => [card, ...current]); showAppToast("Tarefa criada com sucesso."); } else { const project = { id: card.id, name: card.title, detail: card.detail, owner: card.owner, due: card.due, priority: card.priority }; setProjects((current) => [project, ...current]); setProjectFilter(project.id); showAppToast("Projeto criado com sucesso."); } setComposerOpen(null); }} />
+        </div>
+      </div>
+    ) : null}
+    {editingTask ? <div className="lab-agenda-modal" role="dialog" aria-modal="true" aria-label={`Editar ${editingTask.title}`} onClick={() => setEditingTask(null)}><div onClick={(event) => event.stopPropagation()}><WorkflowComposer key={editingTask.id} view="Tarefas" projects={projects} initialCard={editingTask} onClose={() => setEditingTask(null)} onSave={(card) => { setCards((current) => current.map((item) => item.id === card.id ? card : item)); setEditingTask(null); showAppToast("Tarefa atualizada com sucesso."); }} /></div></div> : null}
+    {settingsOpen ? <StageSettingsDialog title="Configurar tarefas" stages={stages} showTaskOptions onClose={() => setSettingsOpen(false)} onSave={(next) => { setStages(next); setCards((current) => current.map((card) => next.includes(card.stage) ? card : { ...card, stage: next[0] })); setComposerStage(next[0]); setSettingsOpen(false); showAppToast("Etapas das tarefas atualizadas."); }} /> : null}
+    {cardDialog && activeDialogCard ? (
+      <div className="lab-agenda-modal" role="dialog" aria-modal="true" aria-label={`Detalhes de ${activeDialogCard.title}`} onClick={() => setCardDialog(null)}>
+        <section className="workflow-card-dialog" onClick={(event) => event.stopPropagation()}>
+          <header><div><small>ATIVIDADE</small><h2>{activeDialogCard.title}</h2></div><button type="button" aria-label="Fechar" onClick={() => setCardDialog(null)}><X size={18} /></button></header>
+          <nav><button type="button" className={cardDialog.tab === "comments" ? "active" : ""} onClick={() => setCardDialog({ ...cardDialog, tab: "comments" })}><MessageCircle size={15} />Comentários <b>{activeDialogCard.comments.length}</b></button><button type="button" className={cardDialog.tab === "files" ? "active" : ""} onClick={() => setCardDialog({ ...cardDialog, tab: "files" })}><Paperclip size={15} />Anexos <b>{activeDialogCard.files.length}</b></button></nav>
+          {cardDialog.tab === "comments" ? <div className="workflow-comments-panel"><div>{activeDialogCard.comments.length ? activeDialogCard.comments.map((comment, index) => <p key={`${comment}-${index}`}><i>{activeDialogCard.owner.slice(0, 2).toUpperCase()}</i><span><b>{activeDialogCard.owner}</b>{comment}</span></p>) : <small>Nenhum comentário ainda.</small>}</div><form onSubmit={(event) => { event.preventDefault(); if (!commentDraft.trim()) return; setCards((current) => current.map((card) => card.id === activeDialogCard.id ? { ...card, comments: [...card.comments, commentDraft.trim()] } : card)); setCommentDraft(""); }}><input value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="Escrever um comentário" /><button type="submit">Adicionar</button></form></div> : <div className="workflow-files-panel"><div>{activeDialogCard.files.length ? activeDialogCard.files.map((file) => <span key={file}><FileText size={15} />{file}</span>) : <small>Nenhum anexo ainda.</small>}</div><label><Paperclip size={15} />Adicionar anexo<input type="file" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; setCards((current) => current.map((card) => card.id === activeDialogCard.id ? { ...card, files: [...card.files, file.name] } : card)); event.target.value = ""; }} /></label></div>}
+        </section>
+      </div>
+    ) : null}
   </>;
 }
 
 function PricingView() {
   const [kind, setKind] = useState("Produto");
+  const [unit, setUnit] = useState("Unidade");
+  const [name, setName] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [catalogFeedback, setCatalogFeedback] = useState("");
   const [directCost, setDirectCost] = useState(120);
+  const [purchaseUnits, setPurchaseUnits] = useState(12);
+  const [purchaseExtras, setPurchaseExtras] = useState(0);
   const [materials, setMaterials] = useState(18);
   const [packaging, setPackaging] = useState(6);
   const [freight, setFreight] = useState(4);
@@ -3597,34 +4254,250 @@ function PricingView() {
   const [loss, setLoss] = useState(3);
   const [tax, setTax] = useState(8);
   const [commission, setCommission] = useState(5);
+  const [paymentFee, setPaymentFee] = useState(3.5);
+  const [discountReserve, setDiscountReserve] = useState(5);
   const [margin, setMargin] = useState(35);
   const [includeTax, setIncludeTax] = useState(true);
   const [includeFees, setIncludeFees] = useState(true);
   const fixedMonthly = monthlyRent + monthlyEnergy + otherFixed;
   const fixedUnit = fixedMonthly / Math.max(1, monthlyVolume);
   const hourlyRate = (monthlyCompensation + fixedMonthly) / Math.max(1, productiveHours);
-  const directBase = kind === "Produto" ? directCost + materials + packaging + freight : hourlyRate * executionHours + materials;
+  const purchaseUnitCost = (directCost + purchaseExtras) / Math.max(1, purchaseUnits);
+  const directBase = kind === "Produto" ? purchaseUnitCost + materials + packaging + freight : hourlyRate * executionHours + materials;
   const lossCost = directBase * loss / 100;
   const base = directBase + lossCost + fixedUnit;
-  const variableRate = (includeTax ? tax : 0) + (includeFees ? commission : 0);
-  const divisor = Math.max(.05, 1 - (variableRate + margin) / 100);
+  const variableRate = (includeTax ? tax : 0) + (includeFees ? commission + paymentFee : 0);
+  const commercialRate = variableRate + discountReserve + margin;
+  const divisor = Math.max(.05, 1 - commercialRate / 100);
   const price = base / divisor;
+  const addToCatalog = () => {
+    if (!name.trim()) { setCatalogFeedback("Informe o nome antes de adicionar ao catálogo."); return; }
+    const row = [String(Date.now()), name.trim(), kind, new Date().toLocaleDateString("pt-BR"), price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }), "Ativo"];
+    try {
+      const current = JSON.parse(appStorage.getItem("gest-priced-catalog") || "[]");
+      appStorage.setItem("gest-priced-catalog", JSON.stringify([row, ...(Array.isArray(current) ? current : [])]));
+      setCatalogFeedback(`${kind} adicionado ao Catálogo.`);
+    } catch { setCatalogFeedback("Não foi possível salvar neste navegador."); }
+  };
   const Field = ({ label, help, value, setValue }: { label: string; help: string; value: number; setValue: (value: number) => void }) => <label><span>{label}<InfoHint text={help} /></span><div className="pricing-input"><span>R$</span><input type="number" min="0" step="0.01" value={value} onChange={(event) => setValue(Number(event.target.value))} /></div></label>;
   return <>
-    <PageIntro title="Precificação" subtitle="Forme preços sustentáveis considerando custos diretos, estrutura, tributos, taxas e margem." />
+    <StandardModuleTop
+      title="Precificação"
+      help="Forme preços sustentáveis considerando custos diretos, estrutura, tributos, taxas e margem."
+      action={<div className="v2-segment pricing-kind-switch"><button className={kind === "Produto" ? "selected" : ""} onClick={() => { setKind("Produto"); setUnit("Unidade"); }}>Produto</button><button className={kind === "Serviço" ? "selected" : ""} onClick={() => { setKind("Serviço"); setUnit("Hora"); }}>Serviço</button></div>}
+    >
+      <Metric label="Custo base" value={base.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} detail="estrutura incluída" tone="blue" />
+      <Metric label="Preço sugerido" value={price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} detail="cálculo atualizado" tone="green" />
+      <Metric label="Margem de lucro" value={`${margin}%`} detail="sobre o preço final" tone="violet" />
+      <Metric label="Tributos e taxas" value={`${variableRate}%`} detail="incidência total" tone="orange" />
+    </StandardModuleTop>
     <article className="v2-card pricing-workspace">
-      <header><div><small>FORMAÇÃO ECONÔMICA DO PREÇO</small><h2>Precificar {kind.toLowerCase()}</h2><p>Preencha os custos da operação. O cálculo é atualizado automaticamente.</p></div><div className="v2-segment"><button className={kind === "Produto" ? "selected" : ""} onClick={() => setKind("Produto")}>Produto</button><button className={kind === "Serviço" ? "selected" : ""} onClick={() => setKind("Serviço")}>Serviço</button></div></header>
+      <header><div><h2>Precificação do {kind.toLowerCase()}</h2><p>Preencha os custos da operação. O cálculo é atualizado automaticamente.</p></div></header>
       <div className="pricing-grid">
         <section className="pricing-form">
-          <div className="pricing-section pricing-identification"><h3>Identificação</h3><label><span>Nome do {kind.toLowerCase()}<InfoHint text="Nome usado no catálogo, propostas e vendas." /></span><input placeholder={`Ex.: ${kind === "Produto" ? "Shampoo premium" : "Consultoria estratégica"}`} /></label><label><span>Unidade de venda<InfoHint text="Como o item é vendido: unidade, hora, sessão, diária ou pacote." /></span><select><option>{kind === "Produto" ? "Unidade" : "Hora"}</option><option>Sessão</option><option>Pacote</option><option>Diária</option></select></label></div>
-          <div className="pricing-section"><h3>{kind === "Produto" ? "Custos diretos do produto" : "Tempo e custos diretos do serviço"}</h3>{kind === "Produto" ? <><Field label="Compra ou produção" help="Custo líquido para adquirir ou produzir uma unidade." value={directCost} setValue={setDirectCost} /><Field label="Matéria-prima e insumos" help="Soma dos materiais consumidos em uma unidade." value={materials} setValue={setMaterials} /><Field label="Embalagem" help="Embalagem primária, etiquetas e materiais de apresentação." value={packaging} setValue={setPackaging} /><Field label="Frete por unidade" help="Frete total dividido pela quantidade recebida." value={freight} setValue={setFreight} /></> : <><Field label="Pró-labore ou remuneração mensal" help="Remuneração mensal de quem executa o serviço, incluindo encargos." value={monthlyCompensation} setValue={setMonthlyCompensation} /><label><span>Horas produtivas por mês<InfoHint text="Horas realmente vendáveis. Exclua pausas, administração, reuniões e ociosidade." /></span><input type="number" min="1" value={productiveHours} onChange={(event) => setProductiveHours(Number(event.target.value))} /></label><label><span>Horas para executar o serviço<InfoHint text="Tempo total médio dedicado a uma entrega, incluindo preparação e finalização." /></span><input type="number" min="0" step="0.25" value={executionHours} onChange={(event) => setExecutionHours(Number(event.target.value))} /></label><Field label="Materiais e terceiros" help="Materiais consumidos e serviços terceirizados em cada entrega." value={materials} setValue={setMaterials} /><article className="pricing-derived"><span>Valor econômico da hora<InfoHint text="Remuneração mais estrutura mensal divididas pelas horas produtivas." /></span><strong>{hourlyRate.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></article></>}
+          <div className="pricing-section pricing-identification"><h3>Identificação</h3><label><span>Nome do {kind.toLowerCase()}<InfoHint text="Nome usado no catálogo, propostas e vendas." /></span><input value={name} onChange={(event) => { setName(event.target.value); setSaved(false); }} placeholder={`Ex.: ${kind === "Produto" ? "Shampoo premium" : "Consultoria estratégica"}`} /></label><ClientSelect compact label="Unidade de venda" value={unit} onChange={(value) => { setUnit(value); setSaved(false); }} options={kind === "Produto" ? ["Unidade", "Pacote", "Kit"] : ["Hora", "Sessão", "Pacote", "Diária"]} /></div>
+          <div className="pricing-section"><h3>{kind === "Produto" ? "Compra e custo por unidade" : "Tempo e custos diretos do serviço"}</h3>{kind === "Produto" ? <><Field label="Valor total da compra" help="Quanto foi pago pelo lote inteiro, antes dos custos adicionais." value={directCost} setValue={setDirectCost} /><label><span>Unidades recebidas na compra<InfoHint text="Quantidade de unidades contidas nesse lote." /></span><input type="number" min="1" step="1" value={purchaseUnits} onChange={(event) => setPurchaseUnits(Math.max(1, Number(event.target.value) || 1))} /></label><Field label="Adicionais da compra" help="Frete do lote, seguro ou outras despesas totais que devem ser divididas entre as unidades." value={purchaseExtras} setValue={setPurchaseExtras} /><article className="pricing-derived"><span>Custo por unidade adquirida<InfoHint text="Valor total pago mais adicionais, dividido pela quantidade recebida." /></span><strong>{purchaseUnitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong><small>(compra + adicionais) ÷ unidades</small></article><Field label="Insumos por unidade" help="Materiais adicionais usados em cada unidade vendida." value={materials} setValue={setMaterials} /><Field label="Embalagem por unidade" help="Embalagem e etiquetas usadas em cada unidade vendida." value={packaging} setValue={setPackaging} /><Field label="Frete adicional por unidade" help="Use apenas se houver frete por unidade além do custo lançado no lote." value={freight} setValue={setFreight} /></> : <><Field label="Pró-labore ou remuneração mensal" help="Remuneração mensal de quem executa o serviço, incluindo encargos." value={monthlyCompensation} setValue={setMonthlyCompensation} /><label><span>Horas produtivas por mês<InfoHint text="Horas realmente vendáveis. Exclua pausas, administração, reuniões e ociosidade." /></span><input type="number" min="1" value={productiveHours} onChange={(event) => setProductiveHours(Number(event.target.value))} /></label><label><span>Horas para executar o serviço<InfoHint text="Tempo total médio dedicado a uma entrega, incluindo preparação e finalização." /></span><input type="number" min="0" step="0.25" value={executionHours} onChange={(event) => setExecutionHours(Number(event.target.value))} /></label><Field label="Materiais e terceiros" help="Materiais consumidos e serviços terceirizados em cada entrega." value={materials} setValue={setMaterials} /><article className="pricing-derived"><span>Valor econômico da hora<InfoHint text="Remuneração mais estrutura mensal divididas pelas horas produtivas." /></span><strong>{hourlyRate.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></article></>}
           </div>
           <div className="pricing-section"><h3>Estrutura e rateio mensal</h3><Field label="Aluguel" help="Aluguel, condomínio e IPTU mensais do espaço utilizado." value={monthlyRent} setValue={setMonthlyRent} /><Field label="Energia, água e internet" help="Média mensal das contas de consumo da operação." value={monthlyEnergy} setValue={setMonthlyEnergy} /><Field label="Folha, sistemas e outros fixos" help="Custos que existem mesmo sem venda: equipe, sistemas, contador, seguros e manutenção." value={otherFixed} setValue={setOtherFixed} /><label><span>Volume vendido por mês<InfoHint text="Quantidade média de unidades ou serviços vendidos, usada para ratear os custos fixos." /></span><input type="number" min="1" value={monthlyVolume} onChange={(event) => setMonthlyVolume(Number(event.target.value))} /></label></div>
-          <div className="pricing-section"><h3>Perdas, tributos e margem</h3><label><span>Perdas e desperdícios (%)<InfoHint text="Percentual médio de perdas, retrabalho, validade, quebra ou ociosidade." /></span><input type="number" min="0" step="0.1" value={loss} onChange={(event) => setLoss(Number(event.target.value))} /></label><label><span>Margem desejada (%)<InfoHint text="Lucro desejado sobre o preço final, após custos, tributos e taxas." /></span><input type="number" min="0" max="90" step="0.1" value={margin} onChange={(event) => setMargin(Number(event.target.value))} /></label><label className="pricing-toggle"><span><b>Incluir impostos</b><small>Simples, ISS, ICMS ou outro tributo efetivo.</small></span><button type="button" className={includeTax ? "switch on" : "switch"} onClick={() => setIncludeTax(!includeTax)}><i /></button></label>{includeTax && <label><span>Alíquota efetiva (%)<InfoHint text="Percentual real de tributos incidentes sobre esta venda, conforme seu regime tributário." /></span><input type="number" min="0" step="0.1" value={tax} onChange={(event) => setTax(Number(event.target.value))} /></label>}<label className="pricing-toggle"><span><b>Incluir taxas e comissão</b><small>Cartão, marketplace, comissão comercial e meios de pagamento.</small></span><button type="button" className={includeFees ? "switch on" : "switch"} onClick={() => setIncludeFees(!includeFees)}><i /></button></label>{includeFees && <label><span>Taxas e comissão (%)<InfoHint text="Soma percentual das taxas de venda e comissões aplicáveis." /></span><input type="number" min="0" step="0.1" value={commission} onChange={(event) => setCommission(Number(event.target.value))} /></label>}</div>
+          <div className="pricing-section"><h3>Perdas e impostos</h3><label><span>Perdas e desperdícios (%)<InfoHint text="Percentual médio de perdas, retrabalho, validade, quebra ou ociosidade." /></span><input type="number" min="0" step="0.1" value={loss} onChange={(event) => setLoss(Number(event.target.value))} /></label><label className="pricing-toggle"><span><b>Incluir impostos</b><small>Simples, ISS, ICMS ou outro tributo efetivo.</small></span><button type="button" className={includeTax ? "switch on" : "switch"} onClick={() => setIncludeTax(!includeTax)}><i /></button></label>{includeTax && <label><span>Alíquota efetiva (%)<InfoHint text="Percentual real de tributos incidentes sobre esta venda, conforme seu regime tributário." /></span><input type="number" min="0" step="0.1" value={tax} onChange={(event) => setTax(Number(event.target.value))} /></label>}</div>
+          <div className="pricing-section"><h3>Venda, desconto e lucro</h3><label className="pricing-toggle"><span><b>Incluir taxas de venda</b><small>Maquininha, marketplace e comissão comercial.</small></span><button type="button" className={includeFees ? "switch on" : "switch"} onClick={() => setIncludeFees(!includeFees)}><i /></button></label>{includeFees ? <><label><span>Taxa da maquininha (%)<InfoHint text="Custo percentual do cartão ou do meio de pagamento usado na venda." /></span><input type="number" min="0" step="0.1" value={paymentFee} onChange={(event) => setPaymentFee(Number(event.target.value))} /></label><label><span>Comissão de venda (%)<InfoHint text="Percentual destinado ao vendedor, parceiro ou marketplace." /></span><input type="number" min="0" step="0.1" value={commission} onChange={(event) => setCommission(Number(event.target.value))} /></label></> : null}<label><span>Margem para desconto (%)<InfoHint text="Reserva no preço para conceder desconto sem consumir a margem de lucro planejada." /></span><input type="number" min="0" step="0.1" value={discountReserve} onChange={(event) => setDiscountReserve(Number(event.target.value))} /></label><label><span>Margem de lucro desejada (%)<InfoHint text="Lucro desejado sobre o preço final, depois dos custos, impostos, taxas e desconto previsto." /></span><input type="number" min="0" max="90" step="0.1" value={margin} onChange={(event) => setMargin(Number(event.target.value))} /></label></div>
         </section>
-        <aside><i><Calculator size={24} /></i><small>PREÇO SUGERIDO</small><strong>{price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong><p>Preço mínimo calculado para cobrir a estrutura e alcançar a margem informada.</p><dl><div><dt>Custo direto</dt><dd>{directBase.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div><div><dt>Rateio fixo unitário</dt><dd>{fixedUnit.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div><div><dt>Perdas</dt><dd>{lossCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div><div><dt>Tributos e taxas</dt><dd>{variableRate}%</dd></div><div><dt>Margem-alvo</dt><dd>{margin}%</dd></div></dl><button className="v2-primary">Salvar precificação</button></aside>
+        <aside><i><Calculator size={24} /></i><small>PREÇO SUGERIDO</small><strong>{price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong><p>Preço mínimo calculado para cobrir a estrutura e preservar as margens informadas.</p><dl><div><dt>Custo direto</dt><dd>{directBase.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div><div><dt>Rateio fixo unitário</dt><dd>{fixedUnit.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div><div><dt>Perdas</dt><dd>{lossCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div><div><dt>Tributos e taxas</dt><dd>{variableRate}%</dd></div><div><dt>Desconto reservado</dt><dd>{discountReserve}%</dd></div><div><dt>Margem de lucro</dt><dd>{margin}%</dd></div></dl><button className="v2-primary" onClick={() => setSaved(true)}>{saved ? <><CheckCircle2 size={15} />Precificação salva</> : "Salvar precificação"}</button><button type="button" className="v2-primary" onClick={addToCatalog}><Plus size={15} />Adicionar à lista de {kind === "Produto" ? "produtos" : "serviços"}</button>{catalogFeedback ? <small role="status">{catalogFeedback}</small> : null}</aside>
       </div>
     </article>
+  </>;
+}
+
+function moduleFilterValue(row: string[], filter: string) {
+  const key = filter.toLocaleLowerCase("pt-BR");
+  if (key.includes("status")) return row.at(-1) ?? "";
+  if (key.includes("período") || key.includes("data") || key.includes("prazo")) return row[3] ?? "";
+  return row[2] ?? "";
+}
+
+const supportStages = ["Novos", "Responder hoje", "Em atendimento", "Aguardando cliente", "Intensificar", "Resolvidos", "Aguardando equipe", "Retorno agendado", "Sem resposta"];
+type SupportContact = { number: number; person: string; phone: string; subject: string; channel: string; updated: string; owner: string; stage: string; priority: string; returnDate: string; clientId?: string };
+const supportSeed: SupportContact[] = [
+  { number: 1, person: "Ana Martins", phone: "+55 92 99123-4567", subject: "Dúvida sobre cobrança", channel: "WhatsApp", updated: "Hoje, 09:12", owner: "Marina", stage: "Responder hoje", priority: "Alta", returnDate: "Hoje", clientId: "#CL-1248" },
+  { number: 2, person: "Lucas Ferreira", phone: "+55 92 99218-7041", subject: "Alteração de serviço", channel: "WhatsApp", updated: "Hoje, 08:40", owner: "João", stage: "Em atendimento", priority: "Normal", returnDate: "15/10/2026" },
+  { number: 3, person: "Clara Souza", phone: "+55 92 98430-1120", subject: "Confirmação de agendamento", channel: "WhatsApp", updated: "Ontem, 17:20", owner: "Marina", stage: "Aguardando cliente", priority: "Normal", returnDate: "28/09/2026" },
+  { number: 4, person: "Pedro Lima", phone: "+55 92 98856-3902", subject: "Retorno sobre orçamento", channel: "WhatsApp", updated: "Ontem, 14:05", owner: "Carlos", stage: "Intensificar", priority: "Alta", returnDate: "Hoje" },
+  { number: 5, person: "Marina Lopes", phone: "+55 92 98170-4428", subject: "Informações sobre serviço", channel: "WhatsApp", updated: "Hoje, 10:18", owner: "Sem responsável", stage: "Novos", priority: "Normal", returnDate: "A definir" },
+  { number: 6, person: "Beatriz Alves", phone: "+55 92 99345-7620", subject: "Segunda via enviada", channel: "WhatsApp", updated: "12 ago", owner: "João", stage: "Resolvidos", priority: "Normal", returnDate: "30/09/2026" },
+];
+
+type AnnualCampaign = { id: string; title: string; dateKey: string; dateLabel: string; enabled: boolean; offset: string; audience: string; customAudience: string; message: string };
+const campaignOffsets = ["No dia", "1 dia antes", "3 dias antes", "7 dias antes"];
+function nthWeekday(year: number, month: number, weekday: number, occurrence: number) {
+  const first = new Date(year, month, 1, 12);
+  return new Date(year, month, 1 + ((7 + weekday - first.getDay()) % 7) + 7 * (occurrence - 1), 12);
+}
+function easterSunday(year: number) {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451), month = Math.floor((h + l - 7 * m + 114) / 31) - 1, day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month, day, 12);
+}
+function buildAnnualCampaigns(): AnnualCampaign[] {
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const fixed = [
+    ["new-year", "Ano Novo", 0, 1, "Que o novo ano traga muitas conquistas! Conte conosco."],
+    ["womens-day", "Dia Internacional da Mulher", 2, 8, "Hoje celebramos sua força e suas conquistas. Feliz Dia da Mulher!"],
+    ["consumer-day", "Dia do Consumidor", 2, 15, "Obrigado por fazer parte da nossa história. Feliz Dia do Consumidor!"],
+    ["lovers-day", "Dia dos Namorados", 5, 12, "Desejamos um dia cheio de carinho e bons momentos. Feliz Dia dos Namorados!"],
+    ["client-day", "Dia do Cliente", 8, 15, "Obrigado pela confiança. É muito bom ter você com a gente!"],
+    ["christmas", "Natal", 11, 25, "Desejamos a você e à sua família um Natal de paz e alegria!"],
+  ] as const;
+  const dates: Array<[string, string, Date, string]> = fixed.map(([id, title, month, day, message]) => {
+    let date = new Date(now.getFullYear(), month, day, 12);
+    if (date < now) date = new Date(now.getFullYear() + 1, month, day, 12);
+    return [id, title, date, message];
+  });
+  for (const year of [now.getFullYear(), now.getFullYear() + 1]) {
+    const mothers = nthWeekday(year, 4, 0, 2), fathers = nthWeekday(year, 7, 0, 2), blackFriday = nthWeekday(year, 10, 5, 4), easter = easterSunday(year);
+    const carnaval = new Date(easter); carnaval.setDate(carnaval.getDate() - 47);
+    const pascoa = new Date(easter);
+    for (const [id, title, date, message] of [
+      ["mothers-day", "Dia das Mães", mothers, "Neste Dia das Mães, desejamos muito carinho e momentos especiais!"],
+      ["fathers-day", "Dia dos Pais", fathers, "Desejamos um Dia dos Pais cheio de bons momentos!"],
+      ["black-friday", "Black Friday", blackFriday, "Tem novidades e condições especiais para você. Confira!"],
+      ["carnival", "Carnaval", carnaval, "Desejamos um ótimo feriado e momentos de descanso!"],
+      ["easter", "Páscoa", pascoa, "Desejamos uma Páscoa de renovação e bons momentos!"],
+    ] as Array<[string,string,Date,string]>) if (date >= now) dates.push([id,title,date,message]);
+  }
+  dates.push(["birthday", "Aniversário do cliente", new Date(9999, 0, 1, 12), "Oi, {nome}! Feliz aniversário! Desejamos um novo ciclo cheio de saúde e alegrias. Será um prazer celebrar com você!"]);
+  return dates.sort((a,b) => a[2].getTime() - b[2].getTime()).map(([id,title,date,message]) => {
+    const dateKey = id === "birthday" ? "birthday" : `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+    return { id, title, dateKey, dateLabel: id === "birthday" ? "Na data de nascimento cadastrada" : date.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }), enabled: id === "birthday", offset: id === "birthday" ? "No dia" : "3 dias antes", audience: id === "birthday" ? "Aniversariantes" : "Todos os clientes ativos", customAudience: "", message };
+  });
+}
+
+function SupportAutomaticCampaigns({ campaigns, onChange }: { campaigns: AnnualCampaign[]; onChange: (campaigns: AnnualCampaign[]) => void }) {
+  const update = (id: string, patch: Partial<AnnualCampaign>) => onChange(campaigns.map((campaign) => campaign.id === id ? { ...campaign, ...patch } : campaign));
+  return <section className="support-campaigns"><header><div><small>DATAS COMEMORATIVAS</small><h3>Aniversários e campanhas sazonais</h3><p>Edite os textos sugeridos e escolha quando e para quem preparar cada mensagem.</p></div><CalendarClock size={22} /></header><aside>Configuração demonstrativa: as mensagens não são enviadas sem uma integração de comunicação.</aside><div className="support-campaign-grid">{campaigns.map((campaign) => <details className="support-campaign-card" key={campaign.id}><summary><span><strong>{campaign.title}</strong><small>{campaign.dateLabel}</small></span><i className={campaign.enabled ? "on" : ""}>{campaign.enabled ? "Ativa" : "Pausada"}</i></summary><div className="support-campaign-fields"><label className="support-campaign-enable"><input type="checkbox" checked={campaign.enabled} onChange={(event) => update(campaign.id, { enabled: event.target.checked })} />Preparar mensagem automaticamente</label><label><span>Quando preparar</span><select value={campaign.offset} onChange={(event) => update(campaign.id, { offset: event.target.value })}>{campaignOffsets.map((offset) => <option key={offset}>{offset}</option>)}</select></label><label><span>Enviar para</span><select value={campaign.audience} onChange={(event) => update(campaign.id, { audience: event.target.value })}>{(campaign.id === "birthday" ? ["Aniversariantes", "Todos os clientes ativos", "Lista personalizada"] : ["Todos os clientes ativos", "Clientes com aniversário próximo", "Lista personalizada"]).map((audience) => <option key={audience}>{audience}</option>)}</select></label>{campaign.audience === "Lista personalizada" ? <label><span>Clientes escolhidos</span><input value={campaign.customAudience} onChange={(event) => update(campaign.id, { customAudience: event.target.value })} placeholder="Digite nomes separados por vírgula" /></label> : null}<label className="support-campaign-message"><span>Mensagem sugerida · use {"{nome}"} para personalizar</span><textarea value={campaign.message} onChange={(event) => update(campaign.id, { message: event.target.value })} rows={3} /></label><p className="support-campaign-preview">Prévia: {campaign.message.replaceAll("{nome}", "Ana")}</p></div></details>)}</div></section>;
+}
+
+function SupportView() {
+  const [items, setItems] = useState<SupportContact[]>(supportSeed);
+  const [clientDirectory, setClientDirectory] = useState<Array<{ id: string; name: string; email: string; type: string; contact: string; total: string; status: string; birthday?: string }>>([]);
+  const [mode, setMode] = useState<"kanban" | "list">("list");
+  const [channel, setChannel] = useState("Todos os canais");
+  const [owner, setOwner] = useState("Todos");
+  const [creating, setCreating] = useState(false);
+  const [selectedNumber, setSelectedNumber] = useState(1);
+  const [workspaceTab, setWorkspaceTab] = useState<"conversations" | "assistant" | "templates">("conversations");
+  const [draft, setDraft] = useState("");
+  const [chatFontSize, setChatFontSize] = useState(14);
+  const [conversationSearch, setConversationSearch] = useState("");
+  const [journeyFilter, setJourneyFilter] = useState("Todos");
+  const [contactJourneys,setContactJourneys]=useState<ReturnType<typeof readJourneys>>({});
+  useEffect(()=>setContactJourneys(readJourneys()),[]);
+  const [clientHistoryOpen, setClientHistoryOpen] = useState(false);
+  const [campaigns, setCampaigns] = useState<AnnualCampaign[]>(buildAnnualCampaigns);
+  const [campaignsLoaded, setCampaignsLoaded] = useState(false);
+  const [templates, setTemplates] = useState<Array<[string, string]>>([["Boas-vindas", "Olá! Seja bem-vindo à Bella Gestão. Como podemos ajudar?"], ["Confirmação", "Seu atendimento está confirmado. Se precisar alterar, responda esta mensagem."], ["Cobrança", "Olá! Enviamos os dados da sua cobrança. Posso ajudar com alguma dúvida?"], ["Encerramento", "Seu atendimento foi concluído. Ficamos à disposição sempre que precisar."]]);
+  const [automaticRules, setAutomaticRules] = useState<Record<string, boolean>>({ greeting: true, away: true, confirmation: false });
+  const [messages, setMessages] = useState<Record<number, Array<{ from: "client" | "team" | "ai"; text: string; time: string; attachment?: ChatAttachment }>>>({
+    1: [{ from: "client", text: "Oi! Eu fiquei com uma dúvida sobre a cobrança deste mês.", time: "09:10" }, { from: "ai", text: "Olá, Ana! Recebi sua mensagem. A Marina já vai continuar seu atendimento por aqui.", time: "09:10" }],
+    2: [{ from: "client", text: "Consigo alterar o serviço que agendei?", time: "08:40" }],
+    3: [{ from: "team", text: "Olá, Clara! Podemos confirmar seu horário de amanhã às 14h?", time: "17:18" }, { from: "client", text: "Vou verificar e já respondo.", time: "17:20" }],
+  });
+  useEffect(() => {
+    try {
+      const incoming = JSON.parse(appStorage.getItem("clinical-message-draft") ?? "null");
+      if (!incoming || typeof incoming.patientName !== "string" || typeof incoming.text !== "string") return;
+      const existing = supportSeed.find(item => item.clientId === incoming.patientId || item.person.trim().toLocaleLowerCase("pt-BR") === incoming.patientName.trim().toLocaleLowerCase("pt-BR"));
+      const number = existing?.number ?? Math.max(...supportSeed.map(item => item.number)) + 1;
+      if (!existing) {
+        const clients = JSON.parse(appStorage.getItem("gest-clients") ?? "[]");
+        const patient = Array.isArray(clients) ? clients.find(item => item.id === incoming.patientId) : null;
+        setItems(current => [...current,{number,person:incoming.patientName,clientId:incoming.patientId,phone:patient?.phone ?? "",subject:"Documento do atendimento",channel:"WhatsApp",updated:"Hoje, agora",owner:"Equipe",stage:"Em atendimento",priority:"Normal",returnDate:""}]);
+      }
+      setSelectedNumber(number);
+      setDraft(incoming.text);
+      setMode("list");
+      setWorkspaceTab("conversations");
+      appStorage.removeItem("clinical-message-draft");
+    } catch { window.dispatchEvent(new CustomEvent("gest-app-toast",{detail:"Não foi possível preparar a mensagem. Volte ao documento e tente novamente."})); }
+  }, []);
+  const matchesJourney = (item: (typeof items)[number], filter: string) => filter === "Todos"
+    || contactJourneys[item.person.trim().toLocaleLowerCase("pt-BR")]?.status === filter
+    || (filter === "Sem agendamento" && [1, 5].includes(item.number))
+    || (filter === "Agendaram e faltaram" && item.number === 2)
+    || (filter === "Sem remarcação" && item.number === 4)
+    || (filter === "Retornos no prazo" && [3, 6].includes(item.number));
+  const journeyBase = items.filter((item) => (channel === "Todos os canais" || item.channel === channel) && (owner === "Todos" || item.owner === owner));
+  const journeyOptions = ["Todos", "Sem agendamento", "Agendaram e faltaram", "Sem remarcação", "Retornos no prazo", ...journeyStatuses].map((label) => [label, label === "Todos" ? "" : String(journeyBase.filter((item) => matchesJourney(item, label)).length)]);
+  const visible = journeyBase.filter((item) => matchesJourney(item, journeyFilter));
+  const selected = items.find((item) => item.number === selectedNumber) ?? visible[0] ?? items[0];
+  const linkedId = selected?.clientId?.replace(/^#CL-/, "");
+  const normalizedContact = selected?.person.trim().toLocaleLowerCase("pt-BR");
+  const savedClient = clientDirectory.find((client) => client.name.trim().toLocaleLowerCase("pt-BR") === normalizedContact) ?? clientDirectory.find((client) => client.id === linkedId);
+  const fallbackClient = selected?.clientId ? clients.find((client) => client[0] === selected.clientId) : undefined;
+  const linkedClient = savedClient ? [selected?.clientId ?? savedClient.id, "", savedClient.name, savedClient.email, savedClient.type, savedClient.contact, "", savedClient.total, savedClient.status, savedClient.birthday ?? ""] : fallbackClient;
+  useEffect(() => { try { const saved = JSON.parse(appStorage.getItem("gest-clients") || "[]"); if (Array.isArray(saved)) setClientDirectory(saved); } catch { /* The sample contact links remain available. */ } }, []);
+  useEffect(() => { const fresh = buildAnnualCampaigns(); try { const saved = JSON.parse(appStorage.getItem("gest-automatic-campaigns") || "[]") as AnnualCampaign[]; setCampaigns(fresh.map((item) => ({ ...item, ...(saved.find((row) => row.id === item.id) ?? {}), dateKey: item.dateKey, dateLabel: item.dateLabel, title: item.title }))); } catch { setCampaigns(fresh); } finally { setCampaignsLoaded(true); } }, []);
+  useEffect(() => { if (campaignsLoaded) { try { appStorage.setItem("gest-automatic-campaigns", JSON.stringify(campaigns)); } catch { /* Current settings remain available during this visit. */ } } }, [campaigns, campaignsLoaded]);
+  useEffect(() => {
+    const clientName = document.querySelector<HTMLElement>(".support-chat > header > span > strong");
+    if (!clientName || !linkedClient || workspaceTab !== "conversations" || mode !== "list") return;
+    clientName.setAttribute("role", "button"); clientName.setAttribute("tabindex", "0"); clientName.setAttribute("aria-label", `Abrir histórico de ${linkedClient[2]}`); clientName.setAttribute("title", "Abrir o histórico deste cliente"); clientName.style.cursor = "pointer";
+    const open = () => setClientHistoryOpen(true);
+    const keydown = (event: KeyboardEvent) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } };
+    clientName.addEventListener("click", open); clientName.addEventListener("keydown", keydown);
+    return () => { clientName.removeEventListener("click", open); clientName.removeEventListener("keydown", keydown); clientName.removeAttribute("role"); clientName.removeAttribute("tabindex"); clientName.removeAttribute("aria-label"); clientName.removeAttribute("title"); clientName.style.cursor = ""; };
+  }, [selectedNumber, linkedClient, workspaceTab, mode]);
+  const sendMessage = () => {
+    if (!draft.trim() || !selected) return;
+    setMessages((current) => ({ ...current, [selected.number]: [...(current[selected.number] ?? []), { from: "team", text: draft.trim(), time: "Agora" }] }));
+    setDraft("");
+  };
+  useEffect(() => {
+    const history = document.querySelector<HTMLDivElement>(".support-chat-history");
+    if (history) history.scrollTo({ top: history.scrollHeight, behavior: "smooth" });
+  }, [messages, selectedNumber]);
+  useEffect(() => {
+    if (mode !== "kanban") return;
+    const board = document.querySelector<HTMLElement>(".shelf-kanban-support");
+    if (!board) return;
+    const cards = Array.from(board.querySelectorAll<HTMLElement>(".support-kanban-card"));
+    const columns = Array.from(board.querySelectorAll<HTMLElement>(":scope > article"));
+    const cleanups: Array<() => void> = [];
+    cards.forEach((card) => {
+      card.draggable = true;
+      const start = (event: DragEvent) => {
+        const number = card.querySelector("small")?.textContent?.match(/\d+/)?.[0];
+        if (number && event.dataTransfer) { event.dataTransfer.setData("text/plain", number); event.dataTransfer.effectAllowed = "move"; }
+        card.classList.add("is-dragging");
+      };
+      const end = () => card.classList.remove("is-dragging");
+      card.addEventListener("dragstart", start); card.addEventListener("dragend", end);
+      cleanups.push(() => { card.removeEventListener("dragstart", start); card.removeEventListener("dragend", end); });
+    });
+    columns.forEach((column) => {
+      const over = (event: DragEvent) => { event.preventDefault(); column.classList.add("is-over"); };
+      const leave = () => column.classList.remove("is-over");
+      const drop = (event: DragEvent) => {
+        event.preventDefault(); leave();
+        const number = Number(event.dataTransfer?.getData("text/plain"));
+        const stage = column.querySelector("header strong")?.textContent;
+        if (number && stage) setItems((current) => current.map((item) => item.number === number ? { ...item, stage } : item));
+      };
+      column.addEventListener("dragover", over); column.addEventListener("dragleave", leave); column.addEventListener("drop", drop);
+      cleanups.push(() => { column.removeEventListener("dragover", over); column.removeEventListener("dragleave", leave); column.removeEventListener("drop", drop); });
+    });
+    return () => cleanups.forEach((cleanup) => cleanup());
+  }, [mode, items, channel, owner, journeyFilter]);
+  return <>
+    <StandardModuleTop title="Mensagens" help="Centralize as conversas do WhatsApp, organize prioridades e acompanhe cada cliente." action={<button className="lab-create-activity support-create-button" onClick={() => setCreating(true)}><Plus size={17} />Nova conversa</button>}>
+      <Metric label="A responder" value={String(items.filter((item) => item.stage === "Responder hoje").length)} detail="para hoje" tone="blue" />
+      <Metric label="Em atendimento" value={String(items.filter((item) => item.stage === "Em atendimento").length)} detail="em acompanhamento" tone="violet" />
+      <Metric label="Intensificar" value={String(items.filter((item) => item.stage === "Intensificar").length)} detail="prioridade" tone="red" />
+      <Metric label="Resolvidos" value={String(items.filter((item) => item.stage === "Resolvidos").length)} detail="no período" tone="green" />
+    </StandardModuleTop>
+    <section className="support-toolbar"><div className="support-filter-box"><ClientSelect compact hideLabel label="Canal" value={channel} onChange={setChannel} options={["Todos os canais", ...Array.from(new Set(items.map((item) => item.channel)))]} /><ClientSelect compact hideLabel label="Responsáveis" value={owner} onChange={setOwner} options={["Todos", ...Array.from(new Set(items.map((item) => item.owner)))]} /></div><div className="support-journey-box"><nav className="support-journey-filters" aria-label="Filtros de jornada">{journeyOptions.map(([label, count]) => <button type="button" key={label} className={journeyFilter === label ? "active" : ""} onClick={() => setJourneyFilter(label)}>{label}{count ? <b>{count}</b> : null}</button>)}</nav></div><div className="client-view-toggle support-view-toggle" role="group" aria-label="Visualização dos atendimentos"><button type="button" className={mode === "kanban" ? "active" : ""} aria-label="Visualizar em Kanban" aria-pressed={mode === "kanban"} onClick={() => setMode("kanban")}><Grid2X2 size={16} /></button><button type="button" className={mode === "list" ? "active" : ""} aria-label="Visualizar em lista" aria-pressed={mode === "list"} onClick={() => setMode("list")}><List size={17} /></button></div></section>
+    {mode === "kanban" ? <section className="shelf-kanban shelf-kanban-support" aria-label="Atendimentos em Kanban">{supportStages.map((stage, stageIndex) => <article className={`stage-${["planned", "queued", "active", "review", "danger", "complete"][stageIndex]}`} key={stage}><header><span className="shelf-kanban-dot" aria-hidden="true" /><strong>{stage}</strong><b>{visible.filter((item) => item.stage === stage).length}</b></header><div className="shelf-kanban-stack">{visible.filter((item) => item.stage === stage).map((item) => <article role="button" tabIndex={0} className={`shelf-kanban-card support-kanban-card tone-${item.priority.toLowerCase()}`} key={item.number} onClick={() => { setSelectedNumber(item.number); setWorkspaceTab("conversations"); setMode("list"); }} onKeyDown={(event) => { if (event.key === "Enter") { setSelectedNumber(item.number); setWorkspaceTab("conversations"); setMode("list"); } }}><span className="shelf-kanban-band">{item.priority === "Alta" ? <Siren size={13} /> : <MessageCircle size={13} />}{item.priority === "Alta" ? "Resposta prioritária" : item.channel}</span><span className="shelf-kanban-body"><small>ATENDIMENTO {item.number}</small><strong>{item.person}</strong><span>{item.subject}</span><span className="support-kanban-owner"><em>{item.person.split(" ").map((part) => part[0]).join("").slice(0, 2)}</em><span><b>{item.owner}</b><time>{item.updated}</time></span></span><span onClick={(event) => event.stopPropagation()}><ClientSelect compact hideLabel label="Etapa" value={item.stage} onChange={(value) => setItems((current) => current.map((entry) => entry.number === item.number ? { ...entry, stage: value } : entry))} options={supportStages} /></span></span></article>)}</div></article>)}</section> : <section className="support-whatsapp"><nav className="support-workspace-tabs" aria-label="Ferramentas do atendimento"><button type="button" className={workspaceTab === "conversations" ? "active" : ""} onClick={() => setWorkspaceTab("conversations")}><MessageCircle size={15} />Conversas</button><button type="button" className={workspaceTab === "assistant" ? "active" : ""} onClick={() => setWorkspaceTab("assistant")}><Bot size={15} />Atendente virtual</button><button type="button" className={workspaceTab === "templates" ? "active" : ""} onClick={() => setWorkspaceTab("templates")}><Sparkles size={15} />Mensagens automáticas</button></nav>{workspaceTab === "conversations" ? <div className="support-inbox-shell"><aside className="support-contact-list"><header><div className="lab-search-form client-local-search"><Search size={17} /><input value={conversationSearch} onChange={(event) => setConversationSearch(event.target.value)} placeholder="Buscar conversa..." /></div><span>{visible.length} conversas</span></header><div>{visible.filter((item) => `${item.person} ${item.subject}`.toLowerCase().includes(conversationSearch.toLowerCase())).map((item) => <button type="button" className={selected?.number === item.number ? "active" : ""} key={item.number} onClick={() => setSelectedNumber(item.number)}><i>{item.person.split(" ").map((part) => part[0]).join("").slice(0, 2)}</i><span><strong>{item.person}</strong><small>{item.subject}</small><em className={`support-stage-${item.stage.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-")}`}>{item.stage}</em></span><time>{item.updated.replace("Hoje, ", "")}</time></button>)}</div></aside>{selected ? <article className="support-chat" style={{ "--chat-font-size": `${chatFontSize}px` } as React.CSSProperties}><header><i>{selected.person.split(" ").map((part) => part[0]).join("").slice(0, 2)}</i><span><strong>{selected.person}</strong><small>{selected.phone} · Demonstração local</small></span><ClientSelect compact hideLabel label="Etapa do atendimento" value={selected.stage} onChange={(value) => setItems((current) => current.map((entry) => entry.number === selected.number ? { ...entry, stage: value } : entry))} options={supportStages} /><div className="support-font-controls" role="group" aria-label="Tamanho da fonte da conversa"><button type="button" aria-label="Diminuir fonte" onClick={() => setChatFontSize((size) => Math.max(12, size - 1))}>A−</button><button type="button" aria-label="Aumentar fonte" onClick={() => setChatFontSize((size) => Math.min(22, size + 1))}>A+</button></div></header><ContactJourney name={selected.person} onChange={()=>setContactJourneys(readJourneys())}/><div className="support-chat-history"><small>HOJE</small>{(messages[selected.number] ?? [{ from: "client" as const, text: selected.subject, time: selected.updated.replace("Hoje, ", "") }]).map((message, index) => <div className={message.from} key={`${message.time}-${index}`}><span>{message.from === "ai" ? <b><Bot size={13} />Atendente virtual</b> : null}{message.text}{"attachment" in message && message.attachment ? <a href={message.attachment.url || `data:text/plain;charset=utf-8,${encodeURIComponent(message.attachment.content??"")}`} download={message.attachment.name} className="chat-attachment-link">Abrir / salvar anexo</a> : null}<time>{message.time}</time></span></div>)}</div><footer><MessageAttachments onAttach={file=>setMessages(current=>({...current,[selected.number]:[...(current[selected.number]??[]),{from:"team",text:`📎 ${file.name}`,time:"Agora",attachment:file}]}))}/><textarea className="support-message-draft" rows={draft.includes("\n")?4:1} aria-label="Mensagem preparada" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder="Digite uma mensagem (simulação local)..." /><button type="button" className="support-send" onClick={sendMessage} aria-label="Enviar mensagem"><ArrowUpRight size={18} /></button></footer></article> : null}</div> : workspaceTab === "assistant" ? <section className="support-automation-panel"><header><i><Bot size={22} /></i><div><small>ATENDENTE VIRTUAL</small><h2>Automação do WhatsApp</h2><p>Configure como a atendente recebe, direciona e responde os contatos da clínica.</p></div><button type="button" className="lab-create-activity" onClick={() => { setMode("list"); setWorkspaceTab("conversations"); setSelectedNumber(1); window.alert("Conversa de teste aberta. As mensagens desta prévia permanecem apenas neste navegador."); }}>Testar conversa</button></header><div className="support-rule-grid">{[["greeting", "Saudação inicial", "Responde automaticamente quando a conversa começa."], ["away", "Fora do horário", "Informa o horário de atendimento e registra a solicitação."], ["confirmation", "Confirmação de agenda", "Confirma data e horário antes do atendimento."]].map(([key, title, detail]) => <article key={key}><span><strong>{title}</strong><small>{detail}</small></span><button type="button" className={automaticRules[key] ? "switch on" : "switch"} onClick={() => setAutomaticRules((current) => ({ ...current, [key]: !current[key] }))} aria-pressed={automaticRules[key]}><i /></button></article>)}</div></section> : <section className="support-automation-panel support-templates"><header><i><Sparkles size={22} /></i><div><small>MENSAGENS AUTOMÁTICAS</small><h2>Respostas pré-programadas</h2><p>Textos prontos para agilizar conversas frequentes no WhatsApp.</p></div><button type="button" className="lab-create-activity" onClick={() => { const title = window.prompt("Nome da mensagem"); if (!title?.trim()) return; const content = window.prompt("Texto da mensagem"); if (!content?.trim()) return; setTemplates((current) => [...current, [title.trim(), content.trim()]]); }}><Plus size={15} />Nova mensagem</button></header><div className="support-template-list">{templates.map(([title, text], index) => <article key={title}><span><strong>{title}</strong><p>{text}</p></span><button type="button" onClick={() => { const content = window.prompt(`Editar ${title}`, text); if (content === null) return; setTemplates((current) => current.map((item, itemIndex) => itemIndex === index ? [title, content] : item)); }}>Editar</button></article>)}</div></section>}</section>}
+    {mode === "list" && workspaceTab === "templates" ? <SupportAutomaticCampaigns campaigns={campaigns} onChange={setCampaigns} /> : null}
+    {clientHistoryOpen && linkedClient ? <div className="support-client-history-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setClientHistoryOpen(false); }}><section className="support-client-history" role="dialog" aria-modal="true" aria-label={`Histórico de ${linkedClient[2]}`}><header><button type="button" className="lab-create-activity" onClick={() => setClientHistoryOpen(false)}><ChevronLeft size={16} />Voltar à conversa</button><div><small>HISTÓRICO DO CLIENTE</small><h2>{linkedClient[2]}</h2><p>{linkedClient[0]} · {linkedClient[4]} · {linkedClient[3]}</p></div></header><div className="support-client-history-summary"><article><small>Data de nascimento</small><strong>{linkedClient[9] ? new Date(`${linkedClient[9]}T12:00:00`).toLocaleDateString("pt-BR") : "Não informada"}</strong></article><article><small>Total comprado</small><strong>{linkedClient[7]}</strong></article><article><small>Status</small><strong>{linkedClient[8]}</strong></article></div><h3>Atendimentos e pagamentos</h3><div className="support-client-history-list">{[["23/05/2025 · 14:20", "Serviço realizado · Avaliação e limpeza", "R$ 3.250,00 · Crédito Visa · 2 parcelas · Concluída"], ["21/05/2025 · 10:15", "Atendimento · Procedimento estético", "R$ 12.800,00 · Pix à vista · Pendente"], ["12/05/2025 · 16:00", "Pagamento recebido", "R$ 3.250,00 · Pix · Venda #VND-1278"]].map(([date, title, detail]) => <article key={date}><i /><div><strong>{title}</strong><small>{detail}</small></div><time>{date}</time></article>)}</div><footer><button type="button" className="lab-create-activity" onClick={() => setClientHistoryOpen(false)}>Voltar à conversa</button></footer></section></div> : null}
+    {creating ? <RecordDialog title="Novo atendimento" onClose={() => setCreating(false)} onSave={(values) => { setItems((current) => [{ number: current.length + 1, person: values.Pessoa || "Novo contato", phone: values.WhatsApp || "WhatsApp não informado", subject: values.Registro || "Novo atendimento", channel: "WhatsApp", updated: "Agora", owner: values.Responsável || "Sem responsável", stage: "Novos", priority: "Normal", returnDate: values["Data prevista para retorno"] || "A definir" }, ...current]); setCreating(false); }} fields={["Pessoa", "WhatsApp", "Registro", "Responsável", "Data prevista para retorno", "Descrição"]} /> : null}
   </>;
 }
 
@@ -3637,12 +4510,52 @@ function EnhancedModuleView({ view }: { view: View }) {
   const [form, setForm] = useState<"new" | "edit" | null>(null);
   const [records, setRecords] = useState<string[][]>(config.rows);
   const [chartPeriod, setChartPeriod] = useState("30 dias");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [purchaseMetrics, setPurchaseMetrics] = useState(modules.Compras.metrics);
   useEffect(() => {
-    setRecords(config.rows);
+    let savedCatalog: string[][] = [];
+    let savedStock: string[][] = [];
+    if (view === "Catálogo") {
+      for (const key of ["gest-catalog-records", "gest-priced-catalog"]) {
+        try { const saved = JSON.parse(appStorage.getItem(key) || "[]"); if (Array.isArray(saved)) savedCatalog.push(...saved.filter((row): row is string[] => Array.isArray(row) && row.every((cell) => typeof cell === "string"))); } catch { /* Keep the default catalog. */ }
+      }
+    }
+    if (view === "Estoque") {
+      try { const saved = JSON.parse(appStorage.getItem("gest-stock-records") || "[]"); if (Array.isArray(saved)) savedStock = saved.filter((row): row is string[] => Array.isArray(row) && row.every((cell) => typeof cell === "string")); } catch { /* Mantém os produtos demonstrativos. */ }
+    }
+    let savedDocuments: string[][] | null = null;
+    if (view === "Documentos") { try { savedDocuments = JSON.parse(appStorage.getItem("gest-document-records") ?? "null"); } catch { /* Mantém demonstração. */ } }
+    setRecords(view === "Documentos" ? savedDocuments ?? config.rows : view === "Estoque" ? [...savedStock, ...config.rows] : [...savedCatalog, ...config.rows]);
     setSelected(null);
     setForm(null);
+    setFilterValues({});
+    setViewMode("list");
+    setCurrentPage(1);
   }, [view, config.rows]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, sort, filterValues, pageSize]);
+  const reorderRecord = (row: string[]) => setRecords((current) => {
+    const index = current.findIndex((item) => item[0] === row[0]);
+    if (index < 0 || current.length < 2) return current;
+    const next = [...current];
+    const target = index === 0 ? current.length - 1 : index - 1;
+    [next[index], next[target]] = [next[target], next[index]];
+    return next;
+  });
   if (view === "Tarefas" || view === "Projetos") return <WorkflowKanban view={view} />;
+  if (view === "Atendimento") return <SupportView />;
+  if (view === "Compras") return <>
+    <PageIntro title={view} subtitle={config.subtitle} />
+    <section className="v2-metrics client-metrics client-overview-metrics" aria-label="Indicadores de compras">
+      {purchaseMetrics.map((metric) => <Metric key={metric[0]} label={metric[0]} value={metric[1]} detail={metric[2]} tone={metric[3]} />)}
+    </section>
+    <PurchaseMarketWatch onMetricsChange={setPurchaseMetrics} />
+  </>;
   if (selected && !form)
     return (
       <FullDetailView
@@ -3653,6 +4566,7 @@ function EnhancedModuleView({ view }: { view: View }) {
     );
   const rows = [...records]
     .filter((row) => row.join(" ").toLowerCase().includes(query.toLowerCase()))
+    .filter((row) => config.filters.every((filter) => !filterValues[filter] || filterValues[filter] === "Todos" || moduleFilterValue(row, filter) === filterValues[filter]))
     .sort((a, b) =>
       sort === "A–Z"
         ? a[1].localeCompare(b[1])
@@ -3660,6 +4574,10 @@ function EnhancedModuleView({ view }: { view: View }) {
           ? b[1].localeCompare(a[1])
           : 0,
     );
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const pageRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const maintenanceValues = reportValues("Manutenção · Custo");
+  const maintenanceChange = ((maintenanceValues.at(-1)! - maintenanceValues.at(-2)!) / maintenanceValues.at(-2)!) * 100;
   const statusTone = (value: string) =>
     /Ativo|Paga|Pago|Recebido|Concluída|Normal|Respondido|Positivo/.test(value)
       ? "active"
@@ -3672,7 +4590,7 @@ function EnhancedModuleView({ view }: { view: View }) {
     return (
       <>
         <PageIntro title={view} subtitle={config.subtitle} />
-        <section className="v2-metrics client-metrics">
+        <section className="v2-metrics client-metrics client-overview-metrics">
           {config.metrics.map((metric) => (
             <Metric
               key={metric[0]}
@@ -3689,7 +4607,6 @@ function EnhancedModuleView({ view }: { view: View }) {
           sort={sort}
           onQuery={setQuery}
           onSort={setSort}
-          onView={setSelected}
           onEdit={(row) => {
             setSelected(row);
             setForm("edit");
@@ -3707,7 +4624,11 @@ function EnhancedModuleView({ view }: { view: View }) {
               setForm(null);
               setSelected(null);
             }}
-            onSave={() => {
+            initialValues={selected ? { Nome: selected[1], Tipo: selected[4], Descrição: selected[6] ?? "" } : undefined}
+            onSave={(values) => {
+              const next = [selected?.[0] ?? crypto.randomUUID(), values.Nome || selected?.[1] || "Novo documento", selected?.[2] ?? "Cliente", new Date().toLocaleDateString("pt-BR"), values.Tipo || selected?.[4] || "Texto", "Ativo", values.Descrição ?? ""];
+              const updated = form === "edit" && selected ? records.map((row) => row[0] === selected[0] ? next : row) : [next, ...records];
+              setRecords(updated); appStorage.setItem("gest-document-records", JSON.stringify(updated));
               setForm(null);
               setSelected(null);
             }}
@@ -3725,8 +4646,8 @@ function EnhancedModuleView({ view }: { view: View }) {
     );
   return (
     <>
-      <PageIntro title={view} subtitle={config.subtitle} />
-      <section className="v2-metrics client-metrics">
+      <PageIntro title={view} subtitle={config.subtitle} action={(view === "Estoque" || view === "Manutenção") ? <button type="button" className="module-settings-trigger" onClick={() => setSettingsOpen(true)} aria-label={`Configurar alertas de ${view.toLowerCase()}`} title={`Configurar alertas de ${view.toLowerCase()}`}><Settings size={17} /></button> : undefined} />
+      <section className="v2-metrics client-metrics client-overview-metrics">
         {config.metrics.map((metric) => (
           <Metric
             key={metric[0]}
@@ -3737,57 +4658,45 @@ function EnhancedModuleView({ view }: { view: View }) {
           />
         ))}
       </section>
-      <article className={`v2-card v2-client-table v2-module-table${view === "Equipe" ? " v2-team-table" : ""}`}>
+      <article className={`v2-card v2-client-table v2-ranked-client-table v2-module-table${view === "Equipe" ? " v2-team-table" : ""}`}>
         <header>
-          <div className="v2-local-search">
+          <div className="lab-search-form client-local-search">
             <Search size={19} />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={`Buscar em ${view.toLowerCase()}...`}
             />
+            <button type="button" className={query ? "visible" : ""} onClick={() => setQuery("")} aria-label="Limpar busca"><X size={16} /></button>
           </div>
           {config.filters.map((filter) => (
-            <label key={filter}>
-              {filter}
-              <select>
-                <option>Todos</option>
-              </select>
-            </label>
+            <ClientSelect
+              key={filter}
+              label={filter}
+              value={filterValues[filter] ?? "Todos"}
+              onChange={(value) => setFilterValues((current) => ({ ...current, [filter]: value }))}
+              showDot={filter.toLocaleLowerCase("pt-BR").includes("status")}
+              options={["Todos", ...Array.from(new Set(records.map((row) => moduleFilterValue(row, filter)).filter(Boolean)))]}
+            />
           ))}
-          <label>
-            Ordenar por
-            <select
-              value={sort}
-              onChange={(event) => setSort(event.target.value)}
-            >
-              <option>Mais recentes</option>
-              <option>Mais antigos</option>
-              <option>A–Z</option>
-              <option>Z–A</option>
-              <option>Maior valor</option>
-              <option>Menor valor</option>
-            </select>
-          </label>
-          <button className="v2-primary" onClick={() => setForm("new")}>
-            {view === "Catálogo" ? <Calculator size={17} /> : <Plus size={17} />}
+          <ClientSelect label="Ordenar por" value={sort} onChange={setSort} options={["Mais recentes", "Mais antigos", "A–Z", "Z–A", "Maior valor", "Menor valor"]} />
+          <button className="lab-create-activity" onClick={() => setForm("new")}>
+            <Plus size={17} />
             {config.label}
           </button>
+          <div className="client-view-toggle module-view-toggle" role="group" aria-label={`Visualização de ${view.toLowerCase()}`}>
+            <button type="button" className={viewMode === "list" ? "active" : ""} aria-label="Visualizar em lista" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")}><List size={17} /></button>
+            <button type="button" className={viewMode === "grid" ? "active" : ""} aria-label="Visualizar em grade" aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")}><Grid2X2 size={16} /></button>
+          </div>
         </header>
-        <table>
+        {viewMode === "list" ? <table>
           <thead>
             <tr>
-              {(view === "Vendas" ? ["ID", "Registro", "Pagamento", "Valor de referência", "Valor final", "Desconto", "Parcelamento / taxas", "Status", "Ações"] : view === "Estoque" ? ["ID", "Produto / serviço", "Tipo", "Quantidade", "Atualização", "Preço unitário", "Status", "Ações"] : view === "Manutenção" ? ["ID", "Equipamento", "Categoria", "Data da manutenção", "Preço", "Status", "Ações"] : [
-                "ID", "Registro",
+              {(view === "Vendas" ? ["Nº", "Registro", "Pagamento", "Valor de referência", "Valor final", "Desconto", "Parcelamento / taxas", "Status", "Ações"] : view === "Estoque" ? ["Nº", "Produto / serviço", "Tipo", "Quantidade", "Lote", "Validade", "Atualização", "Preço unitário", "Status", "Ações"] : view === "Manutenção" ? ["Nº", "Equipamento", "Categoria", "Data da manutenção", "Preço", "Status", "Ações"] : [
+                "Nº", "Registro",
                 view === "Equipe"
                   ? "Cargo"
-                  : view === "Estoque"
-                      ? "Quantidade"
-                      : view === "Manutenção" || view === "Catálogo"
-                        ? "Categoria"
-                        : view === "CRM"
-                          ? "Origem"
-                          : "Tipo",
+                  : view === "Catálogo" ? "Categoria" : "Tipo",
                 "Atualização",
                 "Valor / referência",
                 "Status",
@@ -3798,9 +4707,9 @@ function EnhancedModuleView({ view }: { view: View }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => view === "Vendas" ? (
+            {pageRows.map((row, index) => view === "Vendas" ? (
               <tr key={row[0]}>
-                <td>{row[0]}</td><td><strong>{row[1]}</strong></td><td>{row[2]}</td>
+                <td>{(currentPage - 1) * pageSize + index + 1}</td><td><strong>{row[1]}</strong></td><td>{row[2]}</td>
                 <td>{["R$ 9.200", "R$ 13.500", "R$ 5.100", "R$ 2.300"][index] ?? row[4]}</td>
                 <td><strong>{row[4]}</strong></td>
                 <td><span className="sales-discount">{["R$ 800 · 8,7%", "R$ 700 · 5,2%", "R$ 250 · 4,9%", "R$ 150 · 6,5%"][index] ?? "R$ 0 · 0%"}</span></td>
@@ -3810,11 +4719,11 @@ function EnhancedModuleView({ view }: { view: View }) {
               </tr>
             ) : view === "Estoque" ? (
               <tr key={row[0]}>
-                <td>{row[0]}</td><td><strong>{row[1]}</strong></td><td><span className="type">{row[2]}</span></td><td><strong>{row[3]}</strong></td><td>{row[4]}</td><td><strong>{row[5]}</strong></td><td><span className={`status ${statusTone(row[6])}`}>●　{row[6]}</span></td><td><button onClick={() => setSelected([row[0], row[1], row[2], row[4], row[5], row[6]])}>Ver detalhes</button><button className="v2-icon-button" onClick={() => { setSelected([row[0], row[1], row[2], row[4], row[5], row[6]]); setForm("edit"); }} aria-label="Editar"><Edit3 size={16} /></button></td>
+                <td>{(currentPage - 1) * pageSize + index + 1}</td><td>{row[1]}</td><td><span className="type">{row[2]}</span></td><td>{row[3]}</td><td>{row[7] || "—"}</td><td>{row[8] ? new Date(`${row[8]}T12:00:00`).toLocaleDateString("pt-BR") : "—"}</td><td>{row[4]}</td><td>{row[5]}</td><td><span className={`status ${statusTone(row[6])}`}>●　{row[6]}</span></td><td><button onClick={() => setSelected([row[0], row[1], row[2], row[4], row[5], row[6]])}>Ver detalhes</button><button className="v2-icon-button" onClick={() => { setSelected(row); setForm("edit"); }} aria-label="Editar"><Edit3 size={16} /></button></td>
               </tr>
             ) : (
               <tr key={row[0]}>
-                <td>{row[0]}</td>
+                <td>{(currentPage - 1) * pageSize + index + 1}</td>
                 <td>
                   <strong>{row[1]}</strong>
                 </td>
@@ -3846,32 +4755,77 @@ function EnhancedModuleView({ view }: { view: View }) {
                   >
                     <Edit3 size={16} />
                   </button>
-                  <button className="v2-icon-button" aria-label="Reordenar">
+                  <button className="v2-icon-button" aria-label="Reordenar" onClick={(event) => { event.stopPropagation(); reorderRecord(row); }}>
                     <Menu size={17} />
                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table> : (
+          <section className="client-card-grid" aria-label={`${view} em grade`}>
+            {pageRows.map((row, index) => {
+              const recordStatus = row.at(-1) ?? "";
+              const recordTone = statusTone(recordStatus);
+              const cardTone = (["peach", "gray", "blue"] as const)[index % 3];
+              return (
+                <article className={`client-grid-card is-${cardTone}`} key={row[0]}>
+                  <div className="client-grid-profile">
+                    <div className="client-grid-avatar">
+                      <span>{row[1].slice(0, 2).toUpperCase()}</span>
+                      <i className={recordTone} aria-hidden />
+                    </div>
+                    <h2>{row[1]}</h2>
+                    <p>Registro {(currentPage - 1) * pageSize + index + 1}</p>
+                  </div>
+                  <div className="client-grid-facts">
+                    <div><small>Tipo</small><strong>{row[2] || "—"}</strong></div>
+                    <div><small>Atualização</small><strong>{row[3] || "—"}</strong></div>
+                    <div><small>Referência</small><strong>{row[4] || "—"}</strong></div>
+                    <div><small>Status</small><strong className={`client-grid-status is-${recordTone}`}><i /> {recordStatus || "—"}</strong></div>
+                    <div><small>Número</small><strong>{(currentPage - 1) * pageSize + index + 1}</strong></div>
+                    <div><small>Área</small><strong>{view}</strong></div>
+                  </div>
+                  <footer>
+                    <button type="button" className="primary" onClick={() => setSelected(row)}>Ver detalhes</button>
+                    <button type="button" aria-label="Editar" onClick={() => { setSelected(row); setForm("edit"); }}><Edit3 size={17} /></button>
+                    <button type="button" aria-label="Organizar posição" onClick={() => reorderRecord(row)}><GripVertical size={18} /></button>
+                  </footer>
+                </article>
+              );
+            })}
+          </section>
+        )}
         <footer>
-          Mostrando {rows.length} registros{" "}
+          <ClientSelect compact label="Mostrar por página" value={String(pageSize)} onChange={(value) => setPageSize(Number(value))} options={["5", "10", "25", "50"]} />
+          Mostrando {pageRows.length} de {rows.length} registros{" "}
           <div className="pagination">
-            <button>‹</button>
-            <b>1</b>
-            <button>2</button>
-            <button>›</button>
+            <button type="button" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}>‹</button>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) =>
+              <button
+                type="button"
+                key={page}
+                className={page === currentPage ? "active" : ""}
+                aria-current={page === currentPage ? "page" : undefined}
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </button>,
+            )}
+            <button type="button" disabled={currentPage === totalPages} onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}>›</button>
           </div>
         </footer>
       </article>
       {view === "Manutenção" && (
-        <article className="v2-card v2-module-chart maintenance-chart-below">
-          <header><div><h2>Custo de manutenção</h2><p>Despesas de manutenção por período.</p></div><div className="v2-segment">{["30 dias", "3 meses", "6 meses", "12 meses"].map((item) => <button key={item} className={chartPeriod === item ? "selected" : ""} onClick={() => setChartPeriod(item)}>{item}</button>)}</div></header>
-          <Chart title="custo de manutenção" period={chartPeriod} />
+        <article className="v2-card v2-module-chart maintenance-chart-below maintenance-chart-modern finance-chart-model">
+          <header><h2>Custo e quantidade de manutenções</h2><span className={`finance-chart-trend ${maintenanceChange <= 0 ? "positive" : "negative"}`}>{maintenanceChange <= 0 ? <ArrowDown size={14} /> : <ArrowUp size={14} />}{Math.abs(maintenanceChange).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</span><ClientSelect compact hideLabel label="Período do gráfico" value={chartPeriod} onChange={setChartPeriod} options={["30 dias", "3 meses", "6 meses", "12 meses"]} /></header>
+          <ComparisonChart labels={["Manutenção · Custo"]} period={chartPeriod} maintenanceBreakdown />
         </article>
       )}
+      {settingsOpen && (view === "Estoque" || view === "Manutenção") ? <ModuleSettingsDialog view={view} onClose={() => setSettingsOpen(false)} /> : null}
       {form && (
         <RecordDialog
+          key={`${view}-${form}-${selected?.[0] ?? "new"}`}
           title={
             form === "new"
               ? config.label
@@ -3881,7 +4835,15 @@ function EnhancedModuleView({ view }: { view: View }) {
             setForm(null);
             if (selected) setSelected(null);
           }}
+          initialValues={view === "Estoque" && form === "edit" && selected ? { "Nome do produto": selected[1], "Tipo": selected[2], "Quantidade": selected[3], "Lote": selected[7], "Validade": selected[8], "Preço unitário": selected[5], "Status": selected[6] } : undefined}
           onSave={(values) => {
+            if (view === "Estoque") {
+              const next = [form === "edit" && selected ? selected[0] : String(Date.now()).slice(-5), values["Nome do produto"] || selected?.[1] || "Novo produto", values["Tipo"] || selected?.[2] || "Produto", values["Quantidade"] || selected?.[3] || "0 unidades", "Agora", values["Preço unitário"] || selected?.[5] || "R$ 0,00", values["Status"] || selected?.[6] || "Ativo", values["Lote"] || selected?.[7] || "", values["Validade"] || selected?.[8] || ""];
+              setRecords((current) => { const updated = form === "edit" && selected ? current.map((row) => row[0] === selected[0] ? next : row) : [next, ...current]; appStorage.setItem("gest-stock-records", JSON.stringify(updated.filter((row) => !config.rows.some((sample) => sample[0] === row[0])))); return updated; });
+              setForm(null);
+              setSelected(null);
+              return;
+            }
             const next: string[] = [
               form === "edit" && selected ? selected[0] : String(Date.now()).slice(-5),
               values["Nome / título"] || selected?.[1] || "Novo registro",
@@ -3890,11 +4852,21 @@ function EnhancedModuleView({ view }: { view: View }) {
               values["Preço de venda"] || values["Valor"] || selected?.[4] || "R$ 0,00",
               "Ativo",
             ];
-            setRecords((current) => form === "edit" && selected ? current.map((row) => row[0] === selected[0] ? next : row) : [next, ...current]);
+            setRecords((current) => {
+              const updated = form === "edit" && selected ? current.map((row) => row[0] === selected[0] ? next : row) : [next, ...current];
+              if (view === "Catálogo") {
+                try {
+                  const priced = JSON.parse(appStorage.getItem("gest-priced-catalog") || "[]");
+                  const pricedIds = new Set((Array.isArray(priced) ? priced : []).filter(Array.isArray).map((row: string[]) => row[0]));
+                  appStorage.setItem("gest-catalog-records", JSON.stringify(updated.filter((row) => !config.rows.some((sample) => sample[0] === row[0]) && !pricedIds.has(row[0]))));
+                } catch { /* O cadastro continua visível nesta sessão. */ }
+              }
+              return updated;
+            });
             setForm(null);
             setSelected(null);
           }}
-          fields={view === "Catálogo" ? ["Nome / título", "Tipo", "Categoria", "SKU / código", "Custo total", "Preço de venda", "Margem estimada", "Quantidade / unidade", "Impostos e taxas", "Descrição"] : ["Nome / título", "Tipo", "Responsável", "Data", "Valor", "Descrição"]}
+          fields={view === "Estoque" ? ["Nome do produto", "Tipo", "Quantidade", "Lote", "Validade", "Preço unitário", "Status"] : view === "Catálogo" ? ["Nome / título", "Tipo", "Categoria", "Duração estimada do serviço (opcional)", "SKU / código", "Custo total", "Preço de venda", "Margem estimada", "Quantidade / unidade", "Impostos e taxas", "Descrição"] : ["Nome / título", "Tipo", "Responsável", "Data", "Valor", "Descrição"]}
         />
       )}
     </>
@@ -4032,35 +5004,168 @@ function Placeholder({ view }: { view: View }) {
   );
 }
 
-export default function Inicio() {
-  const [active, setActive] = useState<View>("Início");
+function TeamAttendanceView({ onOpenClock }: { onOpenClock: () => void }) {
+  const [clock, setClock] = useState<ClockState>(readClockState);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [shiftFilter, setShiftFilter] = useState("Todas as jornadas");
+  const [sort, setSort] = useState("A–Z");
+  useEffect(() => { setClock(readClockState()); }, []);
+  const entries = (id: string) => clock.records.filter((record) => record.workerId === id && record.type === "entrada");
+  const days = (id: string) => new Set(entries(id).map((record) => new Date(record.at).toLocaleDateString("pt-BR"))).size;
+  const late = (id: string, start: string) => new Set(entries(id).filter((record) => new Date(record.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false }) > start).map((record) => new Date(record.at).toLocaleDateString("pt-BR"))).size;
+  const workedHours = (id: string) => {
+    const records = clock.records.filter((record) => record.workerId === id).sort((a, b) => a.at.localeCompare(b.at));
+    let total = 0;
+    records.forEach((record, index) => { if (record.type === "entrada" && records[index + 1]?.type === "saída") total += new Date(records[index + 1].at).getTime() - new Date(record.at).getTime(); });
+    return `${Math.max(0, total / 3600000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}h`;
+  };
+  const peopleDetails = [
+    { birth: "14/03/1991", admission: "08/01/2022", role: "Coordenadora" },
+    { birth: "22/07/1988", admission: "15/05/2023", role: "Atendimento" },
+    { birth: "09/11/1994", admission: "02/02/2024", role: "Operações" },
+  ];
+  const people = clock.workers.map((worker, index) => ({ ...worker, ...peopleDetails[index % peopleDetails.length], worked: workedHours(worker.id), workedDays: days(worker.id), lateDays: late(worker.id, worker.start), status: late(worker.id, worker.start) ? "Acompanhar" : "Em dia" }));
+  const visiblePeople = people.filter((person) => `${person.name} ${person.role}`.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR"))).filter((person) => statusFilter === "Todos" || person.status === statusFilter).filter((person) => shiftFilter === "Todas as jornadas" || `${person.start}–${person.end}` === shiftFilter).sort((a, b) => sort === "Z–A" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
+  const presentToday = clock.workers.filter((worker) => entries(worker.id).some((entry) => new Date(entry.at).toLocaleDateString("pt-BR") === new Date().toLocaleDateString("pt-BR"))).length;
+  return <section className="clock-page"><StandardModuleTop title="Equipe" help="Resumo de presença e atrasos. Cadastros, horários e marcação ficam em Ponto." action={<button type="button" className="lab-create-activity" onClick={onOpenClock}><Clock3 size={16} />Configurar ponto</button>}>
+    <InformativeMetricCardPreview tone="blue" icon={UsersRound} title="Pessoas na equipe" value={String(clock.workers.length)} change="Pessoas cadastradas" />
+    <InformativeMetricCardPreview tone="teal" icon={CalendarDays} title="Dias registrados" value={String(clock.workers.reduce((sum, worker) => sum + days(worker.id), 0))} change="Total da equipe" />
+    <InformativeMetricCardPreview tone="amber" icon={Clock3} title="Dias com atraso" value={String(clock.workers.reduce((sum, worker) => sum + late(worker.id, worker.start), 0))} change="Total da equipe" />
+    <InformativeMetricCardPreview tone="violet" icon={UserCheck} title="Presenças hoje" value={String(presentToday)} change="Entradas registradas" />
+  </StandardModuleTop>
+  <article className="v2-card v2-client-table v2-ranked-client-table v2-module-table team-summary-table">
+    <header className="team-summary-controls">
+      <div className="lab-search-form client-local-search"><Search size={19} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar na equipe..." /><button type="button" className={query ? "visible" : ""} onClick={() => setQuery("")} aria-label="Limpar busca"><X size={16} /></button></div>
+      <ClientSelect label="Status" value={statusFilter} onChange={setStatusFilter} showDot options={["Todos", "Em dia", "Acompanhar"]} />
+      <ClientSelect label="Jornada" value={shiftFilter} onChange={setShiftFilter} options={["Todas as jornadas", ...Array.from(new Set(clock.workers.map((worker) => `${worker.start}–${worker.end}`)))]} />
+      <ClientSelect label="Ordenar por" value={sort} onChange={setSort} options={["A–Z", "Z–A"]} />
+      <div className="client-view-toggle module-view-toggle" role="group" aria-label="Visualização do resumo por pessoa"><button type="button" className={viewMode === "list" ? "active" : ""} aria-label="Visualizar em lista" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")}><List size={17} /></button><button type="button" className={viewMode === "grid" ? "active" : ""} aria-label="Visualizar em cards" aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")}><Grid2X2 size={16} /></button></div>
+    </header>
+    {viewMode === "list" ? <div className="team-table-scroll"><table><thead><tr><th>Linha</th><th>Pessoa</th><th>Cargo</th><th>Ingresso</th><th>Jornada</th><th>Horas trabalhadas</th><th>Dias trabalhados</th><th>Atrasos</th><th>Status</th></tr></thead><tbody>{visiblePeople.map((person, index) => <tr key={person.id}><td className="team-row-number">{index + 1}</td><td><strong>{person.name}</strong></td><td><span className="type">{person.role}</span></td><td>{person.admission}</td><td>{person.start}–{person.end}</td><td>{person.worked}</td><td>{person.workedDays}</td><td>{person.lateDays}</td><td><span className={`status ${person.lateDays ? "warn" : "active"}`}>●　{person.status}</span></td></tr>)}</tbody></table></div> : <section className="client-card-grid team-card-grid" aria-label="Resumo por pessoa em cards">{visiblePeople.map((person, index) => <article className={`client-grid-card is-${(["peach", "gray", "blue"] as const)[index % 3]}`} key={person.id}><div className="client-grid-profile"><div className="client-grid-avatar"><span>{person.name.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span><i className={person.lateDays ? "warn" : "active"} /></div><h2>{person.name}</h2><p>{person.role}</p></div><div className="client-grid-facts"><div><small>Nascimento</small><strong>{person.birth}</strong></div><div><small>Ingresso</small><strong>{person.admission}</strong></div><div><small>Jornada</small><strong>{person.start}–{person.end}</strong></div><div><small>Horas trabalhadas</small><strong>{person.worked}</strong></div><div><small>Dias trabalhados</small><strong>{person.workedDays}</strong></div><div><small>Atrasos</small><strong>{person.lateDays}</strong></div><div><small>Status</small><strong className={`client-grid-status is-${person.lateDays ? "warn" : "active"}`}><i />{person.status}</strong></div></div></article>)}</section>}
+  </article></section>;
+}
+
+function FirstStepsView({ onNavigate }: { onNavigate: (view: View) => void }) {
+  const steps: Array<{ title: string; detail: string; view: View; icon: LucideIcon }> = [
+    { title: "Cadastre seus serviços", detail: "Defina preços, duração e responsáveis para agilizar a Agenda.", view: "Catálogo", icon: BriefcaseBusiness },
+    { title: "Cadastre seus produtos", detail: "Organize o catálogo usado em vendas, atendimentos e propostas.", view: "Catálogo", icon: ShoppingBag },
+    { title: "Configure o estoque", detail: "Informe quantidades e limites críticos para receber alertas.", view: "Estoque", icon: Package },
+    { title: "Organize clientes", detail: "Centralize os dados que alimentam Agenda, CRM e Atendimento.", view: "Clientes", icon: Users },
+    { title: "Revise o financeiro", detail: "Ajuste categorias e confira como vendas e atendimentos chegam ao caixa.", view: "Financeiro", icon: WalletCards },
+    { title: "Comece a operar", detail: "Com os cadastros prontos, agende a primeira atividade.", view: "Agenda", icon: CalendarDays },
+  ];
+  return <section className="first-steps-page">
+    <header className="v2-intro client-compact-intro"><div><h1>Primeiros passos</h1></div></header>
+    <article className="first-steps-hero"><span><BookOpen size={24} /></span><div><small>TUTORIAL GERAL</small><h2>Prepare seu negócio em 6 passos</h2></div><strong>Escolha uma etapa</strong></article>
+    <section className="first-steps-grid">{steps.map((step, index) => { const Icon = step.icon; return <button type="button" key={step.title} onClick={() => onNavigate(step.view)}><em>{String(index + 1).padStart(2, "0")}</em><i><Icon size={20} /></i><span><strong>{step.title}</strong><small>{step.detail}</small></span><ArrowUpRight size={17} /></button>; })}</section>
+  </section>;
+}
+
+function GuidedTutorial({ view, onClose }: { view: View; onClose: () => void }) {
+  const guides: Partial<Record<View, string[]>> = {
+    "Catálogo": ["Cadastre primeiro o nome, o tipo e a categoria.", "Preencha preço, duração ou disponibilidade.", "Salve para usar o item na Agenda, nas vendas e nos atendimentos."],
+    "Estoque": ["Cadastre cada produto e sua unidade.", "Informe o saldo atual e o limite de estoque crítico.", "Use as movimentações para manter as quantidades atualizadas."],
+    "Clientes": ["Cadastre os dados principais do cliente.", "Inclua contato, preferências e observações úteis.", "Abra os detalhes para acompanhar histórico e relacionamento."],
+    "Financeiro": ["Revise as categorias financeiras.", "Registre ou confira entradas e saídas.", "Use os indicadores e gráficos para acompanhar o caixa."],
+    "Agenda": ["Clique em Adicionar para criar o primeiro evento.", "Escolha cliente, serviço, data e responsável.", "Depois do horário, confirme o resultado para alimentar o sistema."],
+  };
+  const items = guides[view] ?? [`Conheça os controles principais de ${view}.`, "Preencha os dados essenciais.", "Salve e revise o resultado antes de continuar."];
+  const [step, setStep] = useState(0);
+  return <div className="guided-tutorial-backdrop" role="dialog" aria-modal="true" aria-label={`Tutorial de ${view}`}><article className="guided-tutorial-card"><header><span><BookOpen size={18} /></span><div><small>PRIMEIROS PASSOS · {step + 1} DE {items.length}</small><h2>Como começar em {view}</h2></div><button type="button" aria-label="Fechar tutorial" onClick={onClose}><X size={17} /></button></header><div className="guided-tutorial-progress"><i style={{ width: `${(step + 1) / items.length * 100}%` }} /></div><section><strong>{items[step]}</strong><p>Siga esta orientação na tela aberta. Você pode avançar e voltar quando quiser.</p></section><footer><button type="button" disabled={step === 0} onClick={() => setStep((value) => Math.max(0, value - 1))}>Voltar</button>{step < items.length - 1 ? <button type="button" className="primary" onClick={() => setStep((value) => value + 1)}>Próximo</button> : <button type="button" className="primary" onClick={onClose}>Concluir tutorial</button>}</footer></article></div>;
+}
+
+function InicioApp() {
+  const access = useAccess();
+  const [active, setActiveState] = useState<View>("Início");
+  const setActive = (view: View) => { if (access.allowed(view)) setActiveState(view); };
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+  const [storageWarning, setStorageWarning] = useState(false);
+  useEffect(() => { const warn = () => setStorageWarning(true); window.addEventListener("gest-storage-warning", warn); return () => window.removeEventListener("gest-storage-warning", warn); }, []);
   const [dark, setDark] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarColor, setSidebarColor] = useState("#071a38");
+  const [appScale, setAppScale] = useState(100);
   const [notifications, setNotifications] = useState(false);
   const [selectedClientRecord, setSelectedClientRecord] = useState<string[] | null>(null);
+  const [clinicalContext, setClinicalContext] = useState<{ patientId: string; patientName: string; appointment?: { id: string; service: string; coverage: { kind: "Particular" | "Plano"; insurer: string; category: string; authorization: string } }; origin: "Agenda" | "Detalhe" | "Início" } | null>(null);
+  const [guidedTutorial, setGuidedTutorial] = useState<View | null>(null);
+  const [settingsTab, setSettingsTab] = useState("Negócio");
+  const [appToast, setAppToast] = useState("");
+  const [toastToken, setToastToken] = useState(0);
 
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem("gest-theme");
-    const savedSidebar = window.localStorage.getItem("gest-sidebar-color");
+    const savedTheme = appStorage.getItem("gest-theme");
+    const savedSidebar = appStorage.getItem("gest-sidebar-color");
+    const savedScale = Number(appStorage.getItem("gest-app-scale"));
+    const scaleBaseline = appStorage.getItem("gest-app-scale-baseline");
+    setSidebarCollapsed(appStorage.getItem("gest-sidebar-collapsed") === "true");
     if (savedTheme === "dark") setDark(true);
     if (savedSidebar) setSidebarColor(savedSidebar);
+    if (scaleBaseline === "standard-120-v3" && savedScale >= 75 && savedScale <= 125) {
+      setAppScale(savedScale);
+    } else if (scaleBaseline === "standard-115-v2" && savedScale >= 90 && savedScale <= 130) {
+      const migratedScale = Math.round(savedScale / 1.2);
+      setAppScale(migratedScale);
+      appStorage.setItem("gest-app-scale", String(migratedScale));
+      appStorage.setItem("gest-app-scale-baseline", "standard-120-v3");
+    } else {
+      setAppScale(100);
+      appStorage.setItem("gest-app-scale", "100");
+      appStorage.setItem("gest-app-scale-baseline", "standard-120-v3");
+    }
+    setPreferencesLoaded(true);
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem("gest-theme", dark ? "dark" : "light");
-  }, [dark]);
+    if (preferencesLoaded) appStorage.setItem("gest-theme", dark ? "dark" : "light");
+  }, [dark, preferencesLoaded]);
 
   useEffect(() => {
-    window.localStorage.setItem("gest-sidebar-color", sidebarColor);
-  }, [sidebarColor]);
+    if (preferencesLoaded) appStorage.setItem("gest-sidebar-color", sidebarColor);
+  }, [sidebarColor, preferencesLoaded]);
+
+  useEffect(() => {
+    if (preferencesLoaded) appStorage.setItem("gest-app-scale", String(appScale));
+  }, [appScale, preferencesLoaded]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [active]);
+
+  useEffect(() => {
+    let timer = 0;
+    const handleToast = (event: Event) => {
+      const message = (event as CustomEvent<string>).detail;
+      if (typeof message !== "string" || !message) return;
+      setAppToast(message);
+      setToastToken((value) => value + 1);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setAppToast(""), 2800);
+    };
+    window.addEventListener("gest-app-toast", handleToast);
+    window.addEventListener("gest-app-notification", handleToast);
+    return () => { window.clearTimeout(timer); window.removeEventListener("gest-app-toast", handleToast); window.removeEventListener("gest-app-notification", handleToast); };
+  }, []);
 
   let page =
     active === "Início" ? (
-      <HomeView setActive={setActive} />
+      access.allowed("Financeiro") ? <HomeView setActive={setActive} onOpenClinical={(event) => {
+        if (!access.allowed("Prontuário")) { showAppToast("Solicite acesso ao prontuário."); return; }
+        let patientId = `agenda:${event.patientName.toLocaleLowerCase("pt-BR")}`;
+        try { const rows = JSON.parse(appStorage.getItem("gest-clients") ?? "[]"); const match = Array.isArray(rows) ? rows.find((row) => row.name?.toLocaleLowerCase("pt-BR") === event.patientName.toLocaleLowerCase("pt-BR")) : null; if (match?.id) patientId = match.id; } catch { /* Abre o prontuário mesmo sem cadastro local. */ }
+        setClinicalContext({ patientId, patientName: event.patientName, appointment: { id: event.id, service: event.service, coverage: event.coverage }, origin: "Início" }); setActive("Prontuário");
+      }} /> : <section className="client-record-panel"><header><h2>Minha rotina</h2></header><p>{roleLabels[access.member!.role]} · acesse as áreas liberadas para você.</p><div className="access-module-grid">{appModules.filter(([, label]) => label !== "Início" && access.allowed(label)).map(([id, label]) => <button key={id} className="lab-create-activity" onClick={() => setActive(label as View)}>{label}</button>)}</div></section>
     ) : active === "Agenda" ? (
-      <AgendaExperience />
+      <AgendaExperience onOpenClinical={(event) => {
+        if (!access.allowed("Prontuário")) { showAppToast("Solicite acesso ao prontuário."); return; }
+        let patientId = `agenda:${event.patientName.toLocaleLowerCase("pt-BR")}`;
+        try { const rows = JSON.parse(appStorage.getItem("gest-clients") ?? "[]"); const match = Array.isArray(rows) ? rows.find((row) => row.name?.toLocaleLowerCase("pt-BR") === event.patientName.toLocaleLowerCase("pt-BR")) : null; if (match?.id) patientId = match.id; } catch { /* Agenda continua disponível. */ }
+        setClinicalContext({ patientId, patientName: event.patientName, appointment: { id: event.id, service: event.service, coverage: event.coverage }, origin: "Agenda" }); setActive("Prontuário");
+      }} />
     ) : active === "Clientes" ? (
-      <ClientsExperience
+      <ClientsExperience onAnamnesis={(id,name)=>{setClinicalContext({patientId:id,patientName:name,origin:"Detalhe"});setActive("Prontuário");}}
         onDetails={(record) => {
           setSelectedClientRecord(record);
           setActive("Detalhe");
@@ -4070,46 +5175,69 @@ export default function Inicio() {
       <ClientDetailPage
         record={selectedClientRecord ?? undefined}
         onBack={() => setActive("Clientes")}
+        onOpenClinical={(record) => { setClinicalContext({ patientId: record[7] ?? record[0], patientName: record[1], origin: "Detalhe" }); setActive("Prontuário"); }}
       />
+    ) : active === "Prontuário" ? (
+      clinicalContext ? null : <ClinicalAttendancePicker onOpenAgenda={()=>setActive("Agenda")} onOpen={event=>{const patient=modules.Clientes.rows.find(row=>row[1]===event.patientName);setClinicalContext({patientId:patient?.[7]??patient?.[0]??event.patientName,patientName:event.patientName,appointment:event,origin:"Início"});}}/>
     ) : active === "Configurações" ? (
-      <SettingsView dark={dark} setDark={setDark} sidebarColor={sidebarColor} setSidebarColor={setSidebarColor} />
+      <SettingsView dark={dark} setDark={setDark} sidebarColor={sidebarColor} setSidebarColor={setSidebarColor} appScale={appScale} setAppScale={setAppScale} initialTab={settingsTab} />
     ) : active === "Assistente" ? (
-      <AssistantExperience />
+      <AssistantExperience onNavigate={(view) => setActive(view as View)} />
     ) : active === "Financeiro" ? (
       <FinanceExperience />
+    ) : active === "Investimentos" ? (
+      <InvestmentSimulator />
+    ) : active === "Primeiros passos" ? (
+      <FirstStepsView onNavigate={(view) => { setActive(view); setGuidedTutorial(appStorage.getItem(`gest-guide-hidden-${view}`) === "true" ? null : view); }} />
+    ) : active === "Ponto" ? (
+      <TimeClockExperience />
+    ) : active === "Equipe" ? (
+      <TeamAttendanceView onOpenClock={() => setActive("Ponto")} />
     ) : active === "Loja" ? (
       <StoreView />
     ) : (
       <Placeholder view={active} />
     );
   const recommendationArea = active === "Detalhe" ? "Clientes" : active;
+  if (!access.allowed(active)) page = <section className="client-record-panel"><h2>Acesso restrito</h2><p>Solicite acesso ao administrador do seu empreendimento.</p></section>;
   return (
-    <main className={dark ? "gest-v2 dark gest-redesign" : "gest-v2 gest-redesign"} style={{ "--sidebar-color": sidebarColor, "--gest-accent": sidebarColor } as React.CSSProperties}>
+    <main className={`${dark ? "gest-v2 dark gest-redesign" : "gest-v2 gest-redesign"}${sidebarCollapsed ? " sidebar-collapsed" : ""}`} style={{ "--sidebar-color": sidebarColor, "--gest-accent": sidebarColor, "--gest-app-scale": appScale * 1.2 / 100 } as React.CSSProperties}>
       <Sidebar
         active={active}
         setActive={setActive}
         dark={dark}
         setDark={setDark}
+        collapsed={sidebarCollapsed}
+        setCollapsed={(value) => { setSidebarCollapsed(value); appStorage.setItem("gest-sidebar-collapsed", String(value)); }}
       />
-      <section className="v2-content">
+      <section className={active === "Início" ? "v2-content home-compact-header" : "v2-content"}>
         <Topbar
+          active={active}
           notificationOpen={notifications}
           setNotificationOpen={setNotifications}
-          onCreate={() => {
-            if (active === "Clientes") {
-              window.dispatchEvent(new Event("gest:create-client"));
-              return;
-            }
-            setActive("Agenda");
-          }}
+          onNavigate={(view, tab) => { if (tab) setSettingsTab(tab); setActive(view); }}
+          onTutorial={() => setGuidedTutorial(active)}
         />
-        <main className="v2-page">
+        <main className="v2-page gest-compact-page">
+          {storageWarning ? <p className="access-demo-banner" role="alert">O armazenamento do navegador está indisponível ou cheio. As alterações recentes ficam apenas nesta sessão; não feche a página antes de copiar o que precisa.</p> : null}
+          {access.mode === "demo" && access.member?.role !== "owner" ? <div className="access-demo-banner">Prévia de acesso: {access.member?.name}<button className="lab-create-activity" onClick={() => access.preview("owner")}>Voltar ao dono</button></div> : null}
           {page}
-          {active !== "Loja" && active !== "Início" && (
+          {clinicalContext && access.allowed("Prontuário") ? <div hidden={active !== "Prontuário"}><ClinicalWorkspace onMessage={() => setActive("Atendimento")} documentModels={modules.Documentos.rows} key={`${clinicalContext.patientId}:${clinicalContext.appointment?.id ?? "client"}`} patientId={clinicalContext.patientId} patientName={clinicalContext.patientName} appointment={clinicalContext.appointment} onBack={() => {setClinicalContext(null);setActive("Prontuário");}} /></div> : null}
+          {appToast ? <div key={toastToken} className={`gest-app-toast ${/remov|exclu|apag/i.test(appToast) ? "is-delete" : /erro|não foi possível|falha/i.test(appToast) ? "is-error" : ""}`} role="status">{/remov|exclu|apag/i.test(appToast) ? <Trash2 size={17} /> : <CheckCircle2 size={17} />}{appToast}</div> : null}
+          {access.manage && access.allowed(active) && !(["Loja", "Início", "Tarefas", "Projetos", "Propostas", "Catálogo"] as View[]).includes(active) && (
             <ProfessionalRecommendation area={recommendationArea} />
           )}
+          {guidedTutorial && active === guidedTutorial ? <GuidedTour view={guidedTutorial} onClose={() => setGuidedTutorial(null)} /> : null}
         </main>
       </section>
     </main>
   );
 }
+
+function AccessGate() {
+  const access = useAccess();
+  if (access.loading) return <main className="access-gate" role="status">Carregando seu acesso…</main>;
+  if (!access.member) return <main className="access-gate"><h1>Acesso ao empreendimento</h1><p>{access.error || "Entre com sua conta para continuar."}</p><a className="lab-create-activity" href="/entrar">Entrar</a></main>;
+  return <InicioApp key={`${access.member.businessId}:${access.member.userId ?? access.member.id}`} />;
+}
+export default function Inicio() { return <AccessProvider><AccessGate /></AccessProvider>; }

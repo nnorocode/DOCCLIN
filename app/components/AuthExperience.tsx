@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getSupabase, setSessionPersistence, supabaseConfigured } from "../../lib/supabase/client";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import {
@@ -135,7 +136,7 @@ function AuthVisual({ mode, step, loginView }: { mode: AuthMode; step: SignupSte
       ? "O Standard fica liberado por 30 dias para testar a base do Gest com clientes, vendas, agenda e financeiro."
       : loginView === "login"
         ? "Acesse a operação sem ruído: visão geral, agenda, clientes, vendas e financeiro no mesmo lugar."
-        : "Este fluxo é só demonstrativo por enquanto, mas já se comporta como uma tela real.";
+        : supabaseConfigured ? "Use as instruções enviadas ao seu e-mail para recuperar o acesso à sua conta." : "Fluxo demonstrativo: nenhum e-mail é enviado neste ambiente local.";
 
   return (
     <section className="auth-visual">
@@ -208,6 +209,11 @@ function LoginForms({ view, setView }: { view: LoginView; setView: (view: LoginV
   const [keepConnected, setKeepConnected] = useState(true);
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    try { const { data } = getSupabase()!.auth.onAuthStateChange((event) => { if (event === "PASSWORD_RECOVERY") setView("reset"); }); return () => data.subscription.unsubscribe(); } catch { setMessage("A configuração de acesso precisa ser revisada."); }
+  }, [setView]);
 
   const copy = useMemo(() => {
     if (view === "recover") return { kicker: "Recuperar senha", title: "Vamos te enviar o acesso.", text: "Informe o e-mail da conta para receber as instruções de recuperação." };
@@ -215,35 +221,64 @@ function LoginForms({ view, setView }: { view: LoginView; setView: (view: LoginV
     return { kicker: "Entrar", title: "Acesse sua conta.", text: "Continue acompanhando clientes, vendas e financeiro sem perder o ritmo." };
   }, [view]);
 
-  function submitLogin() {
+  async function submitLogin() {
+    if (busy) return;
     const missing = [!email ? "email" : "", !password ? "password" : ""].filter(Boolean);
     setErrors(missing);
     if (missing.length) {
-      setMessage("Preenche e-mail e senha só para simular o acesso.");
+      setMessage("Preencha e-mail e senha.");
       return;
     }
-    setMessage(keepConnected ? "Entrando e mantendo a sessão conectada..." : "Entrando...");
+    if (supabaseConfigured) {
+      setBusy(true);
+      try {
+        const db = getSupabase()!;
+        setSessionPersistence(keepConnected);
+        const { data, error } = await db.auth.signInWithPassword({ email: email.trim(), password });
+        if (error || !data.user) { setMessage("Não foi possível entrar. Confira suas credenciais."); return; }
+        const { data: memberships, error: membershipError } = await db.from("business_members").select("id").eq("user_id", data.user.id).limit(1);
+        if (membershipError) { setMessage("Não foi possível consultar o vínculo com o empreendimento."); return; }
+        if (!memberships?.length && data.user.user_metadata.business_name) {
+          const { error: onboardingError } = await db.rpc("create_owned_business", { business_name: data.user.user_metadata.business_name, owner_name: data.user.user_metadata.full_name || "Responsável" });
+          if (onboardingError) { setMessage("Seu cadastro precisa ser concluído pelo administrador."); return; }
+        }
+        setPassword(""); router.push("/inicio");
+      } catch { setMessage("A configuração de acesso precisa ser revisada."); } finally { setBusy(false); }
+      return;
+    }
+    setMessage("Entrando na demonstração local...");
     window.setTimeout(() => router.push("/inicio"), 420);
   }
 
-  function submitRecover() {
+  async function submitRecover() {
+    if (busy) return;
     setErrors(!email ? ["email"] : []);
     if (!email) {
       setMessage("Digite o e-mail para simular o envio.");
       return;
     }
-    setMessage("Instruções enviadas. Agora vamos simular a redefinição.");
+    if (supabaseConfigured) {
+      setBusy(true);
+      try { await getSupabase()!.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/entrar` }); setMessage("Se o e-mail estiver cadastrado, você receberá as instruções de recuperação."); } catch { setMessage("Não foi possível solicitar a recuperação agora."); } finally { setBusy(false); }
+      return;
+    }
+    setMessage("Demonstração: simulando a redefinição, sem enviar e-mail.");
     window.setTimeout(() => setView("reset"), 520);
   }
 
-  function submitReset() {
+  async function submitReset() {
+    if (busy) return;
     const missing = [!newPassword ? "newPassword" : "", !confirmPassword ? "confirmPassword" : ""].filter(Boolean);
     setErrors(missing);
-    if (missing.length || newPassword !== confirmPassword) {
-      setMessage(newPassword !== confirmPassword ? "As senhas precisam ser iguais." : "Preencha os dois campos de senha.");
+    if (missing.length || newPassword !== confirmPassword || newPassword.length < 8) {
+      setMessage(newPassword !== confirmPassword ? "As senhas precisam ser iguais." : "Use uma senha com pelo menos 8 caracteres.");
       return;
     }
-    setMessage("Senha redefinida. Você já pode entrar.");
+    if (supabaseConfigured) {
+      setBusy(true);
+      try { const db = getSupabase()!; const { error } = await db.auth.updateUser({ password: newPassword }); if (error) { setMessage("Use o link de recuperação válido enviado ao seu e-mail."); return; } await db.auth.signOut(); } catch { setMessage("Não foi possível redefinir a senha."); return; } finally { setBusy(false); }
+    }
+    setNewPassword(""); setConfirmPassword(""); setMessage(supabaseConfigured ? "Senha redefinida. Você já pode entrar." : "Senha redefinida apenas na demonstração.");
     window.setTimeout(() => setView("login"), 520);
   }
 
@@ -310,6 +345,7 @@ function SignupForms({ step, setStep }: { step: SignupStep; setStep: (step: Sign
   const router = useRouter();
   const [form, setForm] = useState(emptySignup);
   const [selectedPlan, setSelectedPlan] = useState("standard");
+  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -317,6 +353,7 @@ function SignupForms({ step, setStep }: { step: SignupStep; setStep: (step: Sign
 
   function validateUserStep() {
     const missing = ["name", "email", "phone", "password", "confirmPassword"].filter((key) => !form[key as keyof typeof form]);
+    if (form.password.length < 8) missing.push("password");
     if (form.password && form.confirmPassword && form.password !== form.confirmPassword) missing.push("confirmPassword");
     if (!form.terms) missing.push("terms");
     setErrors(missing);
@@ -347,7 +384,21 @@ function SignupForms({ step, setStep }: { step: SignupStep; setStep: (step: Sign
     if (validateCompanyStep()) setStep(3);
   }
 
-  function finishSignup() {
+  async function finishSignup() {
+    if (busy || !validateUserStep() || !validateCompanyStep()) return;
+    if (supabaseConfigured) {
+      setBusy(true);
+      try {
+        const db = getSupabase()!;
+        const { data, error } = await db.auth.signUp({ email: form.email.trim(), password: form.password, options: { emailRedirectTo: `${window.location.origin}/entrar`, data: { full_name: form.name.trim(), business_name: form.company.trim() } } });
+        if (error || !data.user) { setMessage("Não foi possível concluir o cadastro. Confira os dados e tente novamente."); return; }
+        if (data.session) { const { error: onboardingError } = await db.rpc("create_owned_business", { business_name: form.company.trim(), owner_name: form.name.trim() }); if (onboardingError) { setMessage("Conta criada; o vínculo com o empreendimento ainda precisa ser concluído."); return; } }
+        setForm((current) => ({ ...current, password: "", confirmPassword: "" }));
+        setMessage(data.session ? "Conta criada. Você pode acessar o sistema." : "Confira seu e-mail para confirmar o cadastro antes de entrar.");
+        setStep(4);
+      } catch { setMessage("A configuração de acesso precisa ser revisada."); } finally { setBusy(false); }
+      return;
+    }
     setMessage("Cadastro concluído. Preparando seu Gest Base...");
     window.setTimeout(() => setStep(4), 420);
   }
@@ -358,7 +409,7 @@ function SignupForms({ step, setStep }: { step: SignupStep; setStep: (step: Sign
         <ChevronLeft size={16} /> Voltar ao site
       </Link>
       {step < 4 ? <Progress step={step} onSelect={(nextStep) => setStep(nextStep)} /> : null}
-      {message && step < 4 ? <div className={errors.length ? "auth-toast warning" : "auth-toast"}>{message}</div> : null}
+      {message ? <div className={errors.length ? "auth-toast warning" : "auth-toast"}>{message}</div> : null}
 
       {step === 1 ? (
         <>

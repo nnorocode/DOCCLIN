@@ -1,0 +1,27 @@
+#!/bin/zsh
+
+set -eu
+
+project_root="${0:A:h:h}"
+codex_node_dir="/Users/renannoronha/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin"
+
+export PATH="${codex_node_dir}:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+export HOST="0.0.0.0"
+export PORT="3000"
+preview_log="${project_root}/.vinext/local-preview.screen.log"
+
+cd "${project_root}"
+
+if [[ ! -x "./node_modules/.bin/vinext" ]]; then
+  print -u2 "Vinext não encontrado em ${project_root}/node_modules/.bin/vinext"
+  exit 1
+fi
+
+while true; do
+  set +e
+  ./node_modules/.bin/vinext dev --hostname "${HOST}" --port "${PORT}" >> "${preview_log}" 2>&1
+  preview_exit_code=$?
+  set -e
+  print -r -- "O preview encerrou com código ${preview_exit_code}; reiniciando em 2 segundos." >> "${preview_log}"
+  sleep 2
+done

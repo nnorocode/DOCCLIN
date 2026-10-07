@@ -1,4 +1,5 @@
 import vinext from "vinext";
+import { securityHeaders } from "./lib/security-headers";
 import { defineConfig } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { sites } from "./build/sites-vite-plugin";
@@ -44,9 +45,15 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
-    server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+    server: {
+      headers: securityHeaders,
+      // Escuta em IPv4 e IPv6 para que localhost não oscile entre um endereço
+      // disponível e outro recusado durante as sessões de preview.
+      host: "0.0.0.0",
+      ...(isCodexSeatbeltSandbox
+        ? { watch: { useFsEvents: false, usePolling: true } }
+        : {}),
+    },
     plugins: [
       vinext(),
       sites(),

@@ -1,6 +1,7 @@
 "use client";
 
 import { AgendaPreview } from "../laboratorio/page";
+import InfoHint from "./InfoHint";
 
 import { useState } from "react";
 import {
@@ -504,14 +505,17 @@ function LegacyAgendaExperience() {
   );
 }
 
-export default function AgendaExperience() {
+export default function AgendaExperience({ onOpenClinical }: { onOpenClinical?: (event: { id: string; patientName: string; service: string; coverage: { kind: "Particular" | "Plano"; insurer: string; category: string; authorization: string } }) => void }) {
   return (
     <section className="approved-agenda-page">
       <div className="v2-intro client-compact-intro">
-        <h1>Agenda</h1>
+        <h1>
+          Agenda
+          <InfoHint text="Visualize, organize e acompanhe todos os compromissos da sua agenda." />
+        </h1>
       </div>
       <div className="approved-agenda-surface">
-        <AgendaPreview />
+        <AgendaPreview onOpenClinical={onOpenClinical} />
       </div>
     </section>
   );
