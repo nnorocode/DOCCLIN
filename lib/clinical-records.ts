@@ -4,6 +4,8 @@ import type { AnatomyState } from "../app/laboratorio/anatomia/page";
 
 export type Coverage = { kind: "Particular" | "Plano"; insurer: string; category: string; authorization: string };
 export type ClinicalEncounter = {
+  anatomy?: AnatomyState;
+  anamnesisDetails?: Record<string, string>;
   order?: import("../app/inicio/ClinicalOrder").ClinicalOrderData;
   registeredAt?: string;
   id: string; date: string; appointmentId?: string; service: string; tooth: string; region: string;
@@ -16,6 +18,8 @@ export type ClinicalEncounter = {
 export type TreatmentStep = { id: string; title: string; plannedDate: string; done: boolean };
 export type ClinicalDocument = { id: string; logo?: string; kind: "Contrato" | "Consentimento" | "Receita" | "Atestado" | "Outro"; title: string; status: "Pendente" | "Enviado" | "Assinado" | "Rascunho" | "Emitido"; updatedAt: string; content?: string; service?: string; encounterId?: string; signedAt?: string };
 export type ClinicalRecord = {
+  prescriptionDrafts?: Record<string,string>;
+  draft?: { updatedAt: string; appointmentId?: string; service: string; observations: string; returnDate: string; paymentMethod: string; installments: string; cardBrand: string; amount: string; product?: string; lot?: string; expiry?: string; selectedSteps?: string[]; prescriptions?: Record<string,string>; order?: import("../app/inicio/ClinicalOrder").ClinicalOrderData };
   documentEmissions?: Array<{id:string;documentId:string;at:string;content:string;title:string;logo?:string}>;
   anatomyHistory?: Array<{id:string;date:string;mode:"dental"|"face";anatomy:AnatomyState}>;
   anatomy?: AnatomyState;
@@ -46,9 +50,16 @@ export async function loadClinicalRecord(businessId: string, patientId: string, 
 }
 export async function saveClinicalRecord(businessId: string, record: ClinicalRecord): Promise<void> {
   const db = getSupabase();
-  if (!db) { demo.set(`${businessId}:${record.patientId}`, structuredClone(record)); appStorage.setItem(`clinical-record:${businessId}:${record.patientId}`, JSON.stringify(record)); return; }
+  if (!db) { demo.set(`${businessId}:${record.patientId}`, structuredClone(record)); appStorage.setItem(`clinical-record:${businessId}:${record.patientId}`, JSON.stringify(record)); if(typeof window!=="undefined")window.dispatchEvent(new Event("gest-clinical-record-saved")); return; }
   const { error } = await db.from("clinical_records").upsert({ business_id: businessId, patient_id: record.patientId, data: record }, { onConflict: "business_id,patient_id" });
   if (error) throw error;
+  appStorage.setItem(`clinical-record:${businessId}:${record.patientId}`, JSON.stringify(record));
+  if(typeof window!=="undefined")window.dispatchEvent(new Event("gest-clinical-record-saved"));
+}
+
+export function clinicalAlerts(record: ClinicalRecord): string[] {
+  const affirmative = Object.entries(record.anamnesisDetails ?? {}).filter(([key, value]) => value === "Sim" && /alergia|hipertensão|diabetes|doença|coagulação|epilepsia|gestação|uso de|problema com anestesia|dispositivo implantado/i.test(key)).map(([key]) => key);
+  return [...new Set([...record.allergies.filter(value => !/nenhuma/i.test(value)), ...record.conditions, ...record.medicines.map(value => `Medicamento: ${value}`), ...affirmative])];
 }
 export async function listClinicalRecords(businessId: string): Promise<ClinicalRecord[]> {
   const db = getSupabase();

@@ -9889,11 +9889,11 @@ button {
 
 .pricing-form { counter-reset:pricing-step; }
 .pricing-workspace .pricing-section > h3 { display:flex; align-items:center; gap:9px; font-size:0 !important; }
-.pricing-workspace .pricing-section > h3::before { counter-increment:pricing-step; content:counter(pricing-step) "."; width:35px; height:35px; display:grid; place-items:center; flex:none; border-radius:50%; color:#355f80; background:#dceaf3; font-size:14px; font-weight:800; }
-.pricing-workspace .pricing-form > .pricing-section:nth-child(-n+5) > h3::before { width:30px; height:30px; color:#dceaf3; background:#355f80; }
+.pricing-workspace .pricing-section > h3::before { counter-increment:pricing-step; content:counter(pricing-step); width:20px; height:20px; display:grid; place-items:center; flex:none; border-radius:50%; color:#355f80; background:#dceaf3; font-size:11px; font-weight:600; line-height:1; }
+.pricing-workspace .pricing-form > .pricing-section:nth-child(-n+5) > h3::before { width:20px; height:20px; color:#dceaf3; background:#355f80; }
 .investment-objective-picker .investment-step-number,
 .investment-form > header .investment-step-number { width:30px; height:30px; color:#dceaf3; background:#355f80; }
-.pricing-workspace .pricing-section > h3::after { color:#20344e; font-size:15px; font-weight:650; }
+.pricing-workspace .pricing-section > h3::after { color:#315d91; font-size:15px; font-weight:600; }
 .pricing-workspace .pricing-form > .pricing-section:nth-child(1) > h3::after { content:"Identificação"; }
 .pricing-workspace .pricing-form > .pricing-section:nth-child(2) > h3::after { content:"Compra e custo"; }
 .pricing-workspace .pricing-form > .pricing-section:nth-child(3) > h3::after { content:"Estrutura"; }
@@ -11106,7 +11106,9 @@ body .gest-compact-page .tutorial-storyboard-unified .tutorial-unified-frame > p
 
 /* Atendimento: a mesma linguagem visual, sem alterar a escala do app. */
 .clinical-attendance-picker > header{margin-bottom:12px}
-.clinical-attendance-days{padding:18px;border:1px solid var(--gest-border,#dce7ee);border-radius:22px;background:var(--gest-surface,#fff);align-items:stretch}
+.clinical-attendance-days{padding:18px;border:1px solid #dfe8ef;border-radius:22px;background:#fff;align-items:stretch}
+.clinical-attendance-days + .clinical-drafts{margin-top:16px}
+.dark .clinical-attendance-days{background:#1d2a38;border-color:#344255}
 .clinical-attendance-picker .lab-timeline-card{min-height:0;height:auto}
 .clinical-attendance-picker .lab-timeline-card > header{display:none}
 .clinical-attendance-picker .lab-timeline-list{min-height:0}
@@ -11158,11 +11160,11 @@ body .gest-compact-page .tutorial-storyboard-unified .tutorial-unified-frame > p
 .clinical-page .clinical-header-actions{position:static!important;align-self:center;flex-shrink:0;gap:10px}
 .clinical-page .clinical-header-actions .clinical-settings-button{position:static!important;width:31px!important;min-width:31px!important;height:31px!important;min-height:31px!important;padding:0!important;display:grid;place-items:center;border-radius:50%!important;box-sizing:border-box;flex:none}
 .clinical-page .clinical-header-actions .clinical-settings-button svg{width:15px;height:15px;margin:0}
-.clinical-attendance-day>h3{text-align:center;margin:0 0 8px;font-size:15px;color:#607486}
-.clinical-attendance-day.is-adjacent>.lab-timeline-card{background:#fafcfd;border-color:#e8eef2;box-shadow:none}
+.clinical-attendance-day>h3{text-align:center;margin:0 0 8px;font-size:15px;color:#315d91}
+.clinical-attendance-day.is-adjacent>.lab-timeline-card{background:#f3f6fa;border-color:#e8eef2;box-shadow:none}
 .clinical-attendance-day.is-adjacent .lab-timeline-list>article{background:#f5f8fa}
 .clinical-attendance-day.is-today>h3{color:#315d91;font-weight:700}
-.clinical-attendance-day.is-today>.lab-timeline-card{border-color:#bfd2e5;background:#fff;box-shadow:0 6px 20px rgba(49,93,145,.09)}
+.clinical-attendance-day.is-today>.lab-timeline-card{border-color:#bfd2e5;background:#edf4fb;box-shadow:0 6px 20px rgba(49,93,145,.09)}
 .clinical-page .client-record-panel>header,.clinical-page .al-embedded>.al-panel>header{min-height:36px!important;padding:0 0 12px!important;margin:0 0 16px!important;border-bottom:1px solid #e2eaf0;align-items:center}
 .clinical-page .client-record-panel>header h2,.clinical-page .al-embedded .al-panel h2{font-family:inherit;font-size:17px!important;line-height:1.4;font-weight:600!important;color:#315d91;display:flex;align-items:center;gap:8px;margin:0}
 .clinical-page>div[hidden]{display:none!important}
@@ -11276,3 +11278,63 @@ body .gest-compact-page .tutorial-storyboard-unified .tutorial-unified-frame > p
 .gest-redesign.dark :is(.clinical-question-item,.clinical-exam-row,.reports-unwrapped > header.reports-filter-row) { background:#1f3043 !important; border-color:#364b60; color:#dce8f5; }
 .gest-redesign.dark .clinical-question-answers button { background:#263b50; color:#dce8f5; border-color:#40566e; }
 .gest-redesign.dark .clinical-question-answers button[aria-pressed="true"] { background:#355779; }
+/* Clinical controls use the existing module spacing and action styles. */
+.clinical-document-model-actions{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0 16px}
+.clinical-page .clinical-document-workbench>.client-record-panel{display:flex;flex-direction:column;gap:16px}
+.clinical-page .clinical-document-workbench>.client-record-panel>h3,.clinical-page .clinical-document-workbench>.client-record-panel>p,.clinical-page .clinical-document-workbench>.client-record-panel>.clinical-field,.clinical-page .clinical-document-workbench>.client-record-panel>.lab-create-activity,.clinical-page .clinical-document-workbench>.client-record-panel>.clinical-document-model-actions{margin:0}
+.clinical-attention{position:relative;display:inline-flex;vertical-align:middle;color:#bc6d24;margin-left:6px;cursor:default}
+.clinical-attention>[role=tooltip]{display:none;position:absolute;top:calc(100% + 8px);left:0;z-index:100;width:260px;padding:12px;border:1px solid #e2e9ef;border-radius:16px;background:var(--surface,#fff);color:#52677c;font:12px/1.5 inherit;box-shadow:0 6px 20px #23374c18}
+.clinical-attention:hover>[role=tooltip],.clinical-attention:focus>[role=tooltip]{display:block}
+.clinical-drafts{margin-bottom:16px}
+.clinical-draft-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.clinical-draft-grid>article{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:16px;border:1px solid #e2e9ef;border-radius:20px;background:var(--surface,#f6f8fa);color:#52677c}
+.clinical-draft-grid strong{font-size:14px}.clinical-draft-grid small{font-size:12px}
+
+/* Configurações reutilizam a tipografia e os controles compactos do app. */
+.settings-modern :is(.settings-section-card,.access-settings){font-family:inherit;color:var(--gest-text,#52677c);font-size:var(--gest-font-body,12px);line-height:1.5}
+.settings-modern :is(.settings-section-card,.access-settings) h2{display:flex;align-items:center;gap:8px;font-family:inherit;font-size:17px!important;font-weight:600;color:#315d91;margin:0}
+.settings-modern :is(.settings-section-head,.access-settings>header){align-items:center;min-height:36px;padding-bottom:12px;margin-bottom:16px}
+.settings-modern :is(.settings-section-card,.access-settings) :is(p,label,input,select,textarea,button){font-family:inherit;font-size:var(--gest-font-body,12px)!important;color:var(--gest-text,#52677c)}
+.settings-modern :is(.settings-form-grid,.v2-form-grid) label{gap:6px;font-weight:500}
+.settings-modern :is(.settings-section-card,.access-settings) :is(input:not([type=checkbox]),select,textarea){border-radius:18px;box-sizing:border-box}
+.settings-modern :is(.settings-section-card,.access-settings) button{border-radius:22px;line-height:1.4}
+.settings-modern .settings-section-head h2 svg{margin:0;flex:none}
+.settings-modern .access-module-grid{gap:12px;margin:16px 0}
+.settings-modern .access-module-grid label{padding:10px 12px;border:1px solid var(--gest-divider,#dce5ef);border-radius:18px;background:var(--gest-surface,#fff)}
+.settings-modern .access-settings input[type=checkbox]{appearance:none;width:18px;height:18px;flex:none;margin:0;border:1px solid #b8cde0;border-radius:7px;background:var(--gest-surface,#fff);cursor:pointer}
+.settings-modern .access-settings input[type=checkbox]:checked{background:#315d91;border-color:#315d91;box-shadow:inset 0 0 0 4px var(--gest-surface,#fff)}
+.settings-modern .access-settings input[type=checkbox]:focus-visible{outline:2px solid #6f9bc6;outline-offset:3px}
+.settings-modern .access-settings input[type=checkbox]:disabled{cursor:default;opacity:.65}
+.clinical-page .clinical-document-workbench>.client-record-panel>header{margin-bottom:0!important}
+.clinical-page .clinical-document-workbench>.client-record-panel>.clinical-recipe-types{margin:0;flex-wrap:wrap}
+.clinical-page .clinical-document-workbench>.client-record-panel>.clinical-document-list:empty{display:none}
+.client-documents-dialog{width:min(560px,calc(100vw - 32px));max-height:80vh;overflow:auto;border:1px solid #dce5ef;border-radius:24px;padding:20px;background:var(--gest-surface,#f6f8fa);color:var(--gest-text,#52677c);font:inherit;box-sizing:border-box}
+.client-documents-dialog::backdrop{background:rgba(30,48,68,.3)}
+.client-documents-dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.client-documents-dialog h2{display:flex;gap:8px;align-items:center;font-size:17px;font-weight:600;color:#315d91;margin:0}
+.client-documents-dialog article{display:grid;gap:6px;padding:12px;margin-bottom:12px;border:1px solid #dce5ef;border-radius:16px}
+.client-documents-dialog small{font-size:12px}
+.client-document-status{white-space:nowrap}
+.clinical-page .clinical-document-workbench .clinical-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.clinical-page .clinical-document-workbench .clinical-form-grid .client-select{width:100%;min-width:0}
+@media(max-width:640px){.clinical-page .clinical-document-workbench .clinical-form-grid{grid-template-columns:1fr}}
+.gest-redesign .settings-modern :is(.settings-section-card,.access-settings,.clinical-letterhead) :is(p,label,input,select,textarea,button,strong,b,span){font-family:inherit!important;color:#52677c!important}
+.gest-redesign .settings-modern :is(.settings-section-card,.access-settings,.clinical-letterhead) :is(h2,h3){color:#315d91!important;font-family:inherit!important;font-size:17px!important;font-weight:600!important;display:flex;align-items:center;gap:8px}
+.gest-redesign .settings-modern :is(.settings-section-card,.access-settings,.clinical-letterhead) small{color:#74879a!important}
+.gest-redesign .settings-modern .clinical-letterhead{padding:18px;border:1px solid #dce5ef;border-radius:24px;background:#fff;display:flex;flex-direction:column;align-items:flex-start;gap:16px}
+.gest-redesign .settings-modern .clinical-letterhead h3{margin:0;padding-bottom:12px;border-bottom:1px solid #e2eaf0;width:100%}
+.gest-redesign.dark .settings-modern :is(.settings-section-card,.access-settings,.clinical-letterhead) :is(p,label,input,select,textarea,button,strong,b,span,small){color:#ccd9e8!important}
+.gest-redesign.dark .settings-modern .clinical-letterhead{background:#1b2a3b;border-color:#364b60}
+/* Pricing form uses the shared typography without changing pricing calculations. */
+.gest-redesign .pricing-workspace .pricing-grid :is(label,input,button,p,dt,dd,strong,b,small,span){font-family:inherit!important;color:#52677c!important}
+.gest-redesign .pricing-workspace .pricing-section :is(label,input,.lab-select-trigger){font-size:13px!important;font-weight:500!important}
+.gest-redesign .pricing-workspace .pricing-section .client-select>label{padding-left:0;min-height:18px;font-size:13px!important;font-weight:500!important;text-transform:none!important;letter-spacing:0!important;line-height:1.4}
+.gest-redesign .pricing-workspace .pricing-section .pricing-toggle{align-self:stretch!important;gap:12px;align-items:center!important}
+.gest-redesign .pricing-workspace .pricing-toggle>span{min-width:0}
+.gest-redesign .pricing-workspace .pricing-toggle b{font-size:13px;font-weight:500}
+.gest-redesign .pricing-workspace .pricing-toggle small{font-size:12px;color:#74879a!important;line-height:1.4}
+.gest-redesign .pricing-workspace>header h2{font-family:inherit;font-size:17px!important;font-weight:600;color:#315d91!important}
+.gest-redesign .pricing-workspace>header p{font-family:inherit;font-size:13px;color:#74879a!important}
+.gest-redesign .pricing-workspace .pricing-derived strong,.gest-redesign .pricing-workspace .pricing-grid>aside>strong{color:#315d91!important}
+.gest-redesign.dark .pricing-workspace .pricing-grid :is(label,input,button,p,dt,dd,strong,b,small,span){color:#ccd9e8!important}
+.gest-redesign.dark .pricing-workspace .pricing-section>h3::after,.gest-redesign.dark .pricing-workspace>header h2{color:#a3c5de!important}

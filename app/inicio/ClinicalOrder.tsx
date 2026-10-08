@@ -16,8 +16,8 @@ function materialCost(serviceId:string):number|null{
   return total;
  }catch{return null;}
 }
-export default function ClinicalOrder({anatomy,options,onChange}:{anatomy?:AnatomyState;options:string[];onChange:(data:ClinicalOrderData)=>void}){
- const [lines,setLines]=useState<OrderLine[]>([]),[choice,setChoice]=useState(""),[discount,setDiscount]=useState(0),[fee,setFee]=useState(0);
+export default function ClinicalOrder({anatomy,options,onChange,initial}:{initial?:ClinicalOrderData;anatomy?:AnatomyState;options:string[];onChange:(data:ClinicalOrderData)=>void}){
+ const [lines,setLines]=useState<OrderLine[]>(initial?.lines??[]),[choice,setChoice]=useState(""),[discount,setDiscount]=useState(initial?.discount??0),[fee,setFee]=useState(initial?.fee??0);
  useEffect(()=>{const incoming=Object.entries(anatomy?.procedures??{}).flatMap(([key,items])=>items.map(item=>({id:key+":"+item.id,serviceId:item.serviceId,name:item.name,source:key.startsWith("tooth:")?"Elemento "+key.slice(6):"ROC",quantity:item.quantity,price:item.price??0,cost:materialCost(item.serviceId)})));setLines(old=>[...incoming.map(item=>old.find(line=>line.id===item.id)??item),...old.filter(line=>line.source==="Adicional")]);},[anatomy]);
  const gross=lines.reduce((sum,line)=>sum+line.price*line.quantity,0),total=Math.max(0,gross*(1-discount/100)),hasCost=lines.length>0&&lines.every(line=>line.cost!==null),cost=hasCost?lines.reduce((sum,line)=>sum+(line.cost??0)*line.quantity,0):null,net=total*(1-fee/100);
  const materials=(()=>{try{const links=JSON.parse(appStorage.getItem("gest-lab-anatomy-material-links")??"{}"),stock=JSON.parse(appStorage.getItem("gest-stock-records")??"[]"),result=new Map<string,{id:string;name:string;quantity:number}>();for(const line of lines)for(const link of links[line.serviceId??""]??[]){const old=result.get(link.stockId),row=stock.find((r:string[])=>r[0]===link.stockId);result.set(link.stockId,{id:link.stockId,name:row?.[1]??"Material cadastrado",quantity:(old?.quantity??0)+link.quantity*line.quantity});}return [...result.values()];}catch{return [];}})();

@@ -3,6 +3,7 @@ import { appStorage } from "../../lib/local-store";
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import InfoHint from "./InfoHint";
+import ClinicalAlert from "./ClinicalAlert"; import ClientDocumentStatus from "./ClientDocumentStatus";
 import { InformativeMetricCardPreview } from "../laboratorio/page";
 import {
   CircleDollarSign,
@@ -305,7 +306,7 @@ export default function ClientsExperience({
                 "Tipo",
                 "Último contato",
                 "Total vendido",
-                "Status",
+                "Status", "Pendências de documentos",
                 "Ações",
               ].map((item) => (
                 <th key={item} className={item==="Ações"?"client-actions-heading":undefined}>{item}</th>
@@ -328,7 +329,7 @@ export default function ClientsExperience({
                   <td>
                     <i className="initials">{client.photo ? <img src={client.photo} alt={`Foto de ${client.name}`} /> : client.initials}</i>
                     <div>
-                      <strong>{client.name}</strong>
+                      <strong>{client.name} <ClinicalAlert patientId={client.id} patientName={client.name}/></strong>
                       <small>{client.email}</small>
                     </div>
                   </td>
@@ -357,7 +358,7 @@ export default function ClientsExperience({
                       ●　{client.status}
                     </span>
                   </td>
-                  <td className="client-actions-cell">
+                  <td><ClientDocumentStatus patientId={client.id} patientName={client.name}/></td><td className="client-actions-cell">
                     {onAnamnesis&&<button type="button" className="lab-create-activity client-details-action" onClick={()=>onAnamnesis(client.id,client.name)}>Anamnese</button>}
                     <button
                       type="button"
@@ -551,7 +552,7 @@ function ClientGridCard({ client, rank, tone, onDetails, onEdit, onAnamnesis }: 
           {client.photo ? <img src={client.photo} alt={`Foto de ${client.name}`} /> : <span>{client.initials}</span>}
           <i className={client.status === "Ativo" ? "active" : ""} aria-hidden />
         </div>
-        <h2>{client.name}</h2>
+        <h2>{client.name} <ClinicalAlert patientId={client.id} patientName={client.name}/></h2>
         <p>{client.email}</p>
       </div>
       <div className="client-grid-facts">
