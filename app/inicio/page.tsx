@@ -1,8 +1,17 @@
 "use client";
+import EmptyTableBody from "./EmptyTableBody";
+import "./ui-consistency.css";
+import "./workflow-refinement.css";
+import "./module-design-system.css";
+import { useHorizontalOverflow } from "./useHorizontalOverflow";
+import DataChartContainer from "./DataChartContainer";
 import { chartTooltipStyle } from "./chart-presentation";
 import { appStorage } from "../../lib/local-store";
+import { useStoredData, useDataRevision, moduleKey, moduleColumns, readData, moduleMetric, numberValue, money, syncClinicalFinance, registerModuleSale, indicatorValue, indicatorBreakdown, indicatorSeries, revenueSources, serviceCounts, monthRanges } from "../../lib/operational-data";
 import { catalogDefaults } from "../../lib/catalog-defaults";
 import GuidedTour from "./GuidedTour";
+import SettingsPlans from "./SettingsPlans";
+import { applyDocumentTheme } from "./theme-scope";
 
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import AgendaExperience from "./AgendaExperience";
@@ -11,9 +20,16 @@ import { ClinicalLetterhead, emptyLetterhead } from "./ClinicalLetterhead";
 import ClinicalAttendancePicker from "./ClinicalAttendancePicker";
 import ClinicalDrafts from "./ClinicalDrafts";
 import MessageAttachments, { type ChatAttachment } from "./MessageAttachments";
+import MessageAutomationSettings from "./MessageAutomationSettings";
+import ClinicalImages from "./ClinicalImages";
+import PendingConfirmations from "./PendingConfirmations";
+import ScrollableTabBar from "./ScrollableTabBar";
+import PatientHistory from "./PatientHistory";
+import { loadClinicalRecord, saveClinicalRecord, type ClinicalRecord } from "../../lib/clinical-records";
+import { useInactivity } from "./InactivityFilter";
 import { ContactJourney, CrmContactFollowups, readJourneys, journeyStatuses } from "./ContactJourney";
 import AssistantExperience from "./AssistantExperience";
-import ClientsExperience, { ClientSelect, StandardModuleTop } from "./ClientsExperience";
+import ClientsExperience, { ClientForm, type Client, ClientSelect, StandardModuleTop } from "./ClientsExperience";
 import FinanceExperience from "./FinanceExperience";
 import TimeClockExperience, { readClockState, type ClockState } from "./TimeClockExperience";
 import PurchaseMarketWatch from "./PurchaseMarketWatch";
@@ -25,7 +41,7 @@ import { validateAttachment, safeAttachmentUrl } from "../../lib/file-security";
 import { ChartModeSelect, FlexibleChart, type ChartMode } from "./ChartModeSelect";
 import { setExactDragPreview } from "./drag-preview";
 import { AiThinkingPreview, DocumentCardPreview, InformativeMetricCardPreview, InsightActionCardPreview, LineChartMetricCardPreview, MonthlyColumnChartPreview, NotificationCenterPreview, RevenueGoalGaugePreview, TimelinePreview, type CardTone } from "../laboratorio/page";
-import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart,  Tooltip, XAxis, YAxis } from "recharts";
 import {
   ArrowDown,
   ArrowDownRight,
@@ -142,7 +158,7 @@ const navigationGroups: NavigationGroup[] = [
     items: [["Agenda", CalendarDays], ["Tarefas", CheckCircle2]],
   },
   {
-    label: "Relacionamento",
+    label: "Atendimento",
     icon: Users,
     items: [["Prontuário", Heart], ["Clientes", Users], ["Atendimento", MessageCircle], ["CRM", Target]],
   },
@@ -171,107 +187,8 @@ function MessageIcon(props: React.ComponentProps<LucideIcon>) {
   return <ClipboardList {...props} />;
 }
 
-function ScrollableTabBar({ className, label, children }: { className: string; label: string; children: ReactNode }) {
-  const navRef = useRef<HTMLElement>(null);
-  const move = (direction: number) => navRef.current?.scrollBy({ left: direction * Math.max(240, navRef.current.clientWidth * .72), behavior: "smooth" });
-  return <div className="gest-horizontal-nav">
-    <button type="button" className="gest-horizontal-nav-arrow previous" onClick={() => move(-1)} aria-label={`Ver opções anteriores de ${label}`}><ChevronLeft size={17} /></button>
-    <nav ref={navRef} className={className} aria-label={label}>{children}</nav>
-    <button type="button" className="gest-horizontal-nav-arrow next" onClick={() => move(1)} aria-label={`Ver próximas opções de ${label}`}><ChevronRight size={17} /></button>
-  </div>;
-}
 
-const clients = [
-  [
-    "#CL-1248",
-    "AC",
-    "Ana Carolina Souza",
-    "ana.souza@email.com.br",
-    "Pessoa Física",
-    "23/05/2025",
-    "Há 2 dias",
-    "R$ 18.750,00",
-    "Ativo",
-    "1991-05-12",
-  ],
-  [
-    "#CL-1247",
-    "MP",
-    "Marcos Pereira",
-    "marcos.pereira@email.com.br",
-    "Pessoa Física",
-    "21/05/2025",
-    "Há 4 dias",
-    "R$ 7.250,00",
-    "Ativo",
-  ],
-  [
-    "#CL-1246",
-    "LF",
-    "Lojas Fênix Ltda.",
-    "contato@lojasfenix.com.br",
-    "Pessoa Jurídica",
-    "16/05/2025",
-    "Há 9 dias",
-    "R$ 56.430,00",
-    "Ativo",
-  ],
-  [
-    "#CL-1245",
-    "JB",
-    "Juliana Batista",
-    "juliana.batista@email.com.br",
-    "Pessoa Física",
-    "14/05/2025",
-    "Há 11 dias",
-    "R$ 3.980,00",
-    "Inativo",
-  ],
-  [
-    "#CL-1244",
-    "TC",
-    "TechConnect Soluções Ltda.",
-    "comercial@techconnect.com.br",
-    "Pessoa Jurídica",
-    "12/05/2025",
-    "Há 13 dias",
-    "R$ 89.300,00",
-    "Ativo",
-  ],
-  [
-    "#CL-1243",
-    "RP",
-    "Roberto Pinheiro",
-    "roberto.pinheiro@email.com.br",
-    "Pessoa Física",
-    "08/05/2025",
-    "Há 17 dias",
-    "R$ 2.150,00",
-    "Inativo",
-  ],
-  [
-    "#CL-1242",
-    "CA",
-    "Casa & Ambiente Ltda.",
-    "vendas@casaeambiente.com.br",
-    "Pessoa Jurídica",
-    "05/05/2025",
-    "Há 20 dias",
-    "R$ 34.620,00",
-    "Ativo",
-  ],
-  [
-    "#CL-1241",
-    "FS",
-    "Fernanda Silva",
-    "fernanda.silva@email.com.br",
-    "Pessoa Física",
-    "01/05/2025",
-    "Há 24 dias",
-    "R$ 1.480,00",
-    "Inativo",
-  ],
-];
+const clients: string[][] = [];
 
 const moneyToNumber = (value: string) =>
   Number(value.replace(/[^\d,]/g, "").replace(",", "."));
@@ -410,7 +327,7 @@ function Sidebar({
                       onClick={() => navigate(label)}
                     >
                       <Icon size={17} />
-                      <span>{label === "Prontuário" ? "Atendimento" : label === "Atendimento" ? "Mensagens" : label === "Equipe" ? "Colaboradores" : label}</span>
+                      <span>{label === "Prontuário" ? "Consultas" : label === "Clientes" ? "Pacientes" : label === "Atendimento" ? "Mensagens" : label === "Equipe" ? "Colaboradores" : label}</span>
                       {(label === "Ponto" || label === "Compras") && <em className="gest-nav-new">New</em>}
                     </button>
                   ))}
@@ -465,7 +382,7 @@ function Topbar({
   const access = useAccess();
   const [helpOpen, setHelpOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [unreadNotifications, setUnreadNotifications] = useState(3);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const handleUnreadCount = useCallback((count: number) => setUnreadNotifications(count), []);
 
   useEffect(() => {
@@ -532,7 +449,7 @@ function Topbar({
         )}
       </div>
       <div className={notificationOpen ? "gest-notification-popover is-open" : "gest-notification-popover"} aria-hidden={!notificationOpen}>
-        {access.manage ? <NotificationCenterPreview onUnreadCountChange={handleUnreadCount} /> : <p>Nenhuma notificação disponível para este perfil.</p>}
+        {access.manage ? <NotificationCenterPreview items={[]} onUnreadCountChange={handleUnreadCount} /> : <p>Nenhuma notificação disponível para este perfil.</p>}
       </div>
     </header>
   );
@@ -737,12 +654,7 @@ function PrioritiesPanel() {
 
 type TodayFilter = "all" | "evento" | "tarefa" | "projeto";
 
-const todayTimelineItems = [
-  { id: "meeting", time: "09:00", title: "Reunião comercial", detail: "Sala de reunião · Ana Martins", type: "evento" as TodayFilter, done: true },
-  { id: "follow-up", time: "11:30", title: "Retorno para Bella Modas", detail: "Ligação · Lucas Ferreira", type: "tarefa" as TodayFilter, current: true },
-  { id: "service", time: "14:00", title: "Ordem de serviço #1024", detail: "Atelier · Marina Costa", type: "projeto" as TodayFilter },
-  { id: "visit", time: "16:30", title: "Visita técnica", detail: "Loja Centro · Paulo Lima", type: "evento" as TodayFilter },
-];
+const todayTimelineItems: Array<{id:string;time:string;title:string;detail:string;done:boolean;current?:boolean;type:string}> = [];
 
 function TodayTimeline({ setActive }: { setActive: (view: View) => void }) {
   const [filter, setFilter] = useState<TodayFilter>("all");
@@ -795,6 +707,9 @@ function TodayTimeline({ setActive }: { setActive: (view: View) => void }) {
 }
 
 function HomeView({ setActive, onOpenClinical }: { setActive: (view: View) => void; onOpenClinical: (event: { id: string; patientName: string; service: string; coverage: { kind: "Particular" | "Plano"; insurer: string; category: string; authorization: string } }) => void }) {
+  useDataRevision();
+  const [insightsReady, setInsightsReady] = useState(false);
+  const finishInsights = useCallback(() => setInsightsReady(true), []);
   const homeNow = new Date();
   const homeGreeting = homeNow.getHours() < 12 ? "Bom dia" : homeNow.getHours() < 18 ? "Boa tarde" : "Boa noite";
   const homeDate = homeNow.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" }).toLocaleUpperCase("pt-BR");
@@ -845,7 +760,7 @@ function HomeView({ setActive, onOpenClinical }: { setActive: (view: View) => vo
     next.splice(to, 0, ...next.splice(from, 1));
     saveHomeWidgets(next);
   };
-  const widgetCatalog = [
+  const widgetCatalogBase = [
     { name: "Faturamento do período", type: "line", value: 82450, change: 10.5, tone: "blue" as CardTone, icon: TrendingUp, view: "Financeiro" as View },
     { name: "Saldo de caixa", type: "metric", value: "R$ 124.800", change: "+6,1%", tone: "blue" as CardTone, icon: WalletCards, view: "Financeiro" as View },
     { name: "Contas a receber", type: "metric", value: "R$ 48.300", change: "+5,4%", tone: "violet" as CardTone, icon: ArrowDownRight, view: "Financeiro" as View },
@@ -866,15 +781,32 @@ function HomeView({ setActive, onOpenClinical }: { setActive: (view: View) => vo
     { name: "Ticket médio", type: "metric", value: "R$ 665", change: "+4,3%", tone: "teal" as CardTone, icon: ShoppingBag, view: "Relatórios" as View },
     { name: "Tarefas concluídas", type: "line", value: 24, change: 8.0, tone: "blue" as CardTone, icon: CheckCircle2, view: "Tarefas" as View },
   ];
+  const widgetCatalog = widgetCatalogBase.map(item => { const values = indicatorSeries(item.name); const previous = values.at(-2) ?? 0; const current = indicatorValue(item.name); return {...item, value: current, change: previous ? (current-previous)/Math.abs(previous)*100 : 0}; });
+  const homeIndicatorHasRecords = (name: string) => {
+    if (indicatorValue(name) !== 0 || indicatorSeries(name).some(value => value !== 0)) return true;
+    const sources: Array<[RegExp, string]> = [
+      [/clientes/i, "gest-clients"], [/agenda/i, "gest-agenda-events"],
+      [/estoque/i, "gest-stock-records"], [/manutenções/i, moduleKey("Manutenção")],
+      [/novos contatos/i, "gest-support-contacts"], [/tarefas/i, "gest-workflow-tasks"],
+    ];
+    const source = sources.find(([pattern]) => pattern.test(name));
+    if (source) return readData<unknown[]>(source[1], []).length > 0;
+    if (/meta/i.test(name)) return false;
+    if (/saldo/i.test(name) && readData<unknown[]>("gest-banks", []).length > 0) return true;
+    return readData<unknown[]>("gest-finance-transactions", []).length > 0;
+  };
+  const homeHasIndicatorData = homeWidgets.some(homeIndicatorHasRecords);
+  const visibleHomeWidgets = homeHasIndicatorData ? homeWidgets : homeWidgets.slice(0, 4);
   const WidgetControls = ({ name, defaultRows }: { name: string; defaultRows: number }) => <><div className="gest-widget-type-control"><button type="button" aria-label={`Escolher visualização de ${name}`} aria-expanded={widgetMenu === name} onClick={() => setWidgetMenu(widgetMenu === name ? null : name)}><LineChart size={15} /></button><InfoHint text={`Altere apenas o formato de ${name}. O valor e a variação permanecem os mesmos.`} />{widgetMenu === name ? <div className="gest-widget-type-menu">{[["columns", "Colunas"], ["line", "Linha"], ["donut", "Rosca"], ["metric", "Card"]].map(([type, label]) => <button type="button" key={type} onClick={() => setWidgetType(name, type)}>{label}</button>)}</div> : null}</div>{(["left", "right", "bottom"] as const).map((edge) => <span key={edge} className={`gest-widget-edge edge-${edge}`} role="separator" aria-label={`Redimensionar ${name} pela borda ${edge}`} onPointerDown={(event) => { event.stopPropagation(); event.preventDefault(); const grid = event.currentTarget.closest<HTMLElement>(".gest-dashboard-grid"); const styles = grid ? getComputedStyle(grid) : null; const maxCols = styles?.gridTemplateColumns.split(" ").length || 6; resizeRef.current = { name, edge, x: event.clientX, y: event.clientY, cols: widgetSizes[name]?.cols || 2, rows: widgetSizes[name]?.rows || defaultRows, stepX: ((grid?.clientWidth || 900) + 14) / maxCols, stepY: (parseFloat(styles?.gridAutoRows || "125") || 125) + (parseFloat(styles?.rowGap || "14") || 14), maxCols }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { if (resizeRef.current?.name === name && resizeRef.current.edge === edge) resizeWidget(name, event.clientX, event.clientY); }} onPointerUp={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); resizeRef.current = null; }} onPointerCancel={() => { resizeRef.current = null; }} />)}</>;
   const renderHomeWidget = (name: string, index: number) => {
     const item = widgetCatalog.find((widget) => widget.name === name);
     if (!item) return null;
     const type = widgetTypes[name] || item.type;
-    const numericValue = typeof item.value === "number" ? item.value : Number(item.value.replace(/[^\d,]/g, "").replace(",", "."));
-    const change = typeof item.change === "number" ? item.change : Number(item.change.replace("−", "-").replace(/[^\d,-]/g, "").replace(",", "."));
+    const numericValue = item.value;
+    const change = item.change;
     const isMoney = /faturamento|saldo|contas|despesa|receita|lucro|custo|ticket/i.test(name);
-    const defaultRows = type === "metric" ? 1 : 2;
+    const isEmptyIndicator = !homeIndicatorHasRecords(name);
+    const defaultRows = isEmptyIndicator || type === "metric" ? 1 : 2;
     const size = widgetSizes[name] || { cols: 2, rows: defaultRows };
     const dragProps = {
       "data-widget-name": name,
@@ -917,22 +849,24 @@ function HomeView({ setActive, onOpenClinical }: { setActive: (view: View) => vo
         setDraggedWidget(null);
       },
     };
-    if (type === "gauge") return <div className={`gest-custom-widget-slot widget-chart ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><RevenueGoalGaugePreview current={68000} target={100000} change={8.4} /><WidgetControls name={name} defaultRows={defaultRows} /></div>;
+    if (isEmptyIndicator) return <div className="gest-custom-widget-slot widget-empty" key={name} {...dragProps}><article className="home-empty-indicator"><header><h3>{name}</h3></header><div role="status">Sem registro no momento</div></article><WidgetControls name={name} defaultRows={1}/></div>;
+    if (type === "gauge") return <div className={`gest-custom-widget-slot widget-chart ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><RevenueGoalGaugePreview current={indicatorValue("Faturamento")} target={indicatorValue("Meta")} change={0} /><WidgetControls name={name} defaultRows={defaultRows} /></div>;
     if (type === "line") {
-      return <div className={`gest-custom-widget-slot widget-chart ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><LineChartMetricCardPreview label={name} value={numericValue} valuePrefix={isMoney ? "R$ " : ""} change={change} onAction={() => setActive(item.view)} /><WidgetControls name={name} defaultRows={defaultRows} /></div>;
+      return <div className={`gest-custom-widget-slot widget-chart ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><LineChartMetricCardPreview points={indicatorSeries(name)} label={name} value={numericValue} valuePrefix={isMoney ? "R$ " : ""} change={change} onAction={() => setActive(item.view)} /><WidgetControls name={name} defaultRows={defaultRows} /></div>;
     }
     if (type === "columns") {
-      const data = Array.from({ length: 8 }, (_, month) => ({ month: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago"][month], value: month === 7 ? numericValue : month === 6 ? Math.round(numericValue / (1 + change / 100)) : Math.round(numericValue * (0.68 + (((month * 7 + index * 3) % 11) / 25))) }));
+      const data = monthRanges().map((range,index) => ({month:range.name,value:indicatorSeries(name)[index]}));
       return <div className={`gest-custom-widget-slot widget-chart ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><MonthlyColumnChartPreview label={name} data={data} changeOverride={change} isCurrency={isMoney} goodWhenDown={name.includes("Custos") || name.includes("Despesas")} onAction={() => setActive(item.view)} /><WidgetControls name={name} defaultRows={defaultRows} /></div>;
     }
-    if (type === "donut") { const previous = numericValue / (1 + change / 100); const share = Math.max(5, Math.min(95, numericValue / (numericValue + previous) * 100)); return <div className={`gest-custom-widget-slot widget-chart ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><article className="lab-analytics-card gest-widget-donut"><header>{name}</header><div className="gest-widget-donut-body"><i style={{ background: `conic-gradient(#69b8df 0 ${share}%,#dfebf4 ${share}% 100%)` }} /><span><strong>{isMoney ? `R$ ${numericValue.toLocaleString("pt-BR")}` : numericValue.toLocaleString("pt-BR")}</strong><small className="gest-widget-donut-change">{change >= 0 ? "+" : "−"}{Math.abs(change).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% · mês anterior</small></span></div></article><WidgetControls name={name} defaultRows={defaultRows} /></div>; }
+    if (type === "donut") { const previous = numericValue / (1 + change / 100); const total = numericValue + previous; const share = total > 0 && Number.isFinite(total) ? Math.max(5, Math.min(95, numericValue / total * 100)) : 0; return <div className={`gest-custom-widget-slot widget-chart ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><article className="lab-analytics-card gest-widget-donut"><header>{name}</header><div className="gest-widget-donut-body"><i style={{ background: `conic-gradient(#69b8df 0 ${share}%,#dfebf4 ${share}% 100%)` }} /><span><strong>{isMoney ? `R$ ${numericValue.toLocaleString("pt-BR")}` : numericValue.toLocaleString("pt-BR")}</strong><small className="gest-widget-donut-change">{change >= 0 ? "+" : "−"}{Math.abs(change).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% · mês anterior</small></span></div></article><WidgetControls name={name} defaultRows={defaultRows} /></div>; }
     return <div className={`gest-custom-widget-slot widget-metric ${draggedWidget === name ? "is-dragging" : ""}`} key={name} {...dragProps}><InformativeMetricCardPreview title={name} value={isMoney ? `R$ ${numericValue.toLocaleString("pt-BR")}` : numericValue.toLocaleString("pt-BR")} change={typeof item.change === "number" ? `${item.change >= 0 ? "+" : ""}${item.change.toLocaleString("pt-BR")}%` : String(item.change).replace("−", "-")} tone={item.tone} icon={item.icon} /><WidgetControls name={name} defaultRows={defaultRows} /></div>;
   };
+  const [openedInsight,setOpenedInsight]=useState<{title:string;detail:string;action:string;view:View}|null>(null);
   const recommendations: Array<[string, string, string, View, CardTone, string]> = [
-    ["Seu faturamento perdeu ritmo", "Você pode fechar 12% abaixo da meta. Reativar 18 clientes pode recuperar até R$ 14.600.", "Preparar campanha", "CRM", "rose", "CRÍTICO"],
-    ["Dia das Mães está a 24 dias", "Comece a campanha esta semana para aproveitar o período.", "Criar planejamento", "Agenda", "amber", "SAZONAL"],
-    ["7 pacientes ainda não confirmaram amanhã", "R$ 2.850 da agenda depende dessas confirmações.", "Enviar lembretes", "Agenda", "violet", "AGENDA"],
-    ["Seu estoque está saudável", "Você tem cobertura para os próximos 18 dias. Nenhuma compra urgente.", "Ver estoque", "Estoque", "teal", "POSITIVO"],
+    ["Planeje os próximos 30 dias", "Confira feriados e datas relevantes para seu público. Antecipe equipe, estoque e comunicação, sem campanhas automáticas.", "Revisar agenda", "Agenda", "blue", "Planejamento"],
+    ["Conheça sua margem", "Revise custos, taxas e tributos antes de definir preços ou descontos. Faturamento não é lucro.", "Revisar preços", "Precificação", "teal", "Gestão"],
+    ["Cuide do relacionamento", "Revise os retornos combinados e respeite as preferências de contato dos clientes.", "Consultar clientes", "Clientes", "amber", "Relacionamento"],
+    ["Organize seu caixa", "Confira vencimentos e recebimentos previstos. Separe os compromissos da clínica do dinheiro disponível antes de assumir novos gastos.", "Conferir financeiro", "Financeiro", "violet", "Financeiro"],
   ];
   return (
     <section className="gest-ai-home">
@@ -942,13 +876,11 @@ function HomeView({ setActive, onOpenClinical }: { setActive: (view: View) => vo
       </div>
       <section className="gest-ai-command">
         <div className="gest-insights-heading">
-          <h2>O que eu faria agora</h2>
+          <h2>O que eu faria agora <InfoHint fitViewport text="Esta base editorial prioriza planejamento, sustentabilidade financeira e relacionamento. Funciona mesmo sem cadastros e não inventa indicadores, estudos ou resultados. As orientações são gerais: confira a aplicabilidade ao seu negócio. Datas locais e fontes externas precisam de validação antes de serem apresentadas como informações atuais. A personalização automática e a curadoria de estudos ainda não estão conectadas." /></h2>
           <button className="gest-all-insights" onClick={() => setActive("Assistente")}>Ver todos os insights <span>→</span></button>
         </div>
-        <div className="home-ai-analysis">
-          <div className="home-ai-thinking-layer" aria-live="polite">
-            <AiThinkingPreview />
-          </div>
+        <div className="home-ai-analysis" data-ready={insightsReady}>
+          {!insightsReady ? <div className="home-ai-thinking-layer" aria-live="polite"><AiThinkingPreview onReady={finishInsights} statusText="Preparando orientações..." /></div> : <>
           <div className="gest-ai-recommendations home-insight-grid">
             {recommendations.map(([title, detail, action, view, tone, classification]) => (
               <InsightActionCardPreview
@@ -956,13 +888,14 @@ function HomeView({ setActive, onOpenClinical }: { setActive: (view: View) => vo
                 tone={tone}
                 classification={classification}
                 title={title}
-                description={detail}
+                description={title==="Planeje os próximos 30 dias"?"Confira feriados e datas relevantes para seu público.":title==="Conheça sua margem"?"Revise custos e taxas antes de definir seus preços.":title==="Cuide do relacionamento"?"Confira os retornos e as preferências de contato.":"Confira vencimentos e recebimentos previstos."}
                 action={action}
-                onAction={() => setActive(view)}
+                onAction={() => setOpenedInsight({title,detail,action,view})}
               />
             ))}
-          </div>
+          </div></>}
         </div>
+        {openedInsight&&<div className="client-document-overlay" onMouseDown={event=>{if(event.target===event.currentTarget)setOpenedInsight(null);}} onKeyDown={event=>{if(event.key==="Escape")setOpenedInsight(null);}}><section className="client-record-panel home-insight-detail" role="dialog" aria-modal="true" aria-label={openedInsight.title}><header><h2>{openedInsight.title}</h2><button type="button" className="lab-create-activity" autoFocus aria-label="Fechar insight" onClick={()=>setOpenedInsight(null)}><X size={16}/></button></header><p>{openedInsight.detail}</p><footer className="client-record-footer"><button className="lab-create-activity" onClick={()=>{setActive(openedInsight.view);setOpenedInsight(null);}}>{openedInsight.action}</button></footer></section></div>}
         <form className="lab-search-form gest-ai-question" onSubmit={(event) => { event.preventDefault(); if (question.trim()) setActive("Assistente"); }}>
           <span className="gest-ai-question-brand"><Sparkles size={13} /> Gest IA</span>
           <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Pergunte qualquer coisa ao Gest IA sobre o seu negócio..." />
@@ -974,11 +907,12 @@ function HomeView({ setActive, onOpenClinical }: { setActive: (view: View) => vo
         <TimelinePreview onOpenAgenda={() => setActive("Agenda")} onOpenClinical={onOpenClinical} />
         <section className="gest-pending-panel">
           <h2>Pendências do dia</h2>
+          <PendingConfirmations onOpen={()=>setActive("Agenda")}/>
           {[
-            ["5 retornos comerciais", "Acompanhar e responder", "5", "Clientes"],
-            ["3 contas vencidas", "Ações necessárias", "3", "Financeiro"],
-            ["2 serviços atrasados", "Prioridade de atendimento", "2", "Ordens de Serviço"],
-            ["1 proposta aguardando resposta", "Enviar lembrete", "1", "Propostas"],
+            ["Contatos a responder", "Relacionamento", String(indicatorValue("Atendimento · A responder")), "Atendimento"],
+            ["Valores vencidos", "Confira os lançamentos", String(readData<import("./finance-model").FinanceTransaction[]>("gest-finance-transactions", []).flatMap(row=>row.installments).filter(part=>!part.settledAt && part.status!=="cancelled" && part.dueDate<new Date().toLocaleDateString("en-CA")).length), "Financeiro"],
+            ["Ordens pendentes", "Operação", String(readData<string[][]>(moduleKey("Ordens de Serviço"), []).filter(row=>row[5]!=="Concluída").length), "Ordens de Serviço"],
+            ["Propostas pendentes", "Comercial", String(readData<string[][]>(moduleKey("Propostas"), []).filter(row=>row[5]!=="Aprovada").length), "Propostas"],
           ].map(([title, detail, count, view], index) => (
             <button key={title} onClick={() => setActive(view as View)} className={index === 2 ? "urgent" : ""}>
               <span><strong>{title}</strong><small>{detail}</small></span><b>{count}</b><i>›</i>
@@ -993,10 +927,10 @@ function HomeView({ setActive, onOpenClinical }: { setActive: (view: View) => vo
           <button type="button" onClick={() => setActive("Relatórios")}>Ver visão completa →</button>
         </header>
         <div className="gest-custom-widgets gest-dashboard-grid" aria-label="Indicadores do negócio">
-          {homeWidgets.map(renderHomeWidget)}
+          {visibleHomeWidgets.map(renderHomeWidget)}
           <div className="gest-widget-picker">
             <button type="button" className="gest-widget-add" aria-label="Adicionar indicador à tela inicial" aria-expanded={widgetPickerOpen} onClick={() => setWidgetPickerOpen((value) => !value)}><Plus size={24} /><span>Indicador</span></button>
-            {widgetPickerOpen ? <div className="gest-widget-menu">{widgetCatalog.filter(({ name }) => !homeWidgets.includes(name)).map(({ name, type }) => <button type="button" key={name} onClick={() => { saveHomeWidgets([...homeWidgets, name]); setWidgetPickerOpen(false); }}><i>{type === "line" ? <LineChart size={15} /> : <Grid2X2 size={15} />}</i>{name}</button>)}</div> : null}
+            {widgetPickerOpen ? <div className="gest-widget-menu">{widgetCatalog.filter(({ name }) => !(homeHasIndicatorData ? homeWidgets : visibleHomeWidgets).includes(name)).map(({ name, type }) => <button type="button" key={name} onClick={() => { saveHomeWidgets(homeHasIndicatorData ? [...homeWidgets, name] : [name, ...homeWidgets.filter(item => item !== name)]); setWidgetPickerOpen(false); }}><i>{type === "line" ? <LineChart size={15} /> : <Grid2X2 size={15} />}</i>{name}</button>)}</div> : null}
           </div>
         </div>
         {draggedWidget ? <div className="gest-widget-trash" role="button" aria-label={`Solte aqui para remover ${draggedWidget}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); saveHomeWidgets(homeWidgets.filter((entry) => entry !== draggedWidget)); setDraggedWidget(null); showAppToast("Indicador removido."); }}><Trash2 size={20} />Solte para remover</div> : null}
@@ -1064,10 +998,7 @@ function Chart({
   const scale = scales[period as keyof typeof scales] ?? scales["30 dias"];
   // Séries distintas evitam que Receita e Manutenção pareçam o mesmo dado.
   // Nas visões mensais há exatamente um ponto por mês, sem picos artificiais.
-  const datasets = title.includes("custo")
-    ? { "30 dias": [35, 58, 47, 70, 61, 76, 42, 48, 39, 65, 72, 54], "3 meses": [48, 67, 54], "6 meses": [36, 52, 46, 73, 58, 64], "12 meses": [42, 49, 55, 50, 67, 62, 58, 71, 64, 60, 74, 69] }
-    : { "30 dias": [46, 78, 62, 74, 109, 124, 98, 112, 151, 129, 180, 162, 189, 80, 93, 74, 122, 137, 149, 173, 161, 198, 180, 205, 140], "3 meses": [142, 198, 174], "6 meses": [96, 128, 154, 132, 184, 210], "12 meses": [82, 104, 126, 119, 147, 170, 154, 182, 201, 175, 220, 208] };
-  const source = datasets[period as keyof typeof datasets] ?? datasets["30 dias"];
+  const source = indicatorSeries(title).slice(-Number(period.match(/\d+/)?.[0] || 12));
   const max = Math.max(...source);
   const min = Math.min(...source);
   const points = source.map((value, index) => {
@@ -1591,7 +1522,7 @@ function ClientsView({ setActive }: { setActive: (view: View) => void }) {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <EmptyTableBody>
             {clients.map((row) => (
               <tr key={row[0]}>
                 <td>{row[0]}</td>
@@ -1634,7 +1565,7 @@ function ClientsView({ setActive }: { setActive: (view: View) => void }) {
                 </td>
               </tr>
             ))}
-          </tbody>
+          </EmptyTableBody>
         </table>
         <footer>
           Mostrando 1 a 8 de 1.248 clientes{" "}
@@ -1861,7 +1792,7 @@ function TableCard({
             ))}
           </tr>
         </thead>
-        <tbody>
+        <EmptyTableBody>
           {rows.map((row, i) => (
             <tr key={i}>
               {row.map((cell, j) => (
@@ -1882,7 +1813,7 @@ function TableCard({
               ))}
             </tr>
           ))}
-        </tbody>
+        </EmptyTableBody>
       </table>
     </article>
   );
@@ -1896,6 +1827,7 @@ function SettingsView({
   appScale,
   setAppScale,
   initialTab = "Negócio",
+  onPlans,
 }: {
   dark: boolean;
   setDark: (value: boolean) => void;
@@ -1904,18 +1836,19 @@ function SettingsView({
   appScale: number;
   setAppScale: (value: number) => void;
   initialTab?: string;
+  onPlans?: () => void;
 }) {
   const initialBusiness = {
-  // Dados de demonstração; a empresa real é definida pelo vínculo autenticado.
-    name: "Demonstração Serviços Automotivos Ltda.",
-    email: "contato@demonstracaoservicos.com.br",
-    address: "Rua das Oficinas, 500",
-    document: "29.123.456/0001-78",
-    neighborhood: "Vila Operária",
-    phone: "+55 (11) 98765-4321",
-    cep: "03177-000",
-    city: "São Paulo",
-    state: "SP",
+  // A identificação da empresa é preenchida nas configurações.
+    name: "",
+    email: "",
+    address: "",
+    document: "",
+    neighborhood: "",
+    phone: "",
+    cep: "",
+    city: "",
+    state: "",
   };
   const [settingsTabValue, setTab] = useState(initialTab);
   const [clinicalLetterhead,setClinicalLetterhead]=useState(emptyLetterhead);
@@ -1927,7 +1860,9 @@ function SettingsView({
   const [savedBusiness, setSavedBusiness] = useState(initialBusiness);
   const [logoName, setLogoName] = useState("Demonstração Serviços Automotivos");
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const [salesIntegration, setSalesIntegration] = useState(true);
+  const [resetConfirmOpen,setResetConfirmOpen] = useState(false);
+  const [salesIntegration, setSalesIntegration] = useStoredData("gest-sales-integration", true);
+  const [emailSummary, setEmailSummary] = useStoredData("gest-email-summary", true);
   const [calendarIntegration, setCalendarIntegration] = useState(false);
   const stats = [
     [Crown, "Plano atual", "Standard", "23 dias de teste", "amber"],
@@ -1938,6 +1873,7 @@ function SettingsView({
   const tabs = [
     [BriefcaseBusiness, "Negócio"],
     [FileText, "Documentos clínicos"],
+    [MessageCircle, "Automações"],
     [Palette, "Aparência"],
     [UserRound, "Conta"],
     [Users, "Usuários e acessos"],
@@ -1976,9 +1912,7 @@ function SettingsView({
   };
   const resetLocalGestData = () => {
     if (!window.confirm("Limpar os dados personalizados e as preferências do GEST salvos neste navegador?")) return;
-    if (window.prompt('Digite ZERAR para confirmar a limpeza local:') !== "ZERAR") return;
-    appStorage.clearNamespace();
-    window.location.reload();
+    setResetConfirmOpen(true);
   };
   const Toggle = ({ label, detail, checked, onChange }: { label: string; detail: string; checked: boolean; onChange: (value: boolean) => void }) => (
     <button type="button" className="settings-toggle" onClick={() => onChange(!checked)}>
@@ -1988,6 +1922,7 @@ function SettingsView({
   );
   return (
     <section className="settings-modern">
+      {resetConfirmOpen ? <RecordDialog title="Confirmar limpeza dos dados locais" submitLabel="Limpar dados locais" fields={["Digite ZERAR para confirmar"]} onClose={()=>setResetConfirmOpen(false)} onSave={values=>{if(values["Digite ZERAR para confirmar"]!=="ZERAR")return;appStorage.clearNamespace();window.location.reload();}} /> : null}
       <StandardModuleTop
         title="Configurações"
         help="Gerencie as informações do negócio, sua conta e as preferências da plataforma."
@@ -2007,7 +1942,7 @@ function SettingsView({
           </button>
         ))}
       </ScrollableTabBar>
-      {tab === "Documentos clínicos" && access.manage ? <ClinicalLetterhead businessId={access.member?.businessId??"demo"} value={clinicalLetterhead} onChange={setClinicalLetterhead}/> : tab === "Usuários e acessos" && access.manage ? <AccessSettings /> : tab === "Aparência" ? (
+      {tab === "Automações" ? <MessageAutomationSettings/> : tab === "Documentos clínicos" && access.manage ? <ClinicalLetterhead businessId={access.member?.businessId??"demo"} value={clinicalLetterhead} onChange={setClinicalLetterhead}/> : tab === "Usuários e acessos" && access.manage ? <AccessSettings /> : tab === "Aparência" ? (
         <section className="gest-appearance-settings settings-section-card v2-card">
           <header className="settings-section-head">
             <div><small>PERSONALIZAÇÃO</small><h2><Settings size={18} />Aparência do aplicativo</h2></div>
@@ -2140,11 +2075,11 @@ function SettingsView({
         </article>
       ) : tab === "Conta" ? (
         <section className="settings-content-grid">
-          <article className="v2-card settings-section-card settings-profile-card"><header className="settings-section-head"><div><small>CONTA PRINCIPAL</small><h2><Settings size={18} />Perfil e notificações</h2></div><UserRound size={21} /></header><div className="settings-profile-summary"><i>{access.member?.name.split(" ").slice(0,2).map((part) => part[0]).join("")}</i><span><b>{access.member?.name}</b><small>{access.member?.email}</small></span><button type="button" onClick={() => notify("Os dados abaixo correspondem ao seu perfil de acesso.")}>Editar perfil</button></div><div className="settings-form-grid"><label>Nome completo<input defaultValue={access.member?.name} /></label><label>E-mail de acesso<input defaultValue={access.member?.email} /></label></div><Toggle label="Resumo por e-mail" detail="Receba um resumo semanal com os principais indicadores." checked={salesIntegration} onChange={setSalesIntegration} /><footer><button className="v2-primary" onClick={() => notify("A gravação do perfil deve ser conectada ao Supabase antes do uso real.")}><CheckCircle2 size={15} />Salvar conta</button></footer></article>
+          <article className="v2-card settings-section-card settings-profile-card"><header className="settings-section-head"><div><small>CONTA PRINCIPAL</small><h2><Settings size={18} />Perfil e notificações</h2></div><UserRound size={21} /></header><div className="settings-profile-summary"><i>{access.member?.name.split(" ").slice(0,2).map((part) => part[0]).join("")}</i><span><b>{access.member?.name}</b><small>{access.member?.email}</small></span><button type="button" onClick={() => notify("Os dados abaixo correspondem ao seu perfil de acesso.")}>Editar perfil</button></div><div className="settings-form-grid"><label>Nome completo<input defaultValue={access.member?.name} /></label><label>E-mail de acesso<input defaultValue={access.member?.email} /></label></div><Toggle label="Resumo por e-mail" detail="Receba um resumo semanal com os principais indicadores." checked={emailSummary} onChange={setEmailSummary} /><footer><button className="v2-primary" onClick={() => notify("A gravação do perfil deve ser conectada ao Supabase antes do uso real.")}><CheckCircle2 size={15} />Salvar conta</button></footer></article>
           <article className="v2-card settings-section-card settings-side-card"><small>ACESSOS</small><h2><Settings size={18} />Sessão atual</h2><p>Você está usando este dispositivo agora.</p><span className="settings-status">● Sessão neste dispositivo</span><button type="button" onClick={() => notify("Use Sair no menu da conta para encerrar a sessão deste dispositivo.")}>Gerenciar sessões</button></article>
         </section>
       ) : tab === "Plano" ? (
-        <section className="settings-content-grid"><article className="v2-card settings-section-card settings-plan-modern"><header className="settings-section-head"><div><small>PLANO ATUAL</small><h2><Crown size={19} />Standard</h2></div><span>Teste grátis</span></header><p>Ideal para empresas em crescimento, com recursos completos para gestão.</p><div>{["Até 10 usuários", "Até 5.000 clientes", "Até 2.000 produtos ou serviços", "Relatórios avançados", "Suporte por e-mail"].map((item) => <span key={item}><CheckCircle2 size={15} />{item}</span>)}</div><footer><button className="v2-primary" onClick={() => notify("Opções de upgrade preparadas.")}>Ver planos e upgrade</button></footer></article><article className="v2-card settings-section-card settings-side-card"><small>USO DO PLANO</small><h2><Settings size={18} />Capacidade atual</h2><div className="settings-usage"><span>Usuários <b>3 / 10</b><i><em style={{ width: "30%" }} /></i></span><span>Clientes <b>1.248 / 5.000</b><i><em style={{ width: "25%" }} /></i></span><span>Catálogo <b>230 / 2.000</b><i><em style={{ width: "12%" }} /></i></span></div></article></section>
+        <SettingsPlans onCompare={onPlans} />
       ) : tab === "Segurança" ? (
         <section className="settings-content-grid"><article className="v2-card settings-section-card"><header className="settings-section-head"><div><small>PROTEÇÃO DA CONTA</small><h2><Settings size={18} />Segurança e acesso</h2></div><CheckCircle2 size={21} /></header><p>A autenticação em duas etapas exige configuração e validação pelo provedor de acesso. Não está ativada nesta versão.</p><a className="lab-create-activity" href="/entrar">Gerenciar acesso e recuperação de senha</a></article><article className="v2-card settings-section-card settings-side-card"><small>AMBIENTE</small><h2>{access.mode === "demo" ? "Demonstração local" : "Autenticação Supabase"}</h2><p>{access.mode === "demo" ? "Não utilize informações reais de clientes neste ambiente. Os perfis locais servem para testar os acessos." : "As permissões são carregadas do empreendimento vinculado à sua conta."}</p></article></section>
       ) : tab === "Dados" ? (
@@ -2189,19 +2124,7 @@ const modules: Record<
       "Recibo / PDF",
       "Histórico",
     ],
-    rows: [
-      ["1268", "Arco Studio", "Cartão", "14 jul 2026", "R$ 8.400", "Proposta"],
-      [
-        "1264",
-        "Vitta Clinic",
-        "Boleto",
-        "15 jul 2026",
-        "R$ 12.800",
-        "Pendente",
-      ],
-      ["1258", "Bella Café", "Pix", "16 jul 2026", "R$ 4.850", "Paga"],
-      ["1248", "PrimePet Store", "Pix", "10 jul 2026", "R$ 2.150", "Paga"],
-    ],
+    rows: [],
   },
   Catálogo: {
     subtitle:
@@ -2215,7 +2138,7 @@ const modules: Record<
     ],
     filters: ["Tipo", "Status"],
     tabs: ["Dados", "Preço", "Estoque", "Histórico", "Categorias"],
-    rows: catalogDefaults,
+    rows: [],
   },
   Financeiro: {
     subtitle:
@@ -2229,33 +2152,7 @@ const modules: Record<
     ],
     filters: ["Tipo", "Status", "Vencimento"],
     tabs: ["Dados", "Parcelas", "Pagamentos", "Comprovantes", "Histórico"],
-    rows: [
-      [
-        "FIN-0928",
-        "Receita venda #1268",
-        "Receita",
-        "16 jul 2026",
-        "R$ 8.400",
-        "Recebido",
-      ],
-      [
-        "FIN-0927",
-        "Fornecedor de produtos",
-        "Despesa",
-        "17 jul 2026",
-        "R$ 2.700",
-        "Pendente",
-      ],
-      [
-        "FIN-0926",
-        "Receita venda #1264",
-        "Receita",
-        "15 jul 2026",
-        "R$ 12.800",
-        "A receber",
-      ],
-      ["FIN-0925", "Aluguel", "Despesa", "10 jul 2026", "R$ 3.500", "Pago"],
-    ],
+    rows: [],
   },
   Documentos: {
     subtitle:
@@ -2269,21 +2166,7 @@ const modules: Record<
     ],
     filters: ["Categoria", "Tipo", "Vínculo"],
     tabs: ["Dados", "Vínculos", "Histórico"],
-    rows: [
-      [
-        "4",
-        "Contrato_fornecedor.pdf",
-        "Empresa",
-        "14 jul 2026",
-        "PDF",
-        "Ativo",
-      ],
-      ["3", "Recibo_1258.pdf", "Venda", "16 jul 2026", "PDF", "Ativo"],
-      ["2", "Comprovante_pix.png", "Venda", "16 jul 2026", "Imagem", "Ativo"],
-      ["1", "Contrato_Base.pdf", "Cliente", "17 jul 2026", "PDF", "Ativo"],
-      ["5", "Contrato_servico_Bella_Modas.pdf", "Serviço", "18 jul 2026", "PDF", "Ativo"],
-      ["6", "Contrato_produto_Vitta.pdf", "Produto", "19 jul 2026", "PDF", "Ativo"],
-    ],
+    rows: [],
   },
   Estoque: {
     subtitle: "Monitore quantidades, entradas, saídas, alertas e responsáveis.",
@@ -2296,44 +2179,7 @@ const modules: Record<
     ],
     filters: ["Status", "Categoria", "Responsável"],
     tabs: ["Dados", "Entradas", "Saídas", "Movimentações", "Alertas"],
-    rows: [
-      [
-        "230",
-        "Shampoo premium",
-        "Produto",
-        "18 unidades",
-        "16 jul 2026",
-        "R$ 89,00",
-        "Crítico",
-      ],
-      [
-        "229",
-        "Kit de boas-vindas",
-        "Produto",
-        "42 unidades",
-        "15 jul 2026",
-        "R$ 150,00",
-        "Normal",
-      ],
-      [
-        "228",
-        "Peça filtro A",
-        "Produto",
-        "7 unidades",
-        "14 jul 2026",
-        "R$ 245,00",
-        "Normal",
-      ],
-      [
-        "227",
-        "Luva técnica",
-        "Produto",
-        "0 unidades",
-        "12 jul 2026",
-        "R$ 32,00",
-        "Sem estoque",
-      ],
-    ],
+    rows: [],
   },
   CRM: {
     subtitle:
@@ -2347,33 +2193,7 @@ const modules: Record<
     ],
     filters: ["Canal", "Etapa", "Responsável"],
     tabs: ["Comunicação", "Resposta", "Resultado", "Histórico"],
-    rows: [
-      [
-        "CRM-308",
-        "Vitta Clinic",
-        "WhatsApp",
-        "Hoje, 09:30",
-        "Marina",
-        "Aguardando",
-      ],
-      ["CRM-307", "Bella Café", "E-mail", "Ontem, 16:20", "João", "Respondido"],
-      [
-        "CRM-306",
-        "Arco Studio",
-        "WhatsApp",
-        "14 jul 2026",
-        "Carlos",
-        "Venda gerada",
-      ],
-      [
-        "CRM-305",
-        "PrimePet Store",
-        "Outro",
-        "12 jul 2026",
-        "Marina",
-        "Sem resposta",
-      ],
-    ],
+    rows: [],
   },
   Assistente: {
     subtitle:
@@ -2387,33 +2207,7 @@ const modules: Record<
     ],
     filters: ["Área", "Impacto", "Status"],
     tabs: ["Insight", "Evidências", "Ações", "Histórico"],
-    rows: [
-      [
-        "FB-12",
-        "Clientes inativos cresceram 12%",
-        "Clientes",
-        "Hoje",
-        "R$ 3.200",
-        "Prioridade",
-      ],
-      [
-        "FB-11",
-        "Estoque abaixo do mínimo",
-        "Estoque",
-        "Hoje",
-        "R$ 4.800",
-        "Atenção",
-      ],
-      [
-        "FB-10",
-        "Receita subiu 18,6%",
-        "Financeiro",
-        "Ontem",
-        "R$ 8.600",
-        "Positivo",
-      ],
-      ["FB-09", "Follow-ups pendentes", "CRM", "Ontem", "R$ 2.100", "Atenção"],
-    ],
+    rows: [],
   },
   Manutenção: {
     subtitle:
@@ -2427,40 +2221,7 @@ const modules: Record<
     ],
     filters: ["Status", "Categoria", "Responsável"],
     tabs: ["Equipamento", "Manutenção", "Histórico", "Alertas"],
-    rows: [
-      [
-        "MAN-042",
-        "Impressora industrial",
-        "Produção",
-        "18 jul 2026",
-        "R$ 780",
-        "Agendada",
-      ],
-      [
-        "MAN-041",
-        "Ar-condicionado",
-        "Infraestrutura",
-        "20 jul 2026",
-        "R$ 1.200",
-        "Pendente",
-      ],
-      [
-        "MAN-040",
-        "Computador caixa",
-        "Tecnologia",
-        "10 jul 2026",
-        "R$ 420",
-        "Concluída",
-      ],
-      [
-        "MAN-039",
-        "Veículo de entrega",
-        "Logística",
-        "05 jul 2026",
-        "R$ 2.600",
-        "Atrasada",
-      ],
-    ],
+    rows: [],
   },
   Equipe: {
     subtitle: "Organize membros, cargos, permissões e acessos ao sistema.",
@@ -2473,18 +2234,7 @@ const modules: Record<
     ],
     filters: ["Cargo", "Status", "Acesso"],
     tabs: ["Dados", "Permissões", "Cargos", "Acessos"],
-    rows: [
-      ["EQ-003", "Mariana Oliveira", "Gestora", "Hoje", "Total", "Ativo"],
-      [
-        "EQ-002",
-        "João Silva",
-        "Consultor de Vendas",
-        "Ontem",
-        "Comercial",
-        "Ativo",
-      ],
-      ["EQ-001", "Carlos Lima", "Técnico", "14 jul 2026", "Operação", "Ativo"],
-    ],
+    rows: [],
   },
   "Precificação": {
     subtitle: "Calcule preços sustentáveis para produtos e serviços.",
@@ -2497,7 +2247,7 @@ const modules: Record<
     ],
     filters: ["Tipo", "Status"],
     tabs: ["Custos", "Impostos", "Margem", "Preço sugerido", "Histórico"],
-    rows: [["PRC-086", "Consultoria estratégica", "Serviço", "Hoje, 09:20", "R$ 1.800", "Calculado"]],
+    rows: [],
   },
 };
 
@@ -2564,21 +2314,17 @@ modules["Clientes"] = {
 };
 
 type ClientAttachment = { name: string; type: string; date: string; url?: string };
-const sampleClientAttachments: ClientAttachment[] = [
-  { name: "Contrato_assinado.pdf", type: "Contrato", date: "23/05/2025" },
-  { name: "Comprovante_pix.pdf", type: "Comprovante", date: "12/05/2025" },
-  { name: "Proposta_comercial.pdf", type: "Proposta", date: "08/05/2025" },
-];
+const sampleClientAttachments: ClientAttachment[] = [];
 
 /** Conteúdo específico do cliente: cada aba usa o formato adequado ao tipo de informação. */
-function ClientDetailContent({ tab, record, documentStorageKey = `gest-client-documents-${record[0]}`, initialDocuments = sampleClientAttachments }: { tab: string; record: string[]; documentStorageKey?: string; initialDocuments?: ClientAttachment[] }) {
-  const [observation, setObservation] = useState("Cliente com potencial para novos serviços no próximo trimestre.");
+function ClientDetailContent({ tab, record, onEditPhoto, documentStorageKey = `gest-client-documents-${record[0]}`, initialDocuments = sampleClientAttachments }: { tab: string; record: string[]; onEditPhoto?:()=>void; documentStorageKey?: string; initialDocuments?: ClientAttachment[] }) {
+  const [observation, setObservation] = useState("");
   const [clientPhoto, setClientPhoto] = useState<string | null>(null);
   const [clientDocuments, setClientDocuments] = useState<ClientAttachment[]>(initialDocuments);
   const [documentPreview, setDocumentPreview] = useState<ClientAttachment | null>(null);
   const [pendingDocumentDeletion, setPendingDocumentDeletion] = useState<number | null>(null);
   const [attachmentError, setAttachmentError] = useState("");
-  useEffect(() => { try { setObservation(appStorage.getItem(`gest-client-observation-${record[0]}`) ?? "Cliente com potencial para novos serviços no próximo trimestre."); } catch { /* Keep the sample note visible. */ } }, [record[0]]);
+  useEffect(() => { try { setObservation(appStorage.getItem(`gest-client-observation-${record[0]}`) ?? ""); } catch { /* Keep the note visible. */ } }, [record[0]]);
   useEffect(() => { try { const stored = JSON.parse(appStorage.getItem(documentStorageKey) || "null"); setClientDocuments(Array.isArray(stored) ? stored.filter((item): item is ClientAttachment => item && typeof item.name === "string" && typeof item.type === "string" && typeof item.date === "string") : initialDocuments); } catch { setClientDocuments(initialDocuments); } }, [documentStorageKey]);
   const saveDocuments = (next: ClientAttachment[]) => {
     setClientDocuments(next);
@@ -2604,15 +2350,11 @@ function ClientDetailContent({ tab, record, documentStorageKey = `gest-client-do
     window.document.body.appendChild(frame);
     window.setTimeout(() => { frame.remove(); if (printUrl) URL.revokeObjectURL(printUrl); }, 60_000);
   };
-  const email = `${record[1].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ".")}@email.com.br`;
+  const directoryPatient=readData<Client[]>("gest-clients",[]).find(row=>row.id===(record[7]??record[0])) ?? readData<Client[]>("gest-clients",[]).find(row=>row.name===record[1]);
+  const email = directoryPatient?.email || "Não informado";
+  const visiblePhoto=directoryPatient?.photo || clientPhoto;
   const birthDate = record[6] ? (/^\d{4}-\d{2}-\d{2}$/.test(record[6]) ? new Date(`${record[6]}T12:00:00`).toLocaleDateString("pt-BR") : record[6]) : "Não informada";
-  const history = [
-    { date: "23/05/2025 · 14:20", service: "Avaliação e limpeza", reference: "#VND-1278", payment: "Crédito · Visa", installments: "2x", amount: "R$ 3.250,00", status: "Concluída" },
-    { date: "21/05/2025 · 10:15", service: "Procedimento estético", reference: "#VND-1264", payment: "Pix", installments: "À vista", amount: "R$ 12.800,00", status: "Pendente" },
-    { date: "16/05/2025 · 09:40", service: "Kit de cuidados", reference: "#VND-1258", payment: "Débito · Mastercard", installments: "À vista", amount: "R$ 420,00", status: "Concluída" },
-    { date: "12/05/2025 · 16:00", service: "Pagamento recebido", reference: "#VND-1278", payment: "Pix", installments: "À vista", amount: "R$ 3.250,00", status: "Recebido" },
-    { date: "10/05/2025 · 11:30", service: "Cadastro atualizado", reference: "Telefone e origem revisados", payment: "—", installments: "—", amount: "—", status: "Atualizado" },
-  ];
+  const history = readData<import("./finance-model").FinanceTransaction[]>("gest-finance-transactions", []).filter(item=>item.customer===record[1]).map(item=>({date:item.competenceDate,service:item.description,reference:item.id,payment:item.paymentMethod,installments:item.installments.length+"x",amount:(item.grossCents/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),status:item.installments.every(part=>part.status==="paid") ? "Pago" : "Pendente"}));
   const attachClientDocument = async (file?: File) => {
     if (!file) return;
     try { await validateAttachment(file); setAttachmentError(""); } catch (cause) { setAttachmentError(cause instanceof Error ? cause.message : "Arquivo inválido."); return; }
@@ -2623,15 +2365,15 @@ function ClientDetailContent({ tab, record, documentStorageKey = `gest-client-do
     const reader = new FileReader(); reader.onload = () => add(typeof reader.result === "string" ? reader.result : undefined); reader.readAsDataURL(file);
   };
   if (tab === "Dados") return (
-    <DetailPanel title="Dados do cliente">
+    <DetailPanel title="Dados do paciente">
       <section className="client-record-photo">
         <div className="client-record-avatar">
-          {clientPhoto ? <img src={clientPhoto} alt={`Foto de ${record[1]}`} /> : <UserRound size={34} strokeWidth={1.6} />}
+          {visiblePhoto ? <img src={visiblePhoto} alt={`Foto de ${record[1]}`} /> : record[1].trim().split(/\s+/).slice(0,2).map(part=>part[0]).join("").toUpperCase()}
         </div>
         <div>
-          <span>Foto do cliente</span>
+          <strong>{record[1]}</strong><span>Dados cadastrais</span>
         </div>
-        <label className="lab-create-activity">
+        {onEditPhoto ? <button type="button" className="lab-create-activity" onClick={onEditPhoto}><Edit3 size={15}/>Editar foto</button> : <label className="lab-create-activity">
           <Edit3 size={15} /> Editar foto
           <input
             type="file"
@@ -2641,16 +2383,16 @@ function ClientDetailContent({ tab, record, documentStorageKey = `gest-client-do
               if (file) setClientPhoto(URL.createObjectURL(file));
             }}
           />
-        </label>
+        </label>}
       </section>
-      <dl className="client-record-fields">{[["Nº", record[0]], ["Nome", record[1]], ["CPF/CNPJ", record[2].includes("Jurídica") ? "27.456.789/0001-33" : "123.456.789-10"], ["E-mail", email], ["Telefone / WhatsApp", "(92) 98422-1200"], ["Data de nascimento", birthDate], ["Endereço", "Rua das Palmeiras, 250 · Centro"], ["Origem", "Instagram · campanha de maio"], ["Último contato", record[3]]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+      <dl className="client-record-fields">{[["Nº", record[0]], ["Nome", record[1]], ["Tipo",record[2]], ["Status",record[5]], ["Total vendido",record[4]], ["CPF/CNPJ", directoryPatient?.taxId || "Não informado"], ["E-mail", email], ["Telefone / WhatsApp", directoryPatient?.phone || "Não informado"], ["Data de nascimento", birthDate], ["Endereço", [directoryPatient?.address,directoryPatient?.city].filter(Boolean).join(" · ") || "Não informado"], ["Origem", directoryPatient?.source || "Não informado"], ["Último contato", record[3] || "Não informado"]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
     </DetailPanel>
   );
   if (tab === "Histórico") return (
     <DetailPanel title="Histórico">
       <div className="client-record-table-scroll">
         <table className="client-record-table"><thead><tr><th scope="col">Nº</th><th scope="col">Serviço / item</th><th scope="col">Data</th><th scope="col">Valor</th><th scope="col">Pagamento</th><th scope="col">Parcelas</th><th scope="col">Situação</th></tr></thead>
-          <tbody>{history.map((item, index) => <tr key={item.date}><td>{index + 1}</td><td><span>{item.service}</span><small>{item.reference}</small></td><td>{item.date}</td><td>{item.amount}</td><td>{item.payment}</td><td>{item.installments}</td><td><span className={`client-record-status${item.status === "Pendente" ? " is-pending" : ""}`}>{item.status}</span></td></tr>)}</tbody>
+          <EmptyTableBody>{history.map((item, index) => <tr key={item.date}><td>{index + 1}</td><td><span>{item.service}</span><small>{item.reference}</small></td><td>{item.date}</td><td>{item.amount}</td><td>{item.payment}</td><td>{item.installments}</td><td><span className={`client-record-status${item.status === "Pendente" ? " is-pending" : ""}`}>{item.status}</span></td></tr>)}</EmptyTableBody>
         </table>
       </div>
     </DetailPanel>
@@ -2659,7 +2401,7 @@ function ClientDetailContent({ tab, record, documentStorageKey = `gest-client-do
     <DetailPanel title="Documentos" actions={<label className="lab-create-activity client-record-upload"><Plus size={15} />Anexar documento<input aria-label="Anexar documento" type="file" accept="application/pdf,image/png,image/jpeg,image/webp" onChange={(event) => { void attachClientDocument(event.target.files?.[0]); event.target.value = ""; }} /></label>}>
       <div className="client-record-table-scroll">
         <table className="client-record-table client-record-documents"><thead><tr><th scope="col">Nº</th><th scope="col">Documento</th><th scope="col">Tipo</th><th scope="col">Data</th><th scope="col">Ações</th></tr></thead>
-          <tbody>{clientDocuments.map((document, index) => <tr key={`${document.name}-${index}`}><td>{index + 1}</td><td><span className="client-record-file"><FileText size={17} />{document.name}</span></td><td>{document.type || "Arquivo"}</td><td>{document.date}</td><td><div className="client-record-document-actions"><button type="button" className="lab-create-activity" onClick={() => setDocumentPreview(document)}>Abrir</button><button type="button" className="lab-create-activity" aria-label={`Imprimir ${document.name}`} onClick={() => printDocument(document)}><Printer size={15} />Imprimir</button><button type="button" className="lab-create-activity" aria-label={`Apagar ${document.name}`} onClick={() => setPendingDocumentDeletion(index)}><Trash2 size={15} />Apagar</button></div></td></tr>)}</tbody>
+          <EmptyTableBody>{clientDocuments.map((document, index) => <tr key={`${document.name}-${index}`}><td>{index + 1}</td><td><span className="client-record-file"><FileText size={17} />{document.name}</span></td><td>{document.type || "Arquivo"}</td><td>{document.date}</td><td><div className="client-record-document-actions"><button type="button" className="lab-create-activity" onClick={() => setDocumentPreview(document)}>Abrir</button><button type="button" className="lab-create-activity" aria-label={`Imprimir ${document.name}`} onClick={() => printDocument(document)}><Printer size={15} />Imprimir</button><button type="button" className="lab-create-activity" aria-label={`Apagar ${document.name}`} onClick={() => setPendingDocumentDeletion(index)}><Trash2 size={15} />Apagar</button></div></td></tr>)}</EmptyTableBody>
         </table>
       </div>
       {attachmentError ? <p role="alert">{attachmentError}</p> : null}
@@ -2691,7 +2433,8 @@ function FullDetailView({
   const config = modules[view] ?? modules["Vendas"];
   const [tab, setTab] = useState(config.tabs[0]);
   const [editOpen, setEditOpen] = useState(false);
-  const [editedValues, setEditedValues] = useState<Record<string, string>>({});
+  const [detailDraft, setDetailDraft] = useState<Record<string,string>>({});
+  const [editedValues, setEditedValues] = useStoredData<Record<string,string>>(`gest-record-details-${view}-${record[0]}`, {});
   const contents: Record<
     string,
     { title: string; description: string; items: [string, string][] }
@@ -2711,18 +2454,18 @@ function FullDetailView({
       description:
         "Alterações, movimentações e responsáveis relacionados a este cadastro.",
       items: [
-        ["Criado em", "10/07/2026 às 09:20"],
+        ["Criado em", "Não informado"],
         ["Última atualização", record[3]],
-        ["Responsável", "Mariana Oliveira"],
-        ["Alteração recente", "Dados revisados pela equipe"],
+        ["Responsável", "Não informado"],
+        ["Alteração recente", "Não informado"],
       ],
     },
     Vendas: {
       title: "Vendas relacionadas",
       description: "Pedidos e serviços vinculados a este registro.",
       items: [
-        ["Venda #VND-1278", "R$ 3.250,00 · Concluída"],
-        ["Venda #VND-1264", "R$ 12.800,00 · Pendente"],
+        ["Venda #VND-1278", "Não informado"],
+        ["Venda #VND-1264", "Não informado"],
         ["Total vinculado", record[4]],
         ["Último pedido", record[3]],
       ],
@@ -2733,7 +2476,7 @@ function FullDetailView({
       items: [
         ["Valor atual", record[4]],
         ["Status financeiro", record[5]],
-        ["Forma de pagamento", "Pix"],
+        ["Forma de pagamento", "Não informado"],
         ["Última movimentação", record[3]],
       ],
     },
@@ -2742,7 +2485,7 @@ function FullDetailView({
       description:
         "Cronograma de parcelas, vencimentos e situação de cada cobrança.",
       items: [
-        ["Parcela atual", "1 de 3"],
+        ["Parcela atual", "Não informado"],
         ["Vencimento", record[3]],
         ["Valor da parcela", record[4]],
         ["Situação", record[5]],
@@ -2752,10 +2495,10 @@ function FullDetailView({
       title: "Documentos",
       description: "Arquivos e comprovantes associados ao cadastro.",
       items: [
-        ["Contrato principal", "Contrato_assinado.pdf"],
-        ["Comprovante", "Recibo_2026.pdf"],
+        ["Contrato principal", "Não informado"],
+        ["Comprovante", "Não informado"],
         ["Último upload", record[3]],
-        ["Responsável", "Mariana Oliveira"],
+        ["Responsável", "Não informado"],
       ],
     },
     Vínculos: {
@@ -2779,10 +2522,10 @@ function FullDetailView({
       title: "Observações",
       description: "Notas internas e contexto relevante para a equipe.",
       items: [
-        ["Observação atual", "Cadastro acompanhado pela equipe comercial."],
-        ["Próximo contato", "Em até 7 dias"],
-        ["Responsável", "Mariana Oliveira"],
-        ["Visibilidade", "Interna"],
+        ["Observação atual", "Não informado"],
+        ["Próximo contato", "Não informado"],
+        ["Responsável", "Não informado"],
+        ["Visibilidade", "Não informado"],
       ],
     },
     Itens: {
@@ -2790,7 +2533,7 @@ function FullDetailView({
       description: "Produtos e serviços incluídos nesta operação.",
       items: [
         ["Item principal", record[1]],
-        ["Quantidade", "1 unidade"],
+        ["Quantidade", "Não informado"],
         ["Valor", record[4]],
         ["Atualização", record[3]],
       ],
@@ -2801,7 +2544,7 @@ function FullDetailView({
       items: [
         ["Valor", record[4]],
         ["Status", record[5]],
-        ["Forma", "Pix"],
+        ["Forma", "Não informado"],
         ["Vencimento", record[3]],
       ],
     },
@@ -2809,20 +2552,20 @@ function FullDetailView({
       title: "Comprovantes",
       description: "Comprovantes e anexos da operação.",
       items: [
-        ["Comprovante principal", "Comprovante_pix.pdf"],
-        ["Status", "Disponível"],
+        ["Comprovante principal", "Não informado"],
+        ["Status", "Não informado"],
         ["Data", record[3]],
-        ["Responsável", "Mariana Oliveira"],
+        ["Responsável", "Não informado"],
       ],
     },
     "Recibo / PDF": {
       title: "Recibo / PDF",
       description: "Documentos gerados para compartilhar ou imprimir.",
       items: [
-        ["Recibo", "REC-2026-01258"],
-        ["Documento", "Pedido_1258.pdf"],
+        ["Recibo", "Não informado"],
+        ["Documento", "Não informado"],
         ["Emissão", record[3]],
-        ["Situação", "Pronto para download"],
+        ["Situação", "Não informado"],
       ],
     },
     Preço: {
@@ -2830,8 +2573,8 @@ function FullDetailView({
       description: "Valores, margem e condições comerciais.",
       items: [
         ["Preço atual", record[4]],
-        ["Tabela", "Preço padrão"],
-        ["Margem estimada", "42%"],
+        ["Tabela", "Não informado"],
+        ["Margem estimada", "Não informado"],
         ["Atualização", record[3]],
       ],
     },
@@ -2841,7 +2584,7 @@ function FullDetailView({
       items: [
         ["Quantidade atual", record[2]],
         ["Status", record[5]],
-        ["Responsável", "Carlos Lima"],
+        ["Responsável", "Não informado"],
         ["Última movimentação", record[3]],
       ],
     },
@@ -2850,8 +2593,8 @@ function FullDetailView({
       description: "Classificação e agrupamentos deste item.",
       items: [
         ["Categoria", record[2]],
-        ["Subcategoria", "Geral"],
-        ["Visibilidade", "Ativa"],
+        ["Subcategoria", "Não informado"],
+        ["Visibilidade", "Não informado"],
         ["Atualização", record[3]],
       ],
     },
@@ -2860,9 +2603,9 @@ function FullDetailView({
       description: "Entradas registradas para este item.",
       items: [
         ["Última entrada", record[3]],
-        ["Quantidade", "20 unidades"],
-        ["Responsável", "Carlos Lima"],
-        ["Documento", "ENT-2026-019"],
+        ["Quantidade", "Não informado"],
+        ["Responsável", "Não informado"],
+        ["Documento", "Não informado"],
       ],
     },
     Saídas: {
@@ -2870,18 +2613,18 @@ function FullDetailView({
       description: "Saídas e reservas realizadas.",
       items: [
         ["Última saída", record[3]],
-        ["Quantidade", "4 unidades"],
-        ["Motivo", "Venda / serviço"],
-        ["Responsável", "Mariana Oliveira"],
+        ["Quantidade", "Não informado"],
+        ["Motivo", "Não informado"],
+        ["Responsável", "Não informado"],
       ],
     },
     Movimentações: {
       title: "Movimentações",
       description: "Histórico de entradas, saídas e ajustes.",
       items: [
-        ["Movimentação recente", "Saída para venda"],
+        ["Movimentação recente", "Não informado"],
         ["Data", record[3]],
-        ["Responsável", "Carlos Lima"],
+        ["Responsável", "Não informado"],
         ["Saldo", record[2]],
       ],
     },
@@ -2890,9 +2633,9 @@ function FullDetailView({
       description: "Alertas operacionais e recomendações.",
       items: [
         ["Status", record[5]],
-        ["Alerta atual", "Revisar antes do próximo período"],
-        ["Prioridade", "Média"],
-        ["Responsável", "Mariana Oliveira"],
+        ["Alerta atual", "Não informado"],
+        ["Prioridade", "Não informado"],
+        ["Responsável", "Não informado"],
       ],
     },
     Comunicação: {
@@ -2921,7 +2664,7 @@ function FullDetailView({
       items: [
         ["Resultado", record[5]],
         ["Valor gerado", record[4]],
-        ["Próxima ação", "Agendar follow-up"],
+        ["Próxima ação", "Não informado"],
         ["Responsável", record[4]],
       ],
     },
@@ -2939,9 +2682,9 @@ function FullDetailView({
       title: "Evidências",
       description: "Dados utilizados para gerar esta recomendação.",
       items: [
-        ["Base analisada", "Últimos 90 dias"],
+        ["Base analisada", "Não informado"],
         ["Última atualização", record[3]],
-        ["Confiabilidade", "Alta"],
+        ["Confiabilidade", "Não informado"],
         ["Área", record[2]],
       ],
     },
@@ -2949,10 +2692,10 @@ function FullDetailView({
       title: "Ações recomendadas",
       description: "Próximas ações sugeridas para este insight.",
       items: [
-        ["Ação sugerida", "Criar campanha de reativação"],
+        ["Ação sugerida", "Não informado"],
         ["Impacto estimado", record[4]],
         ["Prioridade", record[5]],
-        ["Responsável", "Mariana Oliveira"],
+        ["Responsável", "Não informado"],
       ],
     },
     Equipamento: {
@@ -2962,7 +2705,7 @@ function FullDetailView({
         ["Equipamento", record[1]],
         ["Categoria", record[2]],
         ["Status", record[5]],
-        ["Responsável", "Carlos Lima"],
+        ["Responsável", "Não informado"],
       ],
     },
     Manutenção: {
@@ -2972,7 +2715,7 @@ function FullDetailView({
         ["Próxima manutenção", record[3]],
         ["Custo", record[4]],
         ["Status", record[5]],
-        ["Responsável", "Carlos Lima"],
+        ["Responsável", "Não informado"],
       ],
     },
     Permissões: {
@@ -2980,8 +2723,8 @@ function FullDetailView({
       description: "Permissões concedidas a este membro.",
       items: [
         ["Perfil", record[2]],
-        ["Acesso comercial", "Permitido"],
-        ["Acesso financeiro", "Limitado"],
+        ["Acesso comercial", "Não informado"],
+        ["Acesso financeiro", "Não informado"],
         ["Última revisão", record[3]],
       ],
     },
@@ -2990,9 +2733,9 @@ function FullDetailView({
       description: "Cargo e responsabilidades do membro.",
       items: [
         ["Cargo", record[2]],
-        ["Área", "Operação"],
+        ["Área", "Não informado"],
         ["Status", record[5]],
-        ["Gestor", "Mariana Oliveira"],
+        ["Gestor", "Não informado"],
       ],
     },
     Acessos: {
@@ -3000,20 +2743,23 @@ function FullDetailView({
       description: "Registro de acessos e dispositivos.",
       items: [
         ["Último acesso", record[3]],
-        ["Dispositivo", "Navegador web"],
+        ["Dispositivo", "Não informado"],
         ["Status", record[5]],
-        ["Autenticação", "Ativa"],
+        ["Autenticação", "Não informado"],
       ],
     },
   };
+  const originalInputs = readData<Record<string,string>>(`gest-record-inputs-${view}-${record[0]}`, {});
+  const lead = view === "CRM" ? readData<Array<{id:string;owner:string}>>("gest-crm-leads", []).find(item=>item.id===record[0]) : undefined;
+  const responsible = originalInputs.Responsável || lead?.owner || "Não informado";
   const content = contents[tab] ?? contents["Dados"];
   const clientRank = view === "Clientes" ? getClientRanking(record[0]) : null;
   // Mantém todas as subabas completas, sem repetir o mesmo conteúdo entre módulos.
   const detailedItems = [
     ...content.items,
-    ["Responsável pelo registro", "Mariana Oliveira"],
-    ["Última sincronização", "Hoje, 09:20"],
-  ].slice(0, 6).map(([label, value]) => [label, editedValues[`${tab}:${label}`] ?? value] as [string, string]);
+    ["Responsável pelo registro", "Não informado"],
+    ["Última atualização", record[3]],
+  ].slice(0, 6).map(([label, value]) => [label, editedValues[`${tab}:${label}`] ?? (/responsável/i.test(label) ? responsible : originalInputs[label] ?? value)] as [string, string]);
   return (
     <section className="module-detail-page">
       <div className="v2-detail-head">
@@ -3069,8 +2815,8 @@ function FullDetailView({
         />
         <Metric
           label="Responsável"
-          value="Mariana"
-          detail="equipe Gest"
+          value={responsible}
+          detail="Responsável cadastrado"
           tone="green"
         />
       </section>
@@ -3086,7 +2832,7 @@ function FullDetailView({
         <ClientDetailContent key={`${view}-${record[0]}-${tab}`} tab="Documentos" record={record} documentStorageKey={`gest-record-documents-${view}-${record[0]}-${tab}`} initialDocuments={content.items.filter(([, value]) => /\.(pdf|png|jpe?g|docx?|xlsx?)$/i.test(value)).map(([type, name]) => ({ name, type, date: record[3] }))} />
       ) : (
       <DetailPanel title={content.title} actions={
-          <button type="button" className="lab-create-activity" onClick={() => setEditOpen(true)}>
+          <button type="button" className="lab-create-activity" onClick={() => { setDetailDraft({...editedValues}); setEditOpen(true); }}>
             <Edit3 size={16} />
             Editar {tab.toLowerCase()}
           </button>
@@ -3101,8 +2847,8 @@ function FullDetailView({
       {editOpen ? <div className="v2-record-drawer" onMouseDown={(event) => { if (event.target === event.currentTarget) setEditOpen(false); }}>
         <section className="v2-dialog detail-edit-dialog" role="dialog" aria-modal="true" aria-label={`Editar ${tab.toLowerCase()}`}>
           <header><div><small>{view.toUpperCase()}</small><h2>Editar {tab.toLowerCase()}</h2><p>Atualize os dados deste registro.</p></div><button type="button" className="v2-icon-button" onClick={() => setEditOpen(false)} aria-label="Fechar"><X size={17} /></button></header>
-          <div>{detailedItems.map(([label, value]) => <label key={label}><span>{label}</span><input value={value} onChange={(event) => setEditedValues((current) => ({ ...current, [`${tab}:${label}`]: event.target.value }))} /></label>)}</div>
-          <footer><button type="button" onClick={() => setEditOpen(false)}>Cancelar</button><button type="button" className="v2-primary" onClick={() => setEditOpen(false)}><CheckCircle2 size={15} />Salvar alterações</button></footer>
+          <div>{detailedItems.map(([label, value]) => <label key={label}><span>{label}</span><input value={detailDraft[`${tab}:${label}`] ?? value} onChange={(event) => setDetailDraft((current) => ({ ...current, [`${tab}:${label}`]: event.target.value }))} /></label>)}</div>
+          <footer><button type="button" onClick={() => setEditOpen(false)}>Cancelar</button><button type="button" className="v2-primary" onClick={() => { setEditedValues(detailDraft); setEditOpen(false); }}><CheckCircle2 size={15} />Salvar alterações</button></footer>
         </section>
       </div> : null}
     </section>
@@ -3116,7 +2862,7 @@ function FullModuleView({ view }: { view: View }) {
   const [sort, setSort] = useState("Mais recentes");
   const [chartPeriod, setChartPeriod] = useState("30 dias");
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
-  const records = config.rows;
+  const records = readData<string[][]>(moduleKey(view), []);
   if (selected)
     return (
       <FullDetailView
@@ -3125,9 +2871,9 @@ function FullModuleView({ view }: { view: View }) {
         onBack={() => setSelected(null)}
       />
     );
-  const rows = [...config.rows]
+  const rows = [...records]
     .filter((row) => row.join(" ").toLowerCase().includes(query.toLowerCase()))
-    .filter((row) => config.filters.every((filter) => !filterValues[filter] || filterValues[filter] === "Todos" || moduleFilterValue(row, filter) === filterValues[filter]))
+    .filter((row) => config.filters.every((filter) => !filterValues[filter] || filterValues[filter] === "Todos" || moduleFilterValue(row, filter, view) === filterValues[filter]))
     .sort((a, b) =>
       sort === "A–Z"
         ? a[1].localeCompare(b[1])
@@ -3143,8 +2889,8 @@ function FullModuleView({ view }: { view: View }) {
           <Metric
             key={metric[0]}
             label={metric[0]}
-            value={metric[1]}
-            detail={metric[2]}
+            value={moduleMetric(metric[0], readData<string[][]>(moduleKey(view), []), moduleColumns(view))}
+            detail="Registros cadastrados"
             tone={metric[3]}
           />
         ))}
@@ -3171,7 +2917,7 @@ function FullModuleView({ view }: { view: View }) {
                   }))
                 }
               >
-                {["Todos", ...Array.from(new Set(records.map((row) => moduleFilterValue(row, filter)).filter(Boolean)))].map((option) => (
+                {["Todos", ...Array.from(new Set(records.map((row) => moduleFilterValue(row, filter, view)).filter(Boolean)))].map((option) => (
                   <option key={option}>{option}</option>
                 ))}
               </select>
@@ -3221,7 +2967,7 @@ function FullModuleView({ view }: { view: View }) {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <EmptyTableBody>
             {rows.map((row) => (
               <tr key={row[0]}>
                 <td>{row[0]}</td>
@@ -3252,7 +2998,7 @@ function FullModuleView({ view }: { view: View }) {
                 </td>
               </tr>
             ))}
-          </tbody>
+          </EmptyTableBody>
         </table>
         <footer>
           Mostrando {rows.length} registros{" "}
@@ -3300,8 +3046,8 @@ function ModuleDirectory({ view }: { view: View }) {
           <Metric
             key={metric[0]}
             label={metric[0]}
-            value={metric[1]}
-            detail={metric[2]}
+            value={moduleMetric(metric[0], readData<string[][]>(moduleKey(view), []), moduleColumns(view))}
+            detail="Registros cadastrados"
             tone={metric[3]}
           />
         ))}
@@ -3370,7 +3116,7 @@ function ModuleDirectory({ view }: { view: View }) {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <EmptyTableBody>
             {rows.map((row) => (
               <tr key={row[0]}>
                 <td>{row[0]}</td>
@@ -3417,7 +3163,7 @@ function ModuleDirectory({ view }: { view: View }) {
                 </td>
               </tr>
             ))}
-          </tbody>
+          </EmptyTableBody>
         </table>
         <footer>
           Mostrando {rows.length} registros{" "}
@@ -3512,14 +3258,16 @@ function RecordDialog({
   onSave,
   fields,
   initialValues,
+  submitLabel = "Salvar alterações",
 }: {
   title: string;
   onClose: () => void;
   onSave: (values: Record<string, string>) => void;
   fields: string[];
   initialValues?: Record<string, string>;
+  submitLabel?: string;
 }) {
-  const [values, setValues] = useState<Record<string, string>>(initialValues ?? {});
+  const [values, setValues] = useState<Record<string, string>>(initialValues ?? Object.fromEntries(fields.filter(field=>["Data","Desconto (%)","Taxa (%)","Custo direto","Parcelas","Status"].includes(field)).map(field=>[field,field==="Data"?new Date().toLocaleDateString("en-CA"):field==="Parcelas"?"1":field==="Status"?"Ativo":"0"])));
   return (
     <aside className="v2-record-drawer">
       <form
@@ -3541,7 +3289,7 @@ function RecordDialog({
               {field === "Descrição" ? (
                 <textarea required placeholder={`Informe ${field.toLowerCase()}`} value={values[field] ?? ""} onChange={(event) => setValues((current) => ({ ...current, [field]: event.target.value }))} />
               ) : (
-                <input type={field === "Validade" ? "date" : "text"} required={!field.includes("opcional") && !["Lote", "Validade"].includes(field)} placeholder={field.includes("Duração") ? "Ex.: 60 minutos" : field} value={values[field] ?? ""} onChange={(event) => setValues((current) => ({ ...current, [field]: event.target.value }))} />
+                <input type={field === "Validade" || field === "Data" ? "date" : "text"} required={!field.includes("opcional") && !["Lote", "Validade"].includes(field)} placeholder={field.includes("Duração") ? "Ex.: 60 minutos" : field} value={values[field] ?? ""} onChange={(event) => setValues((current) => ({ ...current, [field]: event.target.value }))} />
               )}
             </label>
           ))}
@@ -3551,7 +3299,7 @@ function RecordDialog({
             Cancelar
           </button>
           <button className="v2-primary" type="submit">
-            Salvar alterações
+            {submitLabel}
           </button>
         </footer>
       </form>
@@ -3583,14 +3331,25 @@ function ModuleSettingsDialog({ view, onClose }: { view: "Estoque" | "Manutenç�
   </aside>;
 }
 
+function reportDisplayLabel(label: string, category: string) {
+  const [source, metric] = label.split(" · ");
+  if (!metric) return label;
+  if (metric === "Quantidade" && source !== category) {
+    const names: Record<string, string> = { Clientes: "Quantidade de clientes", Vendas: "Quantidade de vendas", Estoque: "Quantidade em estoque", Manutenção: "Quantidade de manutenções" };
+    return names[source] ?? metric;
+  }
+  return metric;
+}
+
 function ReportsView() {
-  const [period, setPeriod] = useState("6 meses");
-  const [primaryMode, setPrimaryMode] = useState<ChartMode>("Padrão");
-  const [category, setCategory] = useState("Visão executiva");
-  const [slots, setSlots] = useState(["Financeiro · Receita", "Clientes · Quantidade", "Financeiro · Despesa"]);
-  const [customCards, setCustomCards] = useState<Record<string, string[]>>({});
-  const [hiddenCharts, setHiddenCharts] = useState<string[]>([]);
-  const [chartOrder, setChartOrder] = useState(["principal", "colunas", "servicos", "origem", "agenda"]);
+  useDataRevision();
+  const [period, setPeriod] = useStoredData("gest-report-period", "6 meses");
+  const [primaryMode, setPrimaryMode] = useStoredData<ChartMode>("gest-report-primary-mode", "Padrão");
+  const [category, setCategory] = useStoredData("gest-report-category", "Visão executiva");
+  const [slots, setSlots] = useStoredData("gest-report-comparison", ["Financeiro · Receita", "Clientes · Quantidade", "Financeiro · Despesa"]);
+  const [customCards, setCustomCards] = useStoredData<Record<string,string[]>>("gest-report-cards", {});
+  const [hiddenCharts, setHiddenCharts] = useStoredData<string[]>("gest-report-hidden-charts", []);
+  const [chartOrder, setChartOrder] = useStoredData("gest-report-chart-order", ["principal", "colunas", "servicos", "origem", "agenda"]);
   const [draggedChart, setDraggedChart] = useState<string | null>(null);
   const [draggedCard, setDraggedCard] = useState<string | null>(null);
   const [insertMenu, setInsertMenu] = useState<"cards" | "charts" | null>(null);
@@ -3608,7 +3367,7 @@ function ReportsView() {
     Equipe: ["Pessoas", "Horas trabalhadas", "Atrasos"],
   };
   const indicatorOptions = Object.entries(options).flatMap(([group, indicators]) => indicators.map((item) => `${group} · ${item}`));
-  const categories = ["Visão executiva", "Financeiro", "Vendas", "Clientes", "CRM e marketing", "Agenda", "Serviços e OS", "Estoque", "Compras", "Atendimento", "Equipe", "Personalizados"];
+  const categories = ["Visão executiva", "Financeiro", "Vendas", "Clientes", "CRM e marketing", "Agenda", "Serviços e OS", "Estoque", "Compras", "Atendimento", "Equipe"];
   const categoryIcons: Record<string, LucideIcon> = {
     "Visão executiva": LineChart, Financeiro: CircleDollarSign, Vendas: ShoppingCart, Clientes: UsersRound,
     "CRM e marketing": Target, Agenda: CalendarDays, "Serviços e OS": Wrench, Estoque: Package,
@@ -3648,17 +3407,17 @@ function ReportsView() {
   const primaryLabel = slots[0];
   const primaryValues = reportValues(primaryLabel);
   const visibleCount = period === "Últimos 30 dias" ? 1 : period === "3 meses" ? 3 : period === "6 meses" ? 6 : 12;
-  const currentValue = primaryValues.slice(-visibleCount).at(-1) ?? 0;
+  const currentValue = primaryValues.slice(-visibleCount).reduce((sum,value)=>sum+value,0);
   const isCurrency = reportIsCurrency(primaryLabel);
   return (
     <>
       <StandardModuleTop
         title="Relatórios"
         help="Analise dados do negócio e compare indicadores em um único lugar."
-        action={<div className="reports-top-actions"><button className="lab-create-activity is-secondary" onClick={() => setInsertMenu(insertMenu === "cards" ? null : "cards")}><Plus size={16} />Inserir indicador</button><button className="lab-create-activity" onClick={() => window.print()}><FileText size={16} />Exportar PDF</button></div>}
+        action={<div className="reports-top-actions"><button className="lab-create-activity is-secondary" onClick={() => setInsertMenu(insertMenu === "cards" ? null : "cards")}><Plus size={16} />Inserir indicador</button><button className="lab-create-activity" onClick={() => window.print()}><FileText size={16} />Exportar PDF</button><button type="button" className="module-settings-trigger" aria-label="Personalizar relatórios" title="Personalizar relatórios" onClick={() => { setCategory("Personalizados"); setSlots(categoryDefaults.Personalizados); }}><Settings size={17}/></button></div>}
         beforeCards={<ScrollableTabBar className="v2-settings-tabs settings-modern-tabs reports-category-tabs" label="Categorias de relatórios">{categories.map((item) => { const Icon = categoryIcons[item]; return <button type="button" key={item} className={category === item ? "active" : ""} onClick={() => { setCategory(item); if (categoryDefaults[item]) setSlots(categoryDefaults[item]); }}><Icon size={15} />{item}</button>; })}</ScrollableTabBar>}
       >
-        {cards.map((label, index) => { const values = reportValues(label); const value = values.at(-1) ?? 0; const previous = values.at(-2) ?? value; const change = previous ? (value - previous) / Math.abs(previous) * 100 : 0; return <div className="reports-summary-card" key={label} draggable onDragStart={(event) => { setDraggedCard(label); setExactDragPreview(event); }} onDragEnd={() => setDraggedCard(null)} onDragOver={(event) => event.preventDefault()} onDrop={() => { if (!draggedCard || draggedCard === label) return; const next = [...cards]; next.splice(next.indexOf(label), 0, ...next.splice(next.indexOf(draggedCard), 1)); setCustomCards({ ...customCards, [category]: next }); setDraggedCard(null); }}><Metric label={label} value={reportIsCurrency(label) ? value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }) : value.toLocaleString("pt-BR")} detail={`${change >= 0 ? "+" : ""}${change.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`} tone={["blue", "green", "violet", "orange"][index % 4]} /></div>; })}
+        {cards.map((label, index) => { const values = reportValues(label); const value = values.at(-1) ?? 0; const previous = values.at(-2) ?? value; const change = previous ? (value - previous) / Math.abs(previous) * 100 : 0; return <div className="reports-summary-card" key={label} draggable onDragStart={(event) => { setDraggedCard(label); setExactDragPreview(event); }} onDragEnd={() => setDraggedCard(null)} onDragOver={(event) => event.preventDefault()} onDrop={() => { if (!draggedCard || draggedCard === label) return; const next = [...cards]; next.splice(next.indexOf(label), 0, ...next.splice(next.indexOf(draggedCard), 1)); setCustomCards({ ...customCards, [category]: next }); setDraggedCard(null); }}><Metric label={reportDisplayLabel(label, category)} value={reportIsCurrency(label) ? value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }) : value.toLocaleString("pt-BR")} detail={`${change >= 0 ? "+" : ""}${change.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`} tone={["blue", "green", "violet", "orange"][index % 4]} /></div>; })}
       </StandardModuleTop>
       {draggedCard ? <div className="gest-widget-trash reports-card-trash" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); setCustomCards({ ...customCards, [category]: cards.filter((item) => item !== draggedCard) }); setDraggedCard(null); showAppToast("Indicador removido."); }}><Trash2 size={18} />Solte para remover o indicador</div> : null}
       {insertMenu === "cards" ? <div className="reports-insert-menu" aria-label="Inserir indicador">{indicatorOptions.filter((item) => !cards.includes(item)).map((item) => <button type="button" key={item} onClick={() => { setCustomCards({ ...customCards, [category]: [...cards, item] }); setInsertMenu(null); }}>{item}</button>)}</div> : null}
@@ -3670,13 +3429,13 @@ function ReportsView() {
         {!hiddenCharts.includes("principal") ? <article className="v2-card v2-report-chart" draggable onDragStart={() => setDraggedChart("principal")} onDragEnd={() => setDraggedChart(null)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveChart("principal")}>
           <header>
             <div>
-              <div className="report-primary-heading"><h2>{primaryLabel}</h2><ReportTrend label={primaryLabel} /></div>
+              <div className="report-primary-heading"><h2>{reportDisplayLabel(primaryLabel, category)}</h2><ReportTrend label={primaryLabel} /></div>
               <strong className="report-primary-value">{isCurrency ? currentValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }) : currentValue.toLocaleString("pt-BR")}</strong>
             </div>
             <span>
               {slots.map((item, index) => (
                 <i className={`legend-${index}`} key={`${item}-${index}`}>
-                  ● {item}
+                  ● {reportDisplayLabel(item, "Personalizados")}
                 </i>
               ))}
             </span>
@@ -3685,7 +3444,7 @@ function ReportsView() {
           <ComparisonChart labels={slots} period={period} visual={primaryMode} />
         </article> : null}
         <section className="reports-secondary-grid">
-          {chartOrder.filter((key) => key !== "principal" && !hiddenCharts.includes(key)).map((key, index) => <div className="reports-draggable-chart" key={key} draggable onDragStart={() => setDraggedChart(key)} onDragEnd={() => setDraggedChart(null)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveChart(key)}>{key.startsWith("extra:") ? <ReportColumnChart title={key.slice(6)} labels={[key.slice(6)]} period={period} /> : category === "Visão executiva" ? (key === "colunas" ? <ReportColumnChart title="Receita, despesas e lucro" labels={["Financeiro · Receita", "Financeiro · Despesa", "Vendas · Lucro"]} period={period} /> : key === "servicos" ? <ReportRankingChart title="Quantidade por serviço" /> : key === "origem" ? <ReportDonutChart title="Origem da receita" /> : <ReportColumnChart title="Agenda, clientes e CRM" labels={["Agenda · Quantidade de atividades", "Clientes · Quantidade", "CRM · Quantidade por etapa"]} period={period} />) : <ReportColumnChart title={`${category} · ${slots[index % slots.length]?.split(" · ").at(-1) ?? "Indicadores"}`} labels={[slots[index % slots.length], slots[(index + 1) % slots.length]].filter(Boolean)} period={period} />}</div>)}
+          {chartOrder.filter((key) => key !== "principal" && !hiddenCharts.includes(key)).map((key, index) => <div className="reports-draggable-chart" key={key} draggable onDragStart={() => setDraggedChart(key)} onDragEnd={() => setDraggedChart(null)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveChart(key)}>{key.startsWith("extra:") ? <ReportColumnChart title={reportDisplayLabel(key.slice(6), category)} labels={[key.slice(6)]} period={period} /> : category === "Visão executiva" ? (key === "colunas" ? <ReportColumnChart title="Receita, despesas e lucro" labels={["Financeiro · Receita", "Financeiro · Despesa", "Vendas · Lucro"]} period={period} /> : key === "servicos" ? <ReportRankingChart title="Quantidade por serviço" /> : key === "origem" ? <ReportDonutChart title="Origem da receita" /> : <ReportColumnChart title="Agenda, clientes e CRM" labels={["Agenda · Quantidade de atividades", "Clientes · Quantidade", "CRM · Quantidade por etapa"]} period={period} />) : <ReportColumnChart title={reportDisplayLabel(slots[index % slots.length] ?? "Indicadores", category)} labels={[slots[index % slots.length]].filter(Boolean)} period={period} />}</div>)}
         </section>
         {draggedChart ? <div className="gest-widget-trash" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); setHiddenCharts([...hiddenCharts, draggedChart]); setDraggedChart(null); }}><X size={18} />Solte para remover o gráfico</div> : null}
         <div className="reports-chart-actions"><button type="button" className="lab-create-activity is-secondary" onClick={() => setInsertMenu(insertMenu === "charts" ? null : "charts")}><Plus size={15} />Inserir indicador</button>{insertMenu === "charts" ? <div className="reports-insert-menu">{Object.entries(chartLabels).filter(([key]) => hiddenCharts.includes(key)).map(([key, label]) => <button type="button" key={key} onClick={() => { setHiddenCharts(hiddenCharts.filter((item) => item !== key)); setInsertMenu(null); }}>Restaurar: {label}</button>)}{indicatorOptions.filter((label) => !chartOrder.includes(`extra:${label}`)).map((label) => <button type="button" key={label} onClick={() => { setChartOrder([...chartOrder, `extra:${label}`]); setInsertMenu(null); }}>Novo: {label}</button>)}</div> : null}</div>
@@ -3695,37 +3454,13 @@ function ReportsView() {
 }
 
 /** Linhas comparáveis para os relatórios. O olho mostra valores sem poluir o gráfico. */
-const reportMonths = ["Set", "Out", "Nov", "Dez", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago"];
+const reportMonths = monthRanges().map(range => range.name);
 
 function reportIsCurrency(label: string) {
   return /(faturamento|lucro|receita|despesa|custo|valor|economia)/i.test(label);
 }
 
-function reportValues(label: string) {
-  const normalized = label.toLocaleLowerCase("pt-BR");
-  if (normalized.includes("faturamento")) return [42100, 44800, 47200, 49500, 51800, 50600, 55200, 58400, 61300, 63800, 68100, 73100];
-  if (normalized.includes("lucro")) return [18400, 20100, 21800, 22700, 23900, 23100, 25400, 27800, 29100, 30600, 32900, 37600];
-  if (normalized.includes("receita")) return [39800, 42500, 45100, 46700, 48600, 47900, 52100, 54900, 57800, 60100, 64300, 69200];
-  if (normalized.includes("despesa") || normalized.includes("custo")) return [21400, 22300, 23100, 24800, 25100, 26400, 26700, 27100, 28900, 29500, 31200, 33500];
-  if (normalized.includes("valor do estoque")) return [82000, 84500, 83100, 87200, 89100, 90400, 92800, 91600, 94700, 97200, 99100, 102400];
-  if (normalized.includes("economia estimada")) return [340, 380, 410, 390, 460, 490, 520, 550, 570, 600, 640, 690];
-  if (normalized.includes("bom preço")) return [2, 3, 2, 4, 3, 5, 4, 5, 6, 5, 7, 6];
-  if (normalized.includes("produtos em avaliação")) return [4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9];
-  if (normalized.includes("horas trabalhadas")) return [142, 148, 153, 149, 158, 162, 165, 168, 171, 174, 176, 178];
-  if (normalized.includes("atrasos")) return [5, 4, 5, 3, 4, 4, 3, 3, 2, 3, 2, 2];
-  if (normalized.includes("equipe · pessoas")) return [5, 5, 5, 6, 6, 6, 6, 6, 7, 7, 7, 7];
-  if (normalized.includes("a responder")) return [8, 7, 9, 8, 6, 7, 5, 6, 5, 4, 4, 3];
-  if (normalized.includes("atendimento · retornos")) return [4, 5, 6, 5, 7, 6, 8, 7, 9, 8, 10, 9];
-  if (normalized.includes("atendimento · conversas")) return [24, 26, 25, 29, 31, 30, 34, 35, 36, 39, 41, 43];
-  if (normalized.includes("faixa etária")) return [24, 28, 31, 29, 34, 36, 38, 41, 40, 44, 47, 51];
-  if (normalized.includes("sexo")) return [51, 52, 53, 54, 55, 54, 56, 57, 58, 57, 59, 60];
-  if (normalized.includes("crm")) return [18, 21, 24, 23, 27, 29, 31, 30, 34, 36, 39, 42];
-  if (normalized.includes("agenda")) return [32, 35, 39, 37, 41, 44, 46, 43, 49, 51, 54, 58];
-  if (normalized.includes("clientes")) return [82, 88, 91, 96, 101, 104, 110, 116, 121, 127, 133, 141];
-  if (normalized.includes("estoque")) return [143, 151, 148, 157, 162, 169, 173, 178, 184, 191, 197, 204];
-  if (normalized.includes("manutenção")) return [12, 15, 13, 17, 19, 18, 21, 23, 22, 25, 27, 29];
-  return [31, 34, 38, 36, 41, 43, 46, 44, 49, 52, 55, 59];
-}
+function reportValues(label: string) { return indicatorSeries(label); }
 
 function ReportTrend({ label }: { label: string }) {
   const values = reportValues(label);
@@ -3747,69 +3482,81 @@ function ComparisonChart({ labels, period, maintenanceBreakdown = false, visual 
   const animationKey = `${period}-${labels.join("-")}`;
   if (visual !== "Padrão") return <div className="report-finance-chart report-line-modern"><FlexibleChart mode={visual} data={data as Record<string, string | number>[]} series={series.map((item, index) => ({ key:item.key, name:item.label, color:colors[index % colors.length], currency:item.currency }))} currency={hasCurrency && !hasQuantity} /></div>;
   return <div className="report-finance-chart report-line-modern">
-    <ResponsiveContainer width="100%" height="100%">
+    <DataChartContainer width="100%" height="100%">
       <ComposedChart key={animationKey} data={data} margin={{ top: 20, right: 24, left: 4, bottom: 4 }}>
         <CartesianGrid strokeDasharray="2 7" vertical={false} stroke="#dbe5ef" />
         <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#738295", fontSize: 11 }} />
-        <YAxis yAxisId="currency" hide={!hasCurrency} width={72} tickLine={false} axisLine={false} tick={{ fill: "#8491a0", fontSize: 10 }} tickFormatter={(value) => Number(value) >= 1000 ? `${Math.round(Number(value) / 1000)} mil` : String(value)} />
+        <YAxis yAxisId="currency" hide={!hasCurrency} width={72} tickLine={false} axisLine={false} tick={{ fill: "#8491a0", fontSize: 10 }} tickFormatter={(value) => Number(value) >= 1000 ? `${(Number(value) / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} mil` : String(value)} />
         <YAxis yAxisId="quantity" hide={!hasQuantity} orientation="right" width={44} tickLine={false} axisLine={false} tick={{ fill: "#8b5cc7", fontSize: 10 }} />
         <Tooltip cursor={{ stroke: "#aac5df", strokeDasharray: "4 4" }} contentStyle={chartTooltipStyle} formatter={(value, name) => { const item = series.find((entry) => entry.key === name); return [item?.currency ? Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : Number(value).toLocaleString("pt-BR"), item?.label ?? name]; }} />
         <Legend iconType="circle" iconSize={8} formatter={(value) => series.find((item) => item.key === value)?.label ?? (value === "maintenanceCount" ? "Quantidade de manutenções" : value)} />
         {series.map((item, index) => <Line key={item.key} yAxisId={item.currency ? "currency" : "quantity"} type="linear" dataKey={item.key} stroke={colors[index % colors.length]} strokeWidth={index === 0 ? 3 : 2.4} dot={visibleCount === 1 ? { r: 4 } : { r: 2.5 }} activeDot={{ r: 5 }} isAnimationActive animationBegin={index * 90} animationDuration={850} animationEasing="ease-out" />)}
         {maintenanceChart ? <Bar yAxisId="quantity" dataKey="maintenanceCount" name="Quantidade de manutenções" fill="#e5b266" fillOpacity={0.76} radius={[5, 5, 0, 0]} maxBarSize={28} /> : null}
       </ComposedChart>
-    </ResponsiveContainer>
+    </DataChartContainer>
   </div>;
 }
 
 function ReportColumnChart({ title, labels, period }: { title: string; labels: string[]; period: string }) {
   const [visual, setVisual] = useState<ChartMode>("Padrão");
   const visibleCount = period === "Últimos 30 dias" ? 1 : period === "3 meses" ? 3 : period === "6 meses" ? 6 : 12;
-  const data = reportMonths.slice(-visibleCount).map((name, monthIndex) => Object.fromEntries([["name", name], ...labels.map((label, index) => [`series${index}`, reportValues(label).slice(-visibleCount)[monthIndex]])]));
+  const breakdown = labels.length === 1 ? indicatorBreakdown(labels[0]) : null;
+  const data = breakdown ? breakdown.map(item=>({name:item.name,series0:item.value})) : reportMonths.slice(-visibleCount).map((name, monthIndex) => Object.fromEntries([["name", name], ...labels.map((label, index) => [`series${index}`, reportValues(label).slice(-visibleCount)[monthIndex]])]));
   const colors = ["#72bce5", "#e7a29b", "#70bea2"];
-  return <article className="v2-card v2-report-chart report-model-card"><header><h2>{title}</h2><ReportTrend label={labels[0]} /><ChartModeSelect value={visual} onChange={setVisual} /></header>{visual === "Padrão" ? <div className="report-finance-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={data} margin={{ top: 12, right: 6, left: -14, bottom: 0 }}><CartesianGrid stroke="#e1e8ee" strokeDasharray="3 5" vertical={false} /><XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#788695", fontSize: 9 }} /><YAxis tickLine={false} axisLine={false} tick={{ fill: "#8793a0", fontSize: 9 }} tickFormatter={(value) => Number(value) >= 1000 ? `${Math.round(Number(value) / 1000)} mil` : String(value)} /><Tooltip contentStyle={chartTooltipStyle} formatter={(value, name) => { const label = labels[Number(String(name).replace("series", ""))] ?? String(name); return [Number(value).toLocaleString("pt-BR", reportIsCurrency(label) ? { style: "currency", currency: "BRL" } : {}), label]; }} /><Legend iconType="circle" iconSize={7} formatter={(value) => labels[Number(String(value).replace("series", ""))]} />{labels.map((label, index) => <Bar key={label} dataKey={`series${index}`} fill={colors[index]} radius={[6, 6, 2, 2]} />)}</BarChart></ResponsiveContainer></div> : <div className="report-finance-chart"><FlexibleChart mode={visual} data={data as Record<string,string|number>[]} series={labels.map((label,index)=>({key:`series${index}`,name:label,color:colors[index % colors.length],currency:reportIsCurrency(label)}))} currency={labels.every(reportIsCurrency)} /></div>}</article>;
+  return <article className="v2-card v2-report-chart report-model-card"><header><h2>{title}</h2><ReportTrend label={labels[0]} /><ChartModeSelect value={visual} onChange={setVisual} /></header>{visual === "Padrão" ? <div className="report-finance-chart"><DataChartContainer width="100%" height="100%"><BarChart data={data} margin={{ top: 12, right: 6, left: -14, bottom: 0 }}><CartesianGrid stroke="#e1e8ee" strokeDasharray="3 5" vertical={false} /><XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#788695", fontSize: 9 }} /><YAxis tickLine={false} axisLine={false} tick={{ fill: "#8793a0", fontSize: 9 }} tickFormatter={(value) => Number(value) >= 1000 ? `${(Number(value) / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} mil` : String(value)} /><Tooltip contentStyle={chartTooltipStyle} formatter={(value, name) => { const label = labels[Number(String(name).replace("series", ""))] ?? String(name); return [Number(value).toLocaleString("pt-BR", reportIsCurrency(label) ? { style: "currency", currency: "BRL" } : {}), label]; }} /><Legend iconType="circle" iconSize={7} formatter={(value) => labels[Number(String(value).replace("series", ""))]} />{labels.map((label, index) => <Bar key={label} dataKey={`series${index}`} fill={colors[index]} radius={[6, 6, 2, 2]} />)}</BarChart></DataChartContainer></div> : <div className="report-finance-chart"><FlexibleChart mode={visual} data={data as Record<string,string|number>[]} series={labels.map((label,index)=>({key:`series${index}`,name:label,color:colors[index % colors.length],currency:reportIsCurrency(label)}))} currency={labels.every(reportIsCurrency)} /></div>}</article>;
 }
 
 function ReportRankingChart({ title }: { title: string }) {
   const [visual, setVisual] = useState<ChartMode>("Padrão");
-  const data = [{ name: "Clareamento", value: 84 }, { name: "Avaliação", value: 72 }, { name: "Limpeza", value: 58 }, { name: "Manutenção", value: 47 }, { name: "Prótese", value: 35 }];
-  return <article className="v2-card v2-report-chart report-model-card"><header><h2>{title}</h2><ReportTrend label="Vendas · Quantidade" /><ChartModeSelect value={visual} onChange={setVisual} /></header>{visual === "Padrão" ? <div className="report-finance-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={data} layout="vertical" margin={{ top: 12, right: 20, left: 8, bottom: 0 }}><CartesianGrid stroke="#e1e8ee" strokeDasharray="3 5" horizontal={false} /><XAxis type="number" tickLine={false} axisLine={false} tick={{ fill: "#8793a0", fontSize: 9 }} /><YAxis width={72} type="category" dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#788695", fontSize: 9 }} /><Tooltip contentStyle={chartTooltipStyle} /><Bar dataKey="value" name="Quantidade" fill="#73bea5" radius={[0, 7, 7, 0]} /></BarChart></ResponsiveContainer></div> : <div className="report-finance-chart"><FlexibleChart mode={visual} data={data} series={[{key:"value",name:"Quantidade",color:"#73bea5"}]} /></div>}</article>;
+  const data = serviceCounts();
+  return <article className="v2-card v2-report-chart report-model-card"><header><h2>{title}</h2><ReportTrend label="Vendas · Quantidade" /><ChartModeSelect value={visual} onChange={setVisual} /></header>{visual === "Padrão" ? <div className="report-finance-chart"><DataChartContainer width="100%" height="100%"><BarChart data={data} layout="vertical" margin={{ top: 12, right: 20, left: 8, bottom: 0 }}><CartesianGrid stroke="#e1e8ee" strokeDasharray="3 5" horizontal={false} /><XAxis type="number" tickLine={false} axisLine={false} tick={{ fill: "#8793a0", fontSize: 9 }} /><YAxis width={72} type="category" dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#788695", fontSize: 9 }} /><Tooltip contentStyle={chartTooltipStyle} /><Bar dataKey="value" name="Quantidade" fill="#73bea5" radius={[0, 7, 7, 0]} /></BarChart></DataChartContainer></div> : <div className="report-finance-chart"><FlexibleChart mode={visual} data={data} series={[{key:"value",name:"Quantidade",color:"#73bea5"}]} /></div>}</article>;
 }
 
 function ReportDonutChart({ title }: { title: string }) {
   const [visual, setVisual] = useState<ChartMode>("Padrão");
-  const data = [{ name: "Serviços", value: 42, color: "#70bce5" }, { name: "Produtos", value: 26, color: "#73c0a5" }, { name: "Planos", value: 18, color: "#e8b16d" }, { name: "Outros", value: 14, color: "#a895d8" }];
-  return <article className="v2-card v2-report-chart report-model-card"><header><h2>{title}</h2><ReportTrend label="Financeiro · Receita" /><ChartModeSelect value={visual} onChange={setVisual} /></header>{visual === "Padrão" ? <div className="reports-donut-layout"><div><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data} dataKey="value" nameKey="name" innerRadius={58} outerRadius={85} paddingAngle={3} stroke="none">{data.map((item) => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip contentStyle={chartTooltipStyle} formatter={(value) => `${Number(value).toLocaleString("pt-BR")}%`} /></PieChart></ResponsiveContainer><strong>{reportValues("Financeiro · Receita").at(-1)!.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}<small>Receita total</small></strong></div><aside>{data.map((item) => <span key={item.name}><i style={{ background: item.color }} />{item.name}<b>{item.value}%</b></span>)}</aside></div> : <div className="report-finance-chart"><FlexibleChart mode={visual} data={[{name:"Origem",...Object.fromEntries(data.map(item=>[item.name,item.value]))}]} series={data.map(item=>({key:item.name,name:item.name,color:item.color}))} /></div>}</article>;
+  const amounts = revenueSources(); const total = amounts.reduce((sum,item)=>sum+item.value,0); const data = amounts.map(item=>({...item,value: total ? Math.round(item.value/total*10000)/100 : 0}));
+  return <article className="v2-card v2-report-chart report-model-card"><header><h2>{title}</h2><ReportTrend label="Financeiro · Receita" /><ChartModeSelect value={visual} onChange={setVisual} /></header>{visual === "Padrão" ? <div className="reports-donut-layout"><div><DataChartContainer width="100%" height="100%"><PieChart><Pie data={data} dataKey="value" nameKey="name" innerRadius={58} outerRadius={85} paddingAngle={3} stroke="none">{data.map((item) => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip contentStyle={chartTooltipStyle} formatter={(value) => `${Number(value).toLocaleString("pt-BR")}%`} /></PieChart></DataChartContainer><strong>{reportValues("Financeiro · Receita").at(-1)!.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}<small>Receita total</small></strong></div><aside>{data.map((item) => <span key={item.name}><i style={{ background: item.color }} />{item.name}<b>{item.value}%</b></span>)}</aside></div> : <div className="report-finance-chart"><FlexibleChart mode={visual} data={[{name:"Origem",...Object.fromEntries(data.map(item=>[item.name,item.value]))}]} series={data.map(item=>({key:item.name,name:item.name,color:item.color}))} /></div>}</article>;
 }
 
-function ClientDetailPage({
-  onBack,
-  record,
-  onOpenClinical,
-}: {
-  onBack: () => void;
-  record?: string[];
-  onOpenClinical?: (record: string[]) => void;
+function ClientDetailPage({ onBack, record, onMessage }: {
+  onBack: () => void; record?: string[]; onOpenClinical?: (record: string[]) => void; onMessage: () => void;
 }) {
-  const client = clients[0];
-  return (
-    <FullDetailView
-      view="Clientes"
-      record={
-        record ?? [
-          client[0],
-          client[2],
-          client[4],
-          client[5],
-          client[7],
-          client[8],
-          client[9],
-        ]
-      }
-      onBack={onBack}
-      onOpenClinical={onOpenClinical}
-    />
-  );
+  const access = useAccess();
+  const [current, setCurrent] = useState(record);
+  const [editing, setEditing] = useState<Client | null>(null);
+  const [failure, setFailure] = useState("");
+  const id = current?.[7] ?? current?.[0] ?? "";
+  const name = current?.[1] ?? "Paciente";
+  const openEdit = () => {
+    const client = readData<Client[]>("gest-clients", []).find(item => item.id === id);
+    if (client) setEditing(client);
+    else setFailure("Cadastro não encontrado. Volte à lista de pacientes e tente novamente.");
+  };
+  const savePatient = async (client: Client) => {
+    try {
+      const clinical = await loadClinicalRecord(access.member?.businessId ?? "demo", id, name);
+      await saveClinicalRecord(access.member?.businessId ?? "demo", { ...clinical, patientName: client.name });
+      const rows = readData<Client[]>("gest-clients", []);
+      appStorage.setItem("gest-clients", JSON.stringify(rows.map(item => item.id === client.id ? client : item)));
+      setCurrent(previous => previous ? [previous[0], client.name, client.type, client.contact, client.total, client.status, client.birthday ?? "", client.id] : previous);
+      setEditing(null);
+      showAppToast("Cadastro do paciente atualizado.");
+    } catch { setFailure("Não foi possível salvar o cadastro. As alterações continuam abertas."); }
+  };
+  if (!current) return <section className="client-record-panel"><p>Selecione um paciente.</p><button className="lab-create-activity" onClick={onBack}>Voltar</button></section>;
+  if (!access.allowed("Prontuário")) return <section className="client-record-panel"><p>Solicite permissão para acessar a Ficha clínica.</p><button className="lab-create-activity" onClick={onBack}>Voltar</button></section>;
+  return <>
+    {failure && <p className="clinical-error" role="alert">{failure}</p>}
+    <ClinicalWorkspace key={id + ":" + name} patientId={id} patientName={name} onBack={onBack} onMessage={onMessage} documentModels={readData<string[][]>("gest-document-records", [])}
+      filePanels={{
+        onEdit: openEdit,
+        render: (section, clinical) => section === "Dados"
+          ? <><ClientDetailContent tab="Dados" record={current.map((value,index)=>index===4?money(clinical.encounters.filter(item=>item.paymentStatus!=="cancelled").reduce((sum,item)=>sum+item.amount,0)):value)} onEditPhoto={openEdit} initialDocuments={[]} /><ClientDetailContent tab="Observações" record={current} initialDocuments={[]} /></>
+          : section === "Histórico" ? <PatientHistory record={clinical} /> : null,
+        attachments: <ClientDetailContent tab="Documentos" record={current} initialDocuments={[]} />,
+      }} />
+    {editing && <ClientForm client={editing} onClose={() => setEditing(null)} onSave={client => void savePatient(client)} />}
+  </>;
 }
 
 /** Documentos em cartões para facilitar a leitura visual do conteúdo e seus vínculos. */
@@ -3915,6 +3662,7 @@ function DocumentCards({
       </header>
       <div className={previewRow ? "document-browser has-preview" : "document-browser"} style={{ "--document-preview-width": `${previewWidth}%` } as React.CSSProperties}>
       <div className="document-results">
+      {viewMode === "grid" && visibleRows.length === 0 ? <div className="gest-empty-list-panel" role="status">Sem registro</div> : null}
       {viewMode === "grid" ? <div className="document-lab-grid" aria-label="Documentos organizáveis">
         {visibleRows.map((row) => (
           <div
@@ -3938,7 +3686,7 @@ function DocumentCards({
       </div> : (
         <table className="document-modern-list">
           <thead><tr><th>Documento</th><th>Vínculo</th><th>Atualização</th><th>Tipo</th><th>Status</th><th>Ações</th></tr></thead>
-          <tbody>
+          <EmptyTableBody>
             {visibleRows.map((row) => (
               <tr key={row[0]} className={previewRow?.[0] === row[0] ? "selected" : ""} onClick={() => { setPreviewRow(row); setPreviewZoom(1); }}>
                 <td><strong>{row[1].replace(/_/g, " ")}</strong></td>
@@ -3949,14 +3697,14 @@ function DocumentCards({
                 <td><button type="button" className="v2-icon-button" onClick={(event) => { event.stopPropagation(); onEdit(row); }} aria-label={`Editar ${row[1]}`}><Edit3 size={16} /></button></td>
               </tr>
             ))}
-          </tbody>
+          </EmptyTableBody>
         </table>
       )}
       </div>
       {previewRow ? <aside className="document-side-preview" aria-label={`Pré-visualização de ${previewRow[1]}`}>
         <div className="document-side-resize" role="separator" tabIndex={0} aria-label="Redimensionar pré-visualização" aria-orientation="vertical" aria-valuemin={28} aria-valuemax={65} aria-valuenow={Math.round(previewWidth)} onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); const container = event.currentTarget.closest<HTMLElement>(".document-browser"); previewResize.current = { x: event.clientX, width: previewWidth, container: container?.clientWidth || 1 }; event.currentTarget.setPointerCapture(event.pointerId); }} onKeyDown={(event) => { if (event.key === "ArrowLeft") setPreviewWidth((width) => Math.min(65, width + 4)); if (event.key === "ArrowRight") setPreviewWidth((width) => Math.max(28, width - 4)); }} />
         <header><div><FileText size={19} /><span><strong>{previewRow[1].replace(/_/g, " ")}</strong><small>{previewRow[4]} · Atualizado em {previewRow[3]}</small></span></div><div className="document-preview-actions"><button type="button" onClick={() => setPreviewZoom((value) => Math.max(.8, value - .2))} aria-label="Diminuir zoom"><ZoomOut size={17} /></button><b>{Math.round(previewZoom * 100)}%</b><button type="button" onClick={() => setPreviewZoom((value) => Math.min(2, value + .2))} aria-label="Aumentar zoom"><ZoomIn size={17} /></button><button type="button" onClick={() => setPreviewRow(null)} aria-label="Fechar pré-visualização"><X size={18} /></button></div></header>
-        <div className="document-side-canvas"><div className="document-side-sheet" style={{ transform: `scale(${previewZoom})` }}><span>{previewRow[1].replace(/_/g, " ").replace(/\.[^.]+$/, "").toLocaleUpperCase("pt-BR")}</span><i /><i /><i /><i /><i /><b>Assinatura do cliente</b></div></div>
+        <div className="document-side-canvas"><div className="document-side-sheet" style={{ transform: `scale(${previewZoom})` }}><span>{previewRow[1].replace(/_/g, " ").replace(/\.[^.]+$/, "").toLocaleUpperCase("pt-BR")}</span><p style={{whiteSpace:"pre-wrap"}}>{previewRow[6] || "Sem descrição cadastrada."}</p>{previewRow[7] ? <p>Cliente: {previewRow[7]}</p> : null}{previewRow[8] ? <p>Venda / serviço: {previewRow[8]}</p> : null}{previewRow[9] ? <p>Arquivo: {previewRow[9]}</p> : null}</div></div>
         <footer><button type="button" onClick={() => onEdit(previewRow)}><Edit3 size={15} />Editar</button><button type="button" className="primary" onClick={() => window.print()}><Printer size={15} />Imprimir</button></footer>
       </aside> : null}
       </div>
@@ -3965,42 +3713,39 @@ function DocumentCards({
 }
 
 const crmStages = ["Captação", "Primeiro contato", "Necessidade", "Proposta", "Agendamento", "Atendimento", "Convertido"];
-const crmSeed = [
-  { id: "CRM-308", name: "Vitta Clinic", initials: "VC", source: "WhatsApp", objective: "Consulta corporativa", value: "R$ 12.800", stage: "Primeiro contato", priority: "Alta", progress: 20, comments: 4, files: 2, owner: "Marina" },
-  { id: "CRM-307", name: "Bella Café", initials: "BC", source: "Instagram", objective: "Pacote mensal", value: "R$ 4.850", stage: "Necessidade", priority: "Média", progress: 45, comments: 6, files: 1, owner: "João" },
-  { id: "CRM-306", name: "Arco Studio", initials: "AS", source: "Indicação", objective: "Consultoria", value: "R$ 8.400", stage: "Proposta", priority: "Normal", progress: 65, comments: 3, files: 4, owner: "Ana" },
-  { id: "CRM-305", name: "PrimePet Store", initials: "PS", source: "Google", objective: "Atendimento técnico", value: "R$ 2.150", stage: "Agendamento", priority: "Média", progress: 78, comments: 5, files: 2, owner: "Carlos" },
-];
+const crmSeed = [] as Array<{ id: string; name: string; stage: string; value: string; owner: string; source: string; initials: string; priority: string; objective: string; progress: number; comments: number; files: number; createdAt?:string }>;
 
-function StageSettingsDialog({ title, stages, onClose, onSave, showTaskOptions = false }: { title: string; stages: string[]; onClose: () => void; onSave: (stages: string[]) => void; showTaskOptions?: boolean }) {
+function StageSettingsDialog({ title, stages, onClose, onSave, showTaskOptions = false }: { title: string; stages: string[]; onClose: () => void; onSave: (stages: string[], options: {requireOwner:boolean;deadlineAlerts:boolean}, renamed: Record<string,string>) => void; showTaskOptions?: boolean }) {
   const [draft, setDraft] = useState(stages);
+  const [origins, setOrigins] = useState(stages);
   const [newStage, setNewStage] = useState("");
-  const [requireOwner, setRequireOwner] = useState(true);
-  const [deadlineAlerts, setDeadlineAlerts] = useState(true);
-  return <div className="lab-agenda-modal" role="dialog" aria-modal="true" aria-label={title} onClick={onClose}><form className="workflow-settings-dialog" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); if (draft.length) onSave(draft); }}>
+  const [requireOwner, setRequireOwner] = useState(() => readData("gest-task-options",{requireOwner:true}).requireOwner);
+  const [deadlineAlerts, setDeadlineAlerts] = useState(() => readData("gest-task-options",{deadlineAlerts:true}).deadlineAlerts);
+  return <div className="lab-agenda-modal" role="dialog" aria-modal="true" aria-label={title} onClick={onClose}><form className="workflow-settings-dialog" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); const clean=draft.map(value=>value.trim()); if (clean.length && clean.every(Boolean) && new Set(clean).size===clean.length) onSave(clean, {requireOwner,deadlineAlerts}, Object.fromEntries(origins.map((old,index)=>[old,clean[index]]).filter(([old])=>Boolean(old)))); }}>
     <header><div><small>CONFIGURAÇÃO</small><h2>{title}</h2><p>Organize as etapas usadas no quadro.</p></div><button type="button" aria-label="Fechar" onClick={onClose}><X size={18} /></button></header>
-    <section><strong>Etapas do fluxo</strong><div className="workflow-stage-list">{draft.map((stage, index) => <label key={`${stage}-${index}`}><span>{index + 1}</span><input value={stage} onChange={(event) => setDraft((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} /><button type="button" aria-label={`Remover ${stage}`} disabled={draft.length <= 2} onClick={() => setDraft((current) => current.filter((_, itemIndex) => itemIndex !== index))}><X size={15} /></button></label>)}</div><div className="workflow-stage-add"><input value={newStage} onChange={(event) => setNewStage(event.target.value)} placeholder="Nova etapa" /><button type="button" onClick={() => { const value = newStage.trim(); if (!value || draft.includes(value)) return; setDraft((current) => [...current, value]); setNewStage(""); }}><Plus size={15} />Adicionar</button></div></section>
+    <section><strong>Etapas do fluxo</strong><div className="workflow-stage-list">{draft.map((stage, index) => <label key={`${stage}-${index}`}><span>{index + 1}</span><input value={stage} onChange={(event) => setDraft((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} /><button type="button" aria-label={`Remover ${stage}`} disabled={draft.length <= 2} onClick={() => { setDraft((current) => current.filter((_, itemIndex) => itemIndex !== index)); setOrigins(current=>current.filter((_, itemIndex)=>itemIndex!==index)); }}><X size={15} /></button></label>)}</div><div className="workflow-stage-add"><input value={newStage} onChange={(event) => setNewStage(event.target.value)} placeholder="Nova etapa" /><button type="button" onClick={() => { const value = newStage.trim(); if (!value || draft.includes(value)) return; setDraft((current) => [...current, value]); setOrigins(current=>[...current, ""]); setNewStage(""); }}><Plus size={15} />Adicionar</button></div></section>
     {showTaskOptions ? <section className="workflow-extra-options"><strong>Parâmetros das tarefas</strong><label><span><b>Responsável obrigatório</b><small>Solicita um responsável ao criar a tarefa.</small></span><button type="button" className={requireOwner ? "switch on" : "switch"} onClick={() => setRequireOwner((value) => !value)}><i /></button></label><label><span><b>Alertas de prazo</b><small>Destaca tarefas próximas do vencimento.</small></span><button type="button" className={deadlineAlerts ? "switch on" : "switch"} onClick={() => setDeadlineAlerts((value) => !value)}><i /></button></label></section> : null}
     <footer><button type="button" onClick={onClose}>Cancelar</button><button type="submit" className="primary">Salvar configuração</button></footer>
   </form></div>;
 }
 
 function CrmKanban({ onDetails }: { onDetails: (record: string[]) => void }) {
-  const [leads, setLeads] = useState(crmSeed);
-  const [stages, setStages] = useState(crmStages);
+  const [leads, setLeads] = useStoredData("gest-crm-leads", crmSeed);
+  const [stages, setStages] = useStoredData("gest-crm-stages", crmStages);
   const [dragged, setDragged] = useState<string | null>(null);
   const [dropStage, setDropStage] = useState<string | null>(null);
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [newLeadStage, setNewLeadStage] = useState(crmStages[0]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const kanbanRef = useRef<HTMLElement>(null);
+  const kanbanOverflow = useHorizontalOverflow(kanbanRef);
   const [scrollPosition, setScrollPosition] = useState(0);
   return <>
     <StandardModuleTop title="CRM" help="Acompanhe cada oportunidade da captação até a conversão." action={<div className="workflow-top-actions"><button type="button" className="lab-create-activity" onClick={() => { setNewLeadStage(stages[0]); setNewLeadOpen(true); }}><Plus size={16} />Novo lead</button><button type="button" className="module-settings-trigger" aria-label="Configurar etapas do CRM" onClick={() => setSettingsOpen(true)}><Settings size={17} /></button></div>}>
-      {modules.CRM.metrics.map((metric) => <Metric key={metric[0]} label={metric[0]} value={metric[1]} detail={metric[2]} tone={metric[3]} />)}
+      {modules.CRM.metrics.map((metric) => <Metric key={metric[0]} label={metric[0]} value={/pipeline|valor/i.test(metric[0]) ? money(leads.filter(row=>row.stage!=="Convertido").reduce((sum,row)=>sum+numberValue(row.value),0)) : /conversão/i.test(metric[0]) ? (leads.length ? Math.round(leads.filter(row=>row.stage==="Convertido").length/leads.length*100):0)+"%" : String(leads.length)} detail="Registros cadastrados" tone={metric[3]} />)}
     </StandardModuleTop>
     <CrmContactFollowups/>
-    <div className="crm-kanban-shell"><section ref={kanbanRef} onScroll={(event) => { const element = event.currentTarget; const max = element.scrollWidth - element.clientWidth; setScrollPosition(max > 0 ? element.scrollLeft / max * 100 : 0); }} className="shelf-kanban shelf-kanban-crm" aria-label="Funil comercial em Kanban">
+    <div className="crm-kanban-shell"><section ref={kanbanRef} onScroll={(event) => { const element = event.currentTarget; const max = element.scrollWidth - element.clientWidth; setScrollPosition(max > 0 ? element.scrollLeft / max * 100 : 0); }} style={{ "--kanban-columns": stages.length } as React.CSSProperties} className="shelf-kanban shelf-kanban-crm" aria-label="Funil comercial em Kanban">
       {stages.map((stage, stageIndex) => {
         const stageLeads = leads.filter((lead) => lead.stage === stage);
         return <article className={`stage-${stageIndex + 1}${dropStage === stage ? " is-over" : ""}`} key={stage} onDragOver={(event) => { event.preventDefault(); setDropStage(stage); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropStage(null); }} onDrop={() => { if (dragged) setLeads((current) => current.map((lead) => lead.id === dragged ? { ...lead, stage } : lead)); setDragged(null); setDropStage(null); }}>
@@ -4011,19 +3756,19 @@ function CrmKanban({ onDetails }: { onDetails: (record: string[]) => void }) {
               <small>{lead.source}</small><strong>{lead.name}</strong><span>{lead.objective} · {lead.value}</span>
               <span className="shelf-kanban-progress-label"><span>Progresso</span><b>{lead.progress}%</b></span>
               <span className="shelf-kanban-progress"><i style={{ width: `${lead.progress}%` }} /></span>
-              <span className="shelf-kanban-meta"><span><i><MessageCircle size={12} />{lead.comments}</i><i><Paperclip size={12} />{lead.files}</i></span><span className="shelf-kanban-person"><em>{lead.owner.slice(0, 2).toUpperCase()}</em>{lead.owner}</span></span>
+              <span className="shelf-kanban-meta"><span><i><MessageCircle size={12} />{lead.comments}</i><i><Paperclip size={12} />{lead.files}</i></span><span className="shelf-kanban-person"><em>{lead.owner.slice(0, 2).toUpperCase()}</em><span>{lead.owner}</span></span></span>
             </span>
           </button>)}<button type="button" className="workflow-quick-add crm-stage-quick-add" onClick={() => { setNewLeadStage(stage); setNewLeadOpen(true); }}><Plus size={15} />Adicionar novo lead</button></div>
         </article>;
       })}
-    </section><div className="workflow-scroll-control crm-scroll-control"><input type="range" min="0" max="100" step="1" value={scrollPosition} aria-label="Rolar as etapas do CRM para os lados" onChange={(event) => { const value = Number(event.target.value); const element = kanbanRef.current; if (element) element.scrollLeft = (element.scrollWidth - element.clientWidth) * value / 100; setScrollPosition(value); }} /></div></div>
+    </section><div hidden={!kanbanOverflow.previous && !kanbanOverflow.next} className="workflow-scroll-control crm-scroll-control"><input type="range" min="0" max="100" step="1" value={scrollPosition} aria-label="Rolar as etapas do CRM para os lados" onChange={(event) => { const value = Number(event.target.value); const element = kanbanRef.current; if (element) element.scrollLeft = (element.scrollWidth - element.clientWidth) * value / 100; setScrollPosition(value); }} /></div></div>
     <p className="crm-kanban-help">Arraste os cards entre as etapas. Clique para ver os detalhes do contato.</p>
     {newLeadOpen ? <RecordDialog title="Novo lead" fields={["Nome / título", "Origem", "Objetivo", "Valor", "Responsável"]} onClose={() => setNewLeadOpen(false)} onSave={(values) => {
       const name = values["Nome / título"] || "Novo lead";
-      setLeads((current) => [{ id: `CRM-${String(309 + current.length).padStart(3, "0")}`, name, initials: name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase(), source: values["Origem"] || "Manual", objective: values["Objetivo"] || "Nova oportunidade", value: values["Valor"] || "R$ 0,00", stage: newLeadStage, priority: "Normal", progress: 5, comments: 0, files: 0, owner: values["Responsável"] || "Mariana" }, ...current]);
+      setLeads((current) => [{ id: `CRM-${String(309 + current.length).padStart(3, "0")}`, name, initials: name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase(), source: values["Origem"] || "Manual", objective: values["Objetivo"] || "Nova oportunidade", value: values["Valor"] || "R$ 0,00", stage: newLeadStage, priority: "Normal", createdAt: new Date().toISOString(), progress: 0, comments: 0, files: 0, owner: values["Responsável"] || "Mariana" }, ...current]);
       setNewLeadOpen(false);
     }} /> : null}
-    {settingsOpen ? <StageSettingsDialog title="Etapas do CRM" stages={stages} onClose={() => setSettingsOpen(false)} onSave={(next) => { setStages(next); setLeads((current) => current.map((lead) => next.includes(lead.stage) ? lead : { ...lead, stage: next[0] })); setSettingsOpen(false); }} /> : null}
+    {settingsOpen ? <StageSettingsDialog title="Etapas do CRM" stages={stages} onClose={() => setSettingsOpen(false)} onSave={(next,_options,renamed) => { setStages(next); setLeads((current) => current.map((lead) => ({...lead,stage:renamed[lead.stage] || (next.includes(lead.stage) ? lead.stage : next[0])}))); setSettingsOpen(false); }} /> : null}
   </>;
 }
 
@@ -4040,42 +3785,34 @@ type WorkflowCard = {
   projectId?: string;
   daysInStage: number;
   comments: string[];
-  files: string[];
+  files: Array<string | ChatAttachment>;
+  createdAt?:string;
 };
 const taskStages = ["Entrada", "A fazer", "Em andamento", "Em revisão", "Concluída"];
 const projectStages = ["Planejamento", "A iniciar", "Em andamento", "Em risco", "Concluído"];
-const workflowProjects: WorkflowProject[] = [
-  { id: "PR-008", name: "Implantação Bella Modas", detail: "Cliente", owner: "Marina", due: "18 ago 2026", priority: "Normal" },
-  { id: "PR-007", name: "Expansão unidade Centro", detail: "Operação interna", owner: "Carlos", due: "25 ago 2026", priority: "Alta" },
-  { id: "PR-006", name: "Novo canal de vendas", detail: "Comercial", owner: "João", due: "02 set 2026", priority: "Normal" },
-  { id: "PR-005", name: "Revisão do catálogo", detail: "Produtos e serviços", owner: "Ana", due: "29 ago 2026", priority: "Média" },
-];
-const taskCards: WorkflowCard[] = [
-  { id: "TR-018", title: "Enviar proposta comercial", detail: "Bella Modas", owner: "Marina", due: "Hoje, 14:00", priority: "Alta", stage: "A fazer", projectId: "PR-008", daysInStage: 2, comments: ["Proposta revisada pelo comercial."], files: ["proposta-bella.pdf"] },
-  { id: "TR-017", title: "Validar orçamento", detail: "Revisar custos e margem", owner: "João", due: "Hoje, 16:00", priority: "Média", stage: "Em andamento", projectId: "PR-006", daysInStage: 4, comments: ["Aguardando validação dos custos.", "Margem atualizada."], files: ["orcamento.xlsx"] },
-  { id: "TR-016", title: "Repor materiais", detail: "Estoque da unidade Centro", owner: "Carlos", due: "Amanhã", priority: "Média", stage: "Entrada", projectId: "PR-007", daysInStage: 1, comments: [], files: [] },
-  { id: "TR-015", title: "Aprovar campanha", detail: "Dia das Mães", owner: "Marina", due: "Hoje", priority: "Alta", stage: "Em revisão", projectId: "PR-006", daysInStage: 3, comments: ["Texto final aprovado."], files: ["campanha.png"] },
-];
+const workflowProjects: WorkflowProject[] = [];
+const taskCards: WorkflowCard[] = [];
 
-function WorkflowComposer({ view, projects = [], defaultProjectId = "", initialStage, initialCard, onClose, onSave }: { view: "Tarefas" | "Projetos"; projects?: WorkflowProject[]; defaultProjectId?: string; initialStage?: string; initialCard?: WorkflowCard; onClose: () => void; onSave: (card: WorkflowCard) => void }) {
+function WorkflowComposer({ view, projects = [], defaultProjectId = "", initialStage, initialCard, requireOwner = true, onClose, onSave }: { requireOwner?: boolean; view: "Tarefas" | "Projetos"; projects?: WorkflowProject[]; defaultProjectId?: string; initialStage?: string; initialCard?: WorkflowCard; onClose: () => void; onSave: (card: WorkflowCard) => void }) {
   const singular = view === "Tarefas" ? "tarefa" : "projeto";
   const firstStage = initialCard?.stage || initialStage || (view === "Tarefas" ? taskStages[0] : projectStages[0]);
   const [title, setTitle] = useState(initialCard?.title ?? "");
   const [detail, setDetail] = useState(initialCard?.detail ?? "");
-  const [owner, setOwner] = useState(initialCard?.owner ?? "Mariana");
+  const [owner, setOwner] = useState(initialCard?.owner ?? "");
   const [due, setDue] = useState(initialCard?.due && /^\d{4}-\d{2}-\d{2}$/.test(initialCard.due) ? initialCard.due : "");
   const [priority, setPriority] = useState(initialCard?.priority ?? "Média");
   const [projectId, setProjectId] = useState(initialCard?.projectId ?? defaultProjectId);
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || (requireOwner && !owner.trim())) return;
     const prefix = view === "Tarefas" ? "TR" : "PR";
     onSave({
-      id: initialCard?.id ?? `${prefix}-${String(Date.now()).slice(-4)}`,
+      id: initialCard?.id ?? `${prefix}-${crypto.randomUUID()}`,
+      createdAt: initialCard?.createdAt ?? new Date().toISOString(),
       title: title.trim(),
       detail: detail.trim() || `Novo ${singular}`,
-      owner: owner.trim() || "Mariana",
+      owner: owner.trim() || "Sem responsável",
       due: due || initialCard?.due || "Sem prazo",
       priority,
       stage: firstStage,
@@ -4104,7 +3841,7 @@ function WorkflowComposer({ view, projects = [], defaultProjectId = "", initialS
         </label>
         <label className="workflow-composer-field">
           <UserRound size={18} />
-          <span><small>Responsável</small><input value={owner} onChange={(event) => setOwner(event.target.value)} placeholder="Digitar responsável" /></span>
+          <span><small>Responsável</small><input required={requireOwner} value={owner} onChange={(event) => setOwner(event.target.value)} placeholder="Digitar responsável" /></span>
         </label>
         <div className="workflow-composer-field workflow-composer-select">
           <Siren size={18} />
@@ -4134,9 +3871,11 @@ function WorkflowComposer({ view, projects = [], defaultProjectId = "", initialS
 }
 
 function WorkflowKanban({ view }: { view: "Tarefas" | "Projetos" }) {
-  const [stages, setStages] = useState(taskStages);
-  const [cards, setCards] = useState<WorkflowCard[]>(taskCards);
-  const [projects, setProjects] = useState<WorkflowProject[]>(workflowProjects);
+  const access = useAccess();
+  const [taskOptions, setTaskOptions] = useStoredData("gest-task-options", {requireOwner:true, deadlineAlerts:true});
+  const [stages, setStages] = useStoredData("gest-task-stages", taskStages);
+  const [cards, setCards] = useStoredData<WorkflowCard[]>("gest-workflow-tasks", []);
+  const [projects, setProjects] = useStoredData<WorkflowProject[]>("gest-workflow-projects", []);
   const [projectFilter, setProjectFilter] = useState("all");
   const [dragged, setDragged] = useState<string | null>(null);
   const [dropStage, setDropStage] = useState<string | null>(null);
@@ -4146,11 +3885,10 @@ function WorkflowKanban({ view }: { view: "Tarefas" | "Projetos" }) {
   const [cardDialog, setCardDialog] = useState<{ cardId: string; tab: "comments" | "files" } | null>(null);
   const [commentDraft, setCommentDraft] = useState("");
   const kanbanRef = useRef<HTMLElement>(null);
+  const kanbanOverflow = useHorizontalOverflow(kanbanRef);
   const [scrollPosition, setScrollPosition] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => {
-    setCards(taskCards);
-    setProjects(workflowProjects);
     setProjectFilter("all");
     setDragged(null);
     setDropStage(null);
@@ -4161,7 +3899,7 @@ function WorkflowKanban({ view }: { view: "Tarefas" | "Projetos" }) {
   const selectedProject = projects.find((project) => project.id === projectFilter);
   const activeDialogCard = cards.find((card) => card.id === cardDialog?.cardId);
   const completedCount = visibleCards.filter((card) => card.stage.toLocaleLowerCase("pt-BR").includes("conclu")).length;
-  const overdueCount = visibleCards.filter((card) => card.due.toLocaleLowerCase("pt-BR").includes("atras")).length;
+  const overdueCount = visibleCards.filter(card=>card.stage!=="Concluída" && /^\d{4}-\d{2}-\d{2}$/.test(card.due) && card.due<new Date().toLocaleDateString("en-CA")).length;
   const plannedCount = visibleCards.length - completedCount;
   const onTimeCount = Math.max(0, plannedCount - overdueCount);
   const labels = ["Planejadas", "No prazo", "Concluídas", "Em atraso"];
@@ -4177,7 +3915,7 @@ function WorkflowKanban({ view }: { view: "Tarefas" | "Projetos" }) {
     <StandardModuleTop
       title="Tarefas"
       help="Organize tarefas avulsas ou filtre as atividades vinculadas a cada projeto."
-      action={<div className="workflow-top-actions"><button type="button" className="lab-create-activity is-secondary" onClick={() => setComposerOpen("project")}><BriefcaseBusiness size={16} /> Adicionar projeto</button><button type="button" className="lab-create-activity" onClick={() => { setComposerStage(stages[0]); setComposerOpen("task"); }}><Plus size={17} /> Adicionar tarefa</button><button type="button" className="module-settings-trigger" aria-label="Configurar etapas das tarefas" onClick={() => setSettingsOpen(true)}><Settings size={17} /></button></div>}
+      action={<div className="workflow-top-actions"><button type="button" className="lab-create-activity is-secondary" disabled={!access.allowed("Projetos")} onClick={() => { if (access.allowed("Projetos")) setComposerOpen("project"); }}><BriefcaseBusiness size={16} /> Adicionar projeto</button><button type="button" className="lab-create-activity" onClick={() => { setComposerStage(stages[0]); setComposerOpen("task"); }}><Plus size={17} /> Adicionar tarefa</button><button type="button" className="module-settings-trigger" aria-label="Configurar etapas das tarefas" onClick={() => setSettingsOpen(true)}><Settings size={17} /></button></div>}
     >
       <Metric label={labels[0]} value={String(plannedCount)} detail="+8,0%" tone="blue" />
       <Metric label={labels[1]} value={String(onTimeCount)} detail="+5,2%" tone="orange" />
@@ -4189,7 +3927,7 @@ function WorkflowKanban({ view }: { view: "Tarefas" | "Projetos" }) {
       <ClientSelect compact hideLabel label="Projeto" value={selectedProject?.name || (projectFilter === "none" ? "Sem projeto" : "Todos os projetos")} onChange={(value) => { if (value === "Todos os projetos") setProjectFilter("all"); else if (value === "Sem projeto") setProjectFilter("none"); else setProjectFilter(projects.find((project) => project.name === value)?.id ?? "all"); }} options={["Todos os projetos", "Sem projeto", ...projects.map((project) => project.name)]} />
     </section>
     <div className="workflow-kanban-shell">
-    <section ref={kanbanRef} className="shelf-kanban shelf-kanban-workflow" onScroll={(event) => { const element = event.currentTarget; const max = element.scrollWidth - element.clientWidth; setScrollPosition(max > 0 ? element.scrollLeft / max * 100 : 0); }}>
+    <section ref={kanbanRef} style={{ "--kanban-columns": stages.length } as React.CSSProperties} className="shelf-kanban shelf-kanban-workflow" onScroll={(event) => { const element = event.currentTarget; const max = element.scrollWidth - element.clientWidth; setScrollPosition(max > 0 ? element.scrollLeft / max * 100 : 0); }}>
       {stages.map((stage, index) => {
         const stageCards = visibleCards.filter((card) => card.stage === stage);
         return <article className={`${dropStage === stage ? "is-over " : ""}stage-${stageTone(stage)}`} key={stage} onDragOver={(event) => { event.preventDefault(); setDropStage(stage); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropStage(null); }} onDrop={() => { if (dragged) { setCards((current) => current.map((card) => card.id === dragged ? { ...card, stage, daysInStage: 0 } : card)); showAppToast(/conclu/i.test(stage) ? "Tarefa concluída." : "Etapa da tarefa atualizada."); } setDragged(null); setDropStage(null); }}>
@@ -4204,29 +3942,29 @@ function WorkflowKanban({ view }: { view: "Tarefas" | "Projetos" }) {
               {project ? <small className="workflow-card-project"><BriefcaseBusiness size={11} />{project.name}</small> : null}
               <span className="shelf-kanban-progress-label"><span>Progresso</span><b>{progress}%</b></span>
               <span className="shelf-kanban-progress"><i style={{ width: `${progress}%` }} /></span>
-              <span className="shelf-kanban-meta"><span><button type="button" onClick={() => setCardDialog({ cardId: card.id, tab: "comments" })} aria-label={`Comentários de ${card.title}`}><MessageCircle size={12} />{card.comments.length}</button><button type="button" onClick={() => setCardDialog({ cardId: card.id, tab: "files" })} aria-label={`Anexos de ${card.title}`}><Paperclip size={12} />{card.files.length}</button></span><span className="shelf-kanban-person"><em>{card.owner.slice(0, 2).toUpperCase()}</em>{card.owner}<time>{card.due}</time></span></span>
+              <span className="shelf-kanban-meta"><span><button type="button" onClick={() => setCardDialog({ cardId: card.id, tab: "comments" })} aria-label={`Comentários de ${card.title}`}><MessageCircle size={12} />{card.comments.length}</button><button type="button" onClick={() => setCardDialog({ cardId: card.id, tab: "files" })} aria-label={`Anexos de ${card.title}`}><Paperclip size={12} />{card.files.length}</button></span><span className="shelf-kanban-person"><em>{card.owner.slice(0, 2).toUpperCase()}</em>{card.owner}<time>{taskOptions.deadlineAlerts && /^\d{4}-\d{2}-\d{2}$/.test(card.due) && card.due<=new Date(Date.now()+3*86400000).toLocaleDateString("en-CA") && !/conclu/i.test(card.stage) ? <Siren size={12} aria-label="Atenção ao prazo da tarefa" /> : null}{card.due}</time></span></span>
             </span>
           </article>; })}<button type="button" className="workflow-quick-add" onClick={() => { setComposerStage(stage); setComposerOpen("task"); }}><Plus size={15} />Adicionar tarefa</button></div>
         </article>;
       })}
     </section>
-    <div className="workflow-scroll-control"><input type="range" min="0" max="100" step="1" value={scrollPosition} aria-label="Rolar o Kanban para os lados" onChange={(event) => { const value = Number(event.target.value); const element = kanbanRef.current; if (element) element.scrollLeft = (element.scrollWidth - element.clientWidth) * value / 100; setScrollPosition(value); }} /></div>
+    <div hidden={!kanbanOverflow.previous && !kanbanOverflow.next} className="workflow-scroll-control"><input type="range" min="0" max="100" step="1" value={scrollPosition} aria-label="Rolar o Kanban para os lados" onChange={(event) => { const value = Number(event.target.value); const element = kanbanRef.current; if (element) element.scrollLeft = (element.scrollWidth - element.clientWidth) * value / 100; setScrollPosition(value); }} /></div>
     </div>
     {composerOpen ? (
       <div className="lab-agenda-modal" role="dialog" aria-modal="true" aria-label={`Adicionar ${composerOpen === "task" ? "tarefa" : "projeto"}`} onClick={() => setComposerOpen(null)}>
         <div onClick={(event) => event.stopPropagation()}>
-          <WorkflowComposer view={composerOpen === "task" ? "Tarefas" : "Projetos"} projects={projects} defaultProjectId={projectFilter !== "all" && projectFilter !== "none" ? projectFilter : ""} initialStage={composerOpen === "task" ? composerStage : undefined} onClose={() => setComposerOpen(null)} onSave={(card) => { if (composerOpen === "task") { setCards((current) => [card, ...current]); showAppToast("Tarefa criada com sucesso."); } else { const project = { id: card.id, name: card.title, detail: card.detail, owner: card.owner, due: card.due, priority: card.priority }; setProjects((current) => [project, ...current]); setProjectFilter(project.id); showAppToast("Projeto criado com sucesso."); } setComposerOpen(null); }} />
+          <WorkflowComposer requireOwner={taskOptions.requireOwner} view={composerOpen === "task" ? "Tarefas" : "Projetos"} projects={projects} defaultProjectId={projectFilter !== "all" && projectFilter !== "none" ? projectFilter : ""} initialStage={composerOpen === "task" ? composerStage : undefined} onClose={() => setComposerOpen(null)} onSave={(card) => { if (composerOpen === "task") { setCards((current) => [card, ...current]); showAppToast("Tarefa criada com sucesso."); } else { const project = { id: card.id, name: card.title, detail: card.detail, owner: card.owner, due: card.due, priority: card.priority }; setProjects((current) => [project, ...current]); setProjectFilter(project.id); showAppToast("Projeto criado com sucesso."); } setComposerOpen(null); }} />
         </div>
       </div>
     ) : null}
-    {editingTask ? <div className="lab-agenda-modal" role="dialog" aria-modal="true" aria-label={`Editar ${editingTask.title}`} onClick={() => setEditingTask(null)}><div onClick={(event) => event.stopPropagation()}><WorkflowComposer key={editingTask.id} view="Tarefas" projects={projects} initialCard={editingTask} onClose={() => setEditingTask(null)} onSave={(card) => { setCards((current) => current.map((item) => item.id === card.id ? card : item)); setEditingTask(null); showAppToast("Tarefa atualizada com sucesso."); }} /></div></div> : null}
-    {settingsOpen ? <StageSettingsDialog title="Configurar tarefas" stages={stages} showTaskOptions onClose={() => setSettingsOpen(false)} onSave={(next) => { setStages(next); setCards((current) => current.map((card) => next.includes(card.stage) ? card : { ...card, stage: next[0] })); setComposerStage(next[0]); setSettingsOpen(false); showAppToast("Etapas das tarefas atualizadas."); }} /> : null}
+    {editingTask ? <div className="lab-agenda-modal" role="dialog" aria-modal="true" aria-label={`Editar ${editingTask.title}`} onClick={() => setEditingTask(null)}><div onClick={(event) => event.stopPropagation()}><WorkflowComposer requireOwner={taskOptions.requireOwner} key={editingTask.id} view="Tarefas" projects={projects} initialCard={editingTask} onClose={() => setEditingTask(null)} onSave={(card) => { setCards((current) => current.map((item) => item.id === card.id ? card : item)); setEditingTask(null); showAppToast("Tarefa atualizada com sucesso."); }} /></div></div> : null}
+    {settingsOpen ? <StageSettingsDialog title="Configurar tarefas" stages={stages} showTaskOptions onClose={() => setSettingsOpen(false)} onSave={(next,options,renamed) => { setTaskOptions(options); setStages(next); setCards((current) => current.map((card) => ({...card,stage:renamed[card.stage] || (next.includes(card.stage) ? card.stage : next[0])}))); setComposerStage(next[0]); setSettingsOpen(false); showAppToast("Etapas das tarefas atualizadas."); }} /> : null}
     {cardDialog && activeDialogCard ? (
       <div className="lab-agenda-modal" role="dialog" aria-modal="true" aria-label={`Detalhes de ${activeDialogCard.title}`} onClick={() => setCardDialog(null)}>
         <section className="workflow-card-dialog" onClick={(event) => event.stopPropagation()}>
           <header><div><small>ATIVIDADE</small><h2>{activeDialogCard.title}</h2></div><button type="button" aria-label="Fechar" onClick={() => setCardDialog(null)}><X size={18} /></button></header>
           <nav><button type="button" className={cardDialog.tab === "comments" ? "active" : ""} onClick={() => setCardDialog({ ...cardDialog, tab: "comments" })}><MessageCircle size={15} />Comentários <b>{activeDialogCard.comments.length}</b></button><button type="button" className={cardDialog.tab === "files" ? "active" : ""} onClick={() => setCardDialog({ ...cardDialog, tab: "files" })}><Paperclip size={15} />Anexos <b>{activeDialogCard.files.length}</b></button></nav>
-          {cardDialog.tab === "comments" ? <div className="workflow-comments-panel"><div>{activeDialogCard.comments.length ? activeDialogCard.comments.map((comment, index) => <p key={`${comment}-${index}`}><i>{activeDialogCard.owner.slice(0, 2).toUpperCase()}</i><span><b>{activeDialogCard.owner}</b>{comment}</span></p>) : <small>Nenhum comentário ainda.</small>}</div><form onSubmit={(event) => { event.preventDefault(); if (!commentDraft.trim()) return; setCards((current) => current.map((card) => card.id === activeDialogCard.id ? { ...card, comments: [...card.comments, commentDraft.trim()] } : card)); setCommentDraft(""); }}><input value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="Escrever um comentário" /><button type="submit">Adicionar</button></form></div> : <div className="workflow-files-panel"><div>{activeDialogCard.files.length ? activeDialogCard.files.map((file) => <span key={file}><FileText size={15} />{file}</span>) : <small>Nenhum anexo ainda.</small>}</div><label><Paperclip size={15} />Adicionar anexo<input type="file" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; setCards((current) => current.map((card) => card.id === activeDialogCard.id ? { ...card, files: [...card.files, file.name] } : card)); event.target.value = ""; }} /></label></div>}
+          {cardDialog.tab === "comments" ? <div className="workflow-comments-panel"><div>{activeDialogCard.comments.length ? activeDialogCard.comments.map((comment, index) => <p key={`${comment}-${index}`}><i>{activeDialogCard.owner.slice(0, 2).toUpperCase()}</i><span><b>{activeDialogCard.owner}</b>{comment}</span></p>) : <small>Nenhum comentário ainda.</small>}</div><form onSubmit={(event) => { event.preventDefault(); if (!commentDraft.trim()) return; setCards((current) => current.map((card) => card.id === activeDialogCard.id ? { ...card, comments: [...card.comments, commentDraft.trim()] } : card)); setCommentDraft(""); }}><input value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="Escrever um comentário" /><button type="submit">Adicionar</button></form></div> : <div className="workflow-files-panel"><div>{activeDialogCard.files.length ? activeDialogCard.files.map((file,index) => <span key={index}><FileText size={15} />{typeof file === "string" ? file : safeAttachmentUrl(file.url) ? <a href={file.url} download={file.name}>{file.name}</a> : file.name}</span>) : <small>Nenhum anexo ainda.</small>}</div><label><Paperclip size={15} />Adicionar anexo<input type="file" onChange={async (event) => { const input=event.currentTarget; const file = input.files?.[0]; if (!file) return; try { await validateAttachment(file); const reader=new FileReader(); reader.onload=()=>{ const url=String(reader.result); if(!safeAttachmentUrl(url))return; setCards(current=>current.map(card=>card.id===activeDialogCard.id ? {...card,files:[...card.files,{name:file.name,url}]} : card)); }; reader.onerror=()=>showAppToast("Não foi possível ler o anexo."); reader.readAsDataURL(file); } catch(error) {showAppToast(error instanceof Error?error.message:"Arquivo inválido.");} input.value=""; }} /></label></div>}
         </section>
       </div>
     ) : null}
@@ -4234,32 +3972,36 @@ function WorkflowKanban({ view }: { view: "Tarefas" | "Projetos" }) {
 }
 
 function PricingView() {
-  const [kind, setKind] = useState("Produto");
-  const [unit, setUnit] = useState("Unidade");
-  const [name, setName] = useState("");
+  const [initialPricing] = useState(() => readData<Record<string, string | number | boolean>>("gest-pricing-draft", {}));
+  const [kind, setKind] = useState(String(initialPricing.kind ?? "Produto"));
+  const [unit, setUnit] = useState(String(initialPricing.unit ?? "Unidade"));
+  const [name, setName] = useState(String(initialPricing.name ?? ""));
   const [saved, setSaved] = useState(false);
   const [catalogFeedback, setCatalogFeedback] = useState("");
-  const [directCost, setDirectCost] = useState(120);
-  const [purchaseUnits, setPurchaseUnits] = useState(12);
-  const [purchaseExtras, setPurchaseExtras] = useState(0);
-  const [materials, setMaterials] = useState(18);
-  const [packaging, setPackaging] = useState(6);
-  const [freight, setFreight] = useState(4);
-  const [monthlyRent, setMonthlyRent] = useState(3500);
-  const [monthlyEnergy, setMonthlyEnergy] = useState(850);
-  const [otherFixed, setOtherFixed] = useState(1650);
-  const [monthlyVolume, setMonthlyVolume] = useState(120);
-  const [monthlyCompensation, setMonthlyCompensation] = useState(6500);
-  const [productiveHours, setProductiveHours] = useState(120);
-  const [executionHours, setExecutionHours] = useState(2);
-  const [loss, setLoss] = useState(3);
-  const [tax, setTax] = useState(8);
-  const [commission, setCommission] = useState(5);
-  const [paymentFee, setPaymentFee] = useState(3.5);
-  const [discountReserve, setDiscountReserve] = useState(5);
-  const [margin, setMargin] = useState(35);
-  const [includeTax, setIncludeTax] = useState(true);
-  const [includeFees, setIncludeFees] = useState(true);
+  const [directCost, setDirectCost] = useState(Number(initialPricing.directCost ?? 0));
+  const [purchaseUnits, setPurchaseUnits] = useState(Number(initialPricing.purchaseUnits ?? 1));
+  const [purchaseExtras, setPurchaseExtras] = useState(Number(initialPricing.purchaseExtras ?? 0));
+  const [materials, setMaterials] = useState(Number(initialPricing.materials ?? 0));
+  const [packaging, setPackaging] = useState(Number(initialPricing.packaging ?? 0));
+  const [freight, setFreight] = useState(Number(initialPricing.freight ?? 0));
+  const [monthlyRent, setMonthlyRent] = useState(Number(initialPricing.monthlyRent ?? 0));
+  const [monthlyEnergy, setMonthlyEnergy] = useState(Number(initialPricing.monthlyEnergy ?? 0));
+  const [otherFixed, setOtherFixed] = useState(Number(initialPricing.otherFixed ?? 0));
+  const [monthlyVolume, setMonthlyVolume] = useState(Number(initialPricing.monthlyVolume ?? 1));
+  const [monthlyCompensation, setMonthlyCompensation] = useState(Number(initialPricing.monthlyCompensation ?? 0));
+  const [productiveHours, setProductiveHours] = useState(Number(initialPricing.productiveHours ?? 1));
+  const [executionHours, setExecutionHours] = useState(Number(initialPricing.executionHours ?? 2));
+  const [loss, setLoss] = useState(Number(initialPricing.loss ?? 0));
+  const [tax, setTax] = useState(Number(initialPricing.tax ?? 0));
+  const [commission, setCommission] = useState(Number(initialPricing.commission ?? 0));
+  const [paymentFee, setPaymentFee] = useState(Number(initialPricing.paymentFee ?? 0));
+  const [discountReserve, setDiscountReserve] = useState(Number(initialPricing.discountReserve ?? 0));
+  const [margin, setMargin] = useState(Number(initialPricing.margin ?? 0));
+  const [includeTax, setIncludeTax] = useState(typeof initialPricing.includeTax === "boolean" ? initialPricing.includeTax : true);
+  const [includeFees, setIncludeFees] = useState(typeof initialPricing.includeFees === "boolean" ? initialPricing.includeFees : true);
+  const pricingSnapshot = {kind, unit, name, directCost, purchaseUnits, purchaseExtras, materials, packaging, freight, monthlyRent, monthlyEnergy, otherFixed, monthlyVolume, monthlyCompensation, productiveHours, executionHours, loss, tax, commission, paymentFee, discountReserve, margin, includeTax, includeFees};
+  useEffect(() => { setSaved(false); }, [kind, unit, name, directCost, purchaseUnits, purchaseExtras, materials, packaging, freight, monthlyRent, monthlyEnergy, otherFixed, monthlyVolume, monthlyCompensation, productiveHours, executionHours, loss, tax, commission, paymentFee, discountReserve, margin, includeTax, includeFees]);
+  const savePricing = () => { appStorage.setItem("gest-pricing-draft", JSON.stringify(pricingSnapshot)); setSaved(true); };
   const fixedMonthly = monthlyRent + monthlyEnergy + otherFixed;
   const fixedUnit = fixedMonthly / Math.max(1, monthlyVolume);
   const hourlyRate = (monthlyCompensation + fixedMonthly) / Math.max(1, productiveHours);
@@ -4273,10 +4015,16 @@ function PricingView() {
   const price = base / divisor;
   const addToCatalog = () => {
     if (!name.trim()) { setCatalogFeedback("Informe o nome antes de adicionar ao catálogo."); return; }
-    const row = [String(Date.now()), name.trim(), kind, new Date().toLocaleDateString("pt-BR"), price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }), "Ativo"];
+    const existing = readData<string[][]>("gest-priced-catalog", []).find(row=>row[1].toLocaleLowerCase("pt-BR")===name.trim().toLocaleLowerCase("pt-BR") && row[2]===kind);
+    const row = [existing?.[0] ?? crypto.randomUUID(), name.trim(), kind, new Date().toLocaleDateString("pt-BR"), price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }), "Ativo"];
     try {
       const current = JSON.parse(appStorage.getItem("gest-priced-catalog") || "[]");
-      appStorage.setItem("gest-priced-catalog", JSON.stringify([row, ...(Array.isArray(current) ? current : [])]));
+      appStorage.setItem("gest-priced-catalog", JSON.stringify([row, ...(Array.isArray(current) ? current.filter(item=>Array.isArray(item) && item[0]!==row[0]) : [])]));
+      const fields = {"Nome / título":name.trim(),Tipo:kind,"Preço de venda":money(price),"Custo total":money(base),"Duração estimada do serviço (opcional)":kind === "Serviço" ? String(executionHours * 60) : "","Margem estimada":`${margin}%`,"Quantidade / unidade":unit,"Impostos e taxas":`${variableRate}%`,"Descrição":"Precificação cadastrada"};
+      appStorage.setItem(`gest-record-inputs-Catálogo-${row[0]}`,JSON.stringify(fields));
+      appStorage.setItem("gest-pricing-draft",JSON.stringify(pricingSnapshot));
+      const commercialTerms=readData<Record<string,{commissionRate:number}>>("gest-service-commercial-terms",{});
+      appStorage.setItem("gest-service-commercial-terms",JSON.stringify({...commercialTerms,[row[0]]:{commissionRate:includeFees?Math.min(100,Math.max(0,commission)):0}}));
       setCatalogFeedback(`${kind} adicionado ao Catálogo.`);
     } catch { setCatalogFeedback("Não foi possível salvar neste navegador."); }
   };
@@ -4303,29 +4051,24 @@ function PricingView() {
           <div className="pricing-section"><h3>Perdas e impostos</h3><label><span>Perdas e desperdícios (%)<InfoHint text="Percentual médio de perdas, retrabalho, validade, quebra ou ociosidade." /></span><input type="number" min="0" step="0.1" value={loss} onChange={(event) => setLoss(Number(event.target.value))} /></label><label className="pricing-toggle"><span><b>Incluir impostos</b><small>Simples, ISS, ICMS ou outro tributo efetivo.</small></span><button type="button" className={includeTax ? "switch on" : "switch"} onClick={() => setIncludeTax(!includeTax)}><i /></button></label>{includeTax && <label><span>Alíquota efetiva (%)<InfoHint text="Percentual real de tributos incidentes sobre esta venda, conforme seu regime tributário." /></span><input type="number" min="0" step="0.1" value={tax} onChange={(event) => setTax(Number(event.target.value))} /></label>}</div>
           <div className="pricing-section"><h3>Venda, desconto e lucro</h3><label className="pricing-toggle"><span><b>Incluir taxas de venda</b><small>Maquininha, marketplace e comissão comercial.</small></span><button type="button" className={includeFees ? "switch on" : "switch"} onClick={() => setIncludeFees(!includeFees)}><i /></button></label>{includeFees ? <><label><span>Taxa da maquininha (%)<InfoHint text="Custo percentual do cartão ou do meio de pagamento usado na venda." /></span><input type="number" min="0" step="0.1" value={paymentFee} onChange={(event) => setPaymentFee(Number(event.target.value))} /></label><label><span>Comissão de venda (%)<InfoHint text="Percentual destinado ao vendedor, parceiro ou marketplace." /></span><input type="number" min="0" step="0.1" value={commission} onChange={(event) => setCommission(Number(event.target.value))} /></label></> : null}<label><span>Margem para desconto (%)<InfoHint text="Reserva no preço para conceder desconto sem consumir a margem de lucro planejada." /></span><input type="number" min="0" step="0.1" value={discountReserve} onChange={(event) => setDiscountReserve(Number(event.target.value))} /></label><label><span>Margem de lucro desejada (%)<InfoHint text="Lucro desejado sobre o preço final, depois dos custos, impostos, taxas e desconto previsto." /></span><input type="number" min="0" max="90" step="0.1" value={margin} onChange={(event) => setMargin(Number(event.target.value))} /></label></div>
         </section>
-        <aside><i><Calculator size={24} /></i><small>PREÇO SUGERIDO</small><strong>{price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong><p>Preço mínimo calculado para cobrir a estrutura e preservar as margens informadas.</p><dl><div><dt>Custo direto</dt><dd>{directBase.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div><div><dt>Rateio fixo unitário</dt><dd>{fixedUnit.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div><div><dt>Perdas</dt><dd>{lossCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div><div><dt>Tributos e taxas</dt><dd>{variableRate}%</dd></div><div><dt>Desconto reservado</dt><dd>{discountReserve}%</dd></div><div><dt>Margem de lucro</dt><dd>{margin}%</dd></div></dl><button className="v2-primary" onClick={() => setSaved(true)}>{saved ? <><CheckCircle2 size={15} />Precificação salva</> : "Salvar precificação"}</button><button type="button" className="v2-primary" onClick={addToCatalog}><Plus size={15} />Adicionar à lista de {kind === "Produto" ? "produtos" : "serviços"}</button>{catalogFeedback ? <small role="status">{catalogFeedback}</small> : null}</aside>
+        <aside><i><Calculator size={24} /></i><small>PREÇO SUGERIDO</small><strong>{price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong><p>Preço mínimo calculado para cobrir a estrutura e preservar as margens informadas.</p><dl><div><dt>Custo direto</dt><dd>{directBase.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div><div><dt>Rateio fixo unitário</dt><dd>{fixedUnit.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div><div><dt>Perdas</dt><dd>{lossCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</dd></div><div><dt>Tributos e taxas</dt><dd>{variableRate}%</dd></div><div><dt>Desconto reservado</dt><dd>{discountReserve}%</dd></div><div><dt>Margem de lucro</dt><dd>{margin}%</dd></div></dl><button className="v2-primary" onClick={savePricing}>{saved ? <><CheckCircle2 size={15} />Precificação salva</> : "Salvar precificação"}</button><button type="button" className="v2-primary" onClick={addToCatalog}><Plus size={15} />Adicionar à lista de {kind === "Produto" ? "produtos" : "serviços"}</button>{catalogFeedback ? <small role="status">{catalogFeedback}</small> : null}</aside>
       </div>
     </article>
   </>;
 }
 
-function moduleFilterValue(row: string[], filter: string) {
+function moduleFilterValue(row: string[], filter: string, view?: string) {
   const key = filter.toLocaleLowerCase("pt-BR");
-  if (key.includes("status")) return row.at(-1) ?? "";
-  if (key.includes("período") || key.includes("data") || key.includes("prazo")) return row[3] ?? "";
+  const stock = view === "Estoque" || (!view && row.length === 9);
+  if (key.includes("status") || key.includes("etapa")) return row[stock ? 6 : 5] ?? "";
+  if (key.includes("responsável")) return row[11] ?? "Não informado";
+  if (key.includes("período") || key.includes("data") || key.includes("prazo") || key.includes("validade")) return row[stock ? 4 : 3] ?? "";
   return row[2] ?? "";
 }
 
 const supportStages = ["Novos", "Responder hoje", "Em atendimento", "Aguardando cliente", "Intensificar", "Resolvidos", "Aguardando equipe", "Retorno agendado", "Sem resposta"];
-type SupportContact = { number: number; person: string; phone: string; subject: string; channel: string; updated: string; owner: string; stage: string; priority: string; returnDate: string; clientId?: string };
-const supportSeed: SupportContact[] = [
-  { number: 1, person: "Ana Martins", phone: "+55 92 99123-4567", subject: "Dúvida sobre cobrança", channel: "WhatsApp", updated: "Hoje, 09:12", owner: "Marina", stage: "Responder hoje", priority: "Alta", returnDate: "Hoje", clientId: "#CL-1248" },
-  { number: 2, person: "Lucas Ferreira", phone: "+55 92 99218-7041", subject: "Alteração de serviço", channel: "WhatsApp", updated: "Hoje, 08:40", owner: "João", stage: "Em atendimento", priority: "Normal", returnDate: "15/10/2026" },
-  { number: 3, person: "Clara Souza", phone: "+55 92 98430-1120", subject: "Confirmação de agendamento", channel: "WhatsApp", updated: "Ontem, 17:20", owner: "Marina", stage: "Aguardando cliente", priority: "Normal", returnDate: "28/09/2026" },
-  { number: 4, person: "Pedro Lima", phone: "+55 92 98856-3902", subject: "Retorno sobre orçamento", channel: "WhatsApp", updated: "Ontem, 14:05", owner: "Carlos", stage: "Intensificar", priority: "Alta", returnDate: "Hoje" },
-  { number: 5, person: "Marina Lopes", phone: "+55 92 98170-4428", subject: "Informações sobre serviço", channel: "WhatsApp", updated: "Hoje, 10:18", owner: "Sem responsável", stage: "Novos", priority: "Normal", returnDate: "A definir" },
-  { number: 6, person: "Beatriz Alves", phone: "+55 92 99345-7620", subject: "Segunda via enviada", channel: "WhatsApp", updated: "12 ago", owner: "João", stage: "Resolvidos", priority: "Normal", returnDate: "30/09/2026" },
-];
+type SupportContact = { number: number; person: string; phone: string; subject: string; channel: string; updated: string; owner: string; stage: string; priority: string; returnDate: string; clientId?: string; createdAt?:string };
+const supportSeed: SupportContact[] = [];
 
 type AnnualCampaign = { id: string; title: string; dateKey: string; dateLabel: string; enabled: boolean; offset: string; audience: string; customAudience: string; message: string };
 const campaignOffsets = ["No dia", "1 dia antes", "3 dias antes", "7 dias antes"];
@@ -4377,7 +4120,8 @@ function SupportAutomaticCampaigns({ campaigns, onChange }: { campaigns: AnnualC
 }
 
 function SupportView() {
-  const [items, setItems] = useState<SupportContact[]>(supportSeed);
+  const [templateEditor,setTemplateEditor] = useState<number | "new" | null>(null);
+  const [items, setItems] = useStoredData<SupportContact[]>("gest-support-contacts", []);
   const [clientDirectory, setClientDirectory] = useState<Array<{ id: string; name: string; email: string; type: string; contact: string; total: string; status: string; birthday?: string }>>([]);
   const [mode, setMode] = useState<"kanban" | "list">("list");
   const [channel, setChannel] = useState("Todos os canais");
@@ -4394,23 +4138,21 @@ function SupportView() {
   const [clientHistoryOpen, setClientHistoryOpen] = useState(false);
   const [campaigns, setCampaigns] = useState<AnnualCampaign[]>(buildAnnualCampaigns);
   const [campaignsLoaded, setCampaignsLoaded] = useState(false);
-  const [templates, setTemplates] = useState<Array<[string, string]>>([["Boas-vindas", "Olá! Seja bem-vindo à Bella Gestão. Como podemos ajudar?"], ["Confirmação", "Seu atendimento está confirmado. Se precisar alterar, responda esta mensagem."], ["Cobrança", "Olá! Enviamos os dados da sua cobrança. Posso ajudar com alguma dúvida?"], ["Encerramento", "Seu atendimento foi concluído. Ficamos à disposição sempre que precisar."]]);
+  const [templates, setTemplates] = useStoredData<Array<[string, string]>>("gest-support-templates", [["Boas-vindas", "Olá! Seja bem-vindo à Bella Gestão. Como podemos ajudar?"], ["Confirmação", "Seu atendimento está confirmado. Se precisar alterar, responda esta mensagem."], ["Cobrança", "Olá! Enviamos os dados da sua cobrança. Posso ajudar com alguma dúvida?"], ["Encerramento", "Seu atendimento foi concluído. Ficamos à disposição sempre que precisar."]]);
+  const inactivity = useInactivity(true);
   const [automaticRules, setAutomaticRules] = useState<Record<string, boolean>>({ greeting: true, away: true, confirmation: false });
-  const [messages, setMessages] = useState<Record<number, Array<{ from: "client" | "team" | "ai"; text: string; time: string; attachment?: ChatAttachment }>>>({
-    1: [{ from: "client", text: "Oi! Eu fiquei com uma dúvida sobre a cobrança deste mês.", time: "09:10" }, { from: "ai", text: "Olá, Ana! Recebi sua mensagem. A Marina já vai continuar seu atendimento por aqui.", time: "09:10" }],
-    2: [{ from: "client", text: "Consigo alterar o serviço que agendei?", time: "08:40" }],
-    3: [{ from: "team", text: "Olá, Clara! Podemos confirmar seu horário de amanhã às 14h?", time: "17:18" }, { from: "client", text: "Vou verificar e já respondo.", time: "17:20" }],
-  });
+  const [messages, setMessages] = useStoredData<Record<number, Array<{ from: "client" | "team" | "ai"; text: string; time: string; attachment?: ChatAttachment }>>>("gest-support-messages", {});
   useEffect(() => {
     try {
       const incoming = JSON.parse(appStorage.getItem("clinical-message-draft") ?? "null");
       if (!incoming || typeof incoming.patientName !== "string" || typeof incoming.text !== "string") return;
-      const existing = supportSeed.find(item => item.clientId === incoming.patientId || item.person.trim().toLocaleLowerCase("pt-BR") === incoming.patientName.trim().toLocaleLowerCase("pt-BR"));
-      const number = existing?.number ?? Math.max(...supportSeed.map(item => item.number)) + 1;
+      const storedContacts = readData<SupportContact[]>("gest-support-contacts",[]);
+      const existing = storedContacts.find(item => item.clientId === incoming.patientId || item.person.trim().toLocaleLowerCase("pt-BR") === incoming.patientName.trim().toLocaleLowerCase("pt-BR"));
+      const number = existing?.number ?? Math.max(0, ...storedContacts.map(item => item.number)) + 1;
       if (!existing) {
-        const clients = JSON.parse(appStorage.getItem("gest-clients") ?? "[]");
+        const clients = readData<Array<{id:string;phone?:string}>>("gest-clients", []);
         const patient = Array.isArray(clients) ? clients.find(item => item.id === incoming.patientId) : null;
-        setItems(current => [...current,{number,person:incoming.patientName,clientId:incoming.patientId,phone:patient?.phone ?? "",subject:"Documento do atendimento",channel:"WhatsApp",updated:"Hoje, agora",owner:"Equipe",stage:"Em atendimento",priority:"Normal",returnDate:""}]);
+        setItems(current => [...current,{number,person:incoming.patientName,clientId:incoming.patientId,phone:patient?.phone ?? "",createdAt:new Date().toISOString(),subject:"Documento do atendimento",channel:"WhatsApp",updated:"Hoje, agora",owner:"Equipe",stage:"Em atendimento",priority:"Normal",returnDate:""}]);
       }
       setSelectedNumber(number);
       setDraft(incoming.text);
@@ -4427,7 +4169,7 @@ function SupportView() {
     || (filter === "Retornos no prazo" && [3, 6].includes(item.number));
   const journeyBase = items.filter((item) => (channel === "Todos os canais" || item.channel === channel) && (owner === "Todos" || item.owner === owner));
   const journeyOptions = ["Todos", "Sem agendamento", "Agendaram e faltaram", "Sem remarcação", "Retornos no prazo", ...journeyStatuses].map((label) => [label, label === "Todos" ? "" : String(journeyBase.filter((item) => matchesJourney(item, label)).length)]);
-  const visible = journeyBase.filter((item) => matchesJourney(item, journeyFilter));
+  const visible = journeyBase.filter((item) => matchesJourney(item, journeyFilter) && inactivity.matches(item.person,item.updated));
   const selected = items.find((item) => item.number === selectedNumber) ?? visible[0] ?? items[0];
   const linkedId = selected?.clientId?.replace(/^#CL-/, "");
   const normalizedContact = selected?.person.trim().toLocaleLowerCase("pt-BR");
@@ -4449,6 +4191,7 @@ function SupportView() {
   const sendMessage = () => {
     if (!draft.trim() || !selected) return;
     setMessages((current) => ({ ...current, [selected.number]: [...(current[selected.number] ?? []), { from: "team", text: draft.trim(), time: "Agora" }] }));
+    const contacts=readData<Record<string,string>>("gest-contact-last-interaction",{}); contacts[selected.person.trim().toLocaleLowerCase("pt-BR")]=new Date().toISOString(); appStorage.setItem("gest-contact-last-interaction",JSON.stringify(contacts));
     setDraft("");
   };
   useEffect(() => {
@@ -4494,11 +4237,12 @@ function SupportView() {
       <Metric label="Intensificar" value={String(items.filter((item) => item.stage === "Intensificar").length)} detail="prioridade" tone="red" />
       <Metric label="Resolvidos" value={String(items.filter((item) => item.stage === "Resolvidos").length)} detail="no período" tone="green" />
     </StandardModuleTop>
-    <section className="support-toolbar"><div className="support-filter-box"><ClientSelect compact hideLabel label="Canal" value={channel} onChange={setChannel} options={["Todos os canais", ...Array.from(new Set(items.map((item) => item.channel)))]} /><ClientSelect compact hideLabel label="Responsáveis" value={owner} onChange={setOwner} options={["Todos", ...Array.from(new Set(items.map((item) => item.owner)))]} /></div><div className="support-journey-box"><nav className="support-journey-filters" aria-label="Filtros de jornada">{journeyOptions.map(([label, count]) => <button type="button" key={label} className={journeyFilter === label ? "active" : ""} onClick={() => setJourneyFilter(label)}>{label}{count ? <b>{count}</b> : null}</button>)}</nav></div><div className="client-view-toggle support-view-toggle" role="group" aria-label="Visualização dos atendimentos"><button type="button" className={mode === "kanban" ? "active" : ""} aria-label="Visualizar em Kanban" aria-pressed={mode === "kanban"} onClick={() => setMode("kanban")}><Grid2X2 size={16} /></button><button type="button" className={mode === "list" ? "active" : ""} aria-label="Visualizar em lista" aria-pressed={mode === "list"} onClick={() => setMode("list")}><List size={17} /></button></div></section>
-    {mode === "kanban" ? <section className="shelf-kanban shelf-kanban-support" aria-label="Atendimentos em Kanban">{supportStages.map((stage, stageIndex) => <article className={`stage-${["planned", "queued", "active", "review", "danger", "complete"][stageIndex]}`} key={stage}><header><span className="shelf-kanban-dot" aria-hidden="true" /><strong>{stage}</strong><b>{visible.filter((item) => item.stage === stage).length}</b></header><div className="shelf-kanban-stack">{visible.filter((item) => item.stage === stage).map((item) => <article role="button" tabIndex={0} className={`shelf-kanban-card support-kanban-card tone-${item.priority.toLowerCase()}`} key={item.number} onClick={() => { setSelectedNumber(item.number); setWorkspaceTab("conversations"); setMode("list"); }} onKeyDown={(event) => { if (event.key === "Enter") { setSelectedNumber(item.number); setWorkspaceTab("conversations"); setMode("list"); } }}><span className="shelf-kanban-band">{item.priority === "Alta" ? <Siren size={13} /> : <MessageCircle size={13} />}{item.priority === "Alta" ? "Resposta prioritária" : item.channel}</span><span className="shelf-kanban-body"><small>ATENDIMENTO {item.number}</small><strong>{item.person}</strong><span>{item.subject}</span><span className="support-kanban-owner"><em>{item.person.split(" ").map((part) => part[0]).join("").slice(0, 2)}</em><span><b>{item.owner}</b><time>{item.updated}</time></span></span><span onClick={(event) => event.stopPropagation()}><ClientSelect compact hideLabel label="Etapa" value={item.stage} onChange={(value) => setItems((current) => current.map((entry) => entry.number === item.number ? { ...entry, stage: value } : entry))} options={supportStages} /></span></span></article>)}</div></article>)}</section> : <section className="support-whatsapp"><nav className="support-workspace-tabs" aria-label="Ferramentas do atendimento"><button type="button" className={workspaceTab === "conversations" ? "active" : ""} onClick={() => setWorkspaceTab("conversations")}><MessageCircle size={15} />Conversas</button><button type="button" className={workspaceTab === "assistant" ? "active" : ""} onClick={() => setWorkspaceTab("assistant")}><Bot size={15} />Atendente virtual</button><button type="button" className={workspaceTab === "templates" ? "active" : ""} onClick={() => setWorkspaceTab("templates")}><Sparkles size={15} />Mensagens automáticas</button></nav>{workspaceTab === "conversations" ? <div className="support-inbox-shell"><aside className="support-contact-list"><header><div className="lab-search-form client-local-search"><Search size={17} /><input value={conversationSearch} onChange={(event) => setConversationSearch(event.target.value)} placeholder="Buscar conversa..." /></div><span>{visible.length} conversas</span></header><div>{visible.filter((item) => `${item.person} ${item.subject}`.toLowerCase().includes(conversationSearch.toLowerCase())).map((item) => <button type="button" className={selected?.number === item.number ? "active" : ""} key={item.number} onClick={() => setSelectedNumber(item.number)}><i>{item.person.split(" ").map((part) => part[0]).join("").slice(0, 2)}</i><span><strong>{item.person}</strong><small>{item.subject}</small><em className={`support-stage-${item.stage.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-")}`}>{item.stage}</em></span><time>{item.updated.replace("Hoje, ", "")}</time></button>)}</div></aside>{selected ? <article className="support-chat" style={{ "--chat-font-size": `${chatFontSize}px` } as React.CSSProperties}><header><i>{selected.person.split(" ").map((part) => part[0]).join("").slice(0, 2)}</i><span><strong>{selected.person}</strong><small>{selected.phone} · Demonstração local</small></span><ClientSelect compact hideLabel label="Etapa do atendimento" value={selected.stage} onChange={(value) => setItems((current) => current.map((entry) => entry.number === selected.number ? { ...entry, stage: value } : entry))} options={supportStages} /><div className="support-font-controls" role="group" aria-label="Tamanho da fonte da conversa"><button type="button" aria-label="Diminuir fonte" onClick={() => setChatFontSize((size) => Math.max(12, size - 1))}>A−</button><button type="button" aria-label="Aumentar fonte" onClick={() => setChatFontSize((size) => Math.min(22, size + 1))}>A+</button></div></header><ContactJourney name={selected.person} onChange={()=>setContactJourneys(readJourneys())}/><div className="support-chat-history"><small>HOJE</small>{(messages[selected.number] ?? [{ from: "client" as const, text: selected.subject, time: selected.updated.replace("Hoje, ", "") }]).map((message, index) => <div className={message.from} key={`${message.time}-${index}`}><span>{message.from === "ai" ? <b><Bot size={13} />Atendente virtual</b> : null}{message.text}{"attachment" in message && message.attachment ? <a href={message.attachment.url || `data:text/plain;charset=utf-8,${encodeURIComponent(message.attachment.content??"")}`} download={message.attachment.name} className="chat-attachment-link">Abrir / salvar anexo</a> : null}<time>{message.time}</time></span></div>)}</div><footer><MessageAttachments onAttach={file=>setMessages(current=>({...current,[selected.number]:[...(current[selected.number]??[]),{from:"team",text:`📎 ${file.name}`,time:"Agora",attachment:file}]}))}/><textarea className="support-message-draft" rows={draft.includes("\n")?4:1} aria-label="Mensagem preparada" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder="Digite uma mensagem (simulação local)..." /><button type="button" className="support-send" onClick={sendMessage} aria-label="Enviar mensagem"><ArrowUpRight size={18} /></button></footer></article> : null}</div> : workspaceTab === "assistant" ? <section className="support-automation-panel"><header><i><Bot size={22} /></i><div><small>ATENDENTE VIRTUAL</small><h2>Automação do WhatsApp</h2><p>Configure como a atendente recebe, direciona e responde os contatos da clínica.</p></div><button type="button" className="lab-create-activity" onClick={() => { setMode("list"); setWorkspaceTab("conversations"); setSelectedNumber(1); window.alert("Conversa de teste aberta. As mensagens desta prévia permanecem apenas neste navegador."); }}>Testar conversa</button></header><div className="support-rule-grid">{[["greeting", "Saudação inicial", "Responde automaticamente quando a conversa começa."], ["away", "Fora do horário", "Informa o horário de atendimento e registra a solicitação."], ["confirmation", "Confirmação de agenda", "Confirma data e horário antes do atendimento."]].map(([key, title, detail]) => <article key={key}><span><strong>{title}</strong><small>{detail}</small></span><button type="button" className={automaticRules[key] ? "switch on" : "switch"} onClick={() => setAutomaticRules((current) => ({ ...current, [key]: !current[key] }))} aria-pressed={automaticRules[key]}><i /></button></article>)}</div></section> : <section className="support-automation-panel support-templates"><header><i><Sparkles size={22} /></i><div><small>MENSAGENS AUTOMÁTICAS</small><h2>Respostas pré-programadas</h2><p>Textos prontos para agilizar conversas frequentes no WhatsApp.</p></div><button type="button" className="lab-create-activity" onClick={() => { const title = window.prompt("Nome da mensagem"); if (!title?.trim()) return; const content = window.prompt("Texto da mensagem"); if (!content?.trim()) return; setTemplates((current) => [...current, [title.trim(), content.trim()]]); }}><Plus size={15} />Nova mensagem</button></header><div className="support-template-list">{templates.map(([title, text], index) => <article key={title}><span><strong>{title}</strong><p>{text}</p></span><button type="button" onClick={() => { const content = window.prompt(`Editar ${title}`, text); if (content === null) return; setTemplates((current) => current.map((item, itemIndex) => itemIndex === index ? [title, content] : item)); }}>Editar</button></article>)}</div></section>}</section>}
+    <section className="support-toolbar"><div className="support-filter-box">{inactivity.controls}<ClientSelect compact hideLabel label="Canal" value={channel} onChange={setChannel} options={["Todos os canais", ...Array.from(new Set(items.map((item) => item.channel)))]} /><ClientSelect compact hideLabel label="Responsáveis" value={owner} onChange={setOwner} options={["Todos", ...Array.from(new Set(items.map((item) => item.owner)))]} /></div><div className="support-journey-box"><nav className="support-journey-filters" aria-label="Filtros de jornada">{journeyOptions.map(([label, count]) => <button type="button" key={label} className={journeyFilter === label ? "active" : ""} onClick={() => setJourneyFilter(label)}>{label}{count ? <b>{count}</b> : null}</button>)}</nav></div><div className="client-view-toggle support-view-toggle" role="group" aria-label="Visualização dos atendimentos"><button type="button" className={mode === "kanban" ? "active" : ""} aria-label="Visualizar em Kanban" aria-pressed={mode === "kanban"} onClick={() => setMode("kanban")}><Grid2X2 size={16} /></button><button type="button" className={mode === "list" ? "active" : ""} aria-label="Visualizar em lista" aria-pressed={mode === "list"} onClick={() => setMode("list")}><List size={17} /></button></div></section>
+    {mode === "kanban" ? <section className="shelf-kanban shelf-kanban-support" aria-label="Atendimentos em Kanban">{supportStages.map((stage, stageIndex) => <article className={`stage-${["planned", "queued", "active", "review", "danger", "complete"][stageIndex]}`} key={stage}><header><span className="shelf-kanban-dot" aria-hidden="true" /><strong>{stage}</strong><b>{visible.filter((item) => item.stage === stage).length}</b></header><div className="shelf-kanban-stack">{visible.filter((item) => item.stage === stage).map((item) => <article role="button" tabIndex={0} className={`shelf-kanban-card support-kanban-card tone-${item.priority.toLowerCase()}`} key={item.number} onClick={() => { setSelectedNumber(item.number); setWorkspaceTab("conversations"); setMode("list"); }} onKeyDown={(event) => { if (event.key === "Enter") { setSelectedNumber(item.number); setWorkspaceTab("conversations"); setMode("list"); } }}><span className="shelf-kanban-band">{item.priority === "Alta" ? <Siren size={13} /> : <MessageCircle size={13} />}{item.priority === "Alta" ? "Resposta prioritária" : item.channel}</span><span className="shelf-kanban-body"><small>ATENDIMENTO {item.number}</small><strong>{item.person}</strong><span>{item.subject}</span><span className="support-kanban-owner"><em>{item.person.split(" ").map((part) => part[0]).join("").slice(0, 2)}</em><span><b>{item.owner}</b><time>{item.updated}</time></span></span><span onClick={(event) => event.stopPropagation()}><ClientSelect compact hideLabel label="Etapa" value={item.stage} onChange={(value) => setItems((current) => current.map((entry) => entry.number === item.number ? { ...entry, stage: value } : entry))} options={supportStages} /></span></span></article>)}</div></article>)}</section> : <section className="support-whatsapp"><nav className="support-workspace-tabs" aria-label="Ferramentas do atendimento"><button type="button" className={workspaceTab === "conversations" ? "active" : ""} onClick={() => setWorkspaceTab("conversations")}><MessageCircle size={15} />Conversas</button><button type="button" className={workspaceTab === "assistant" ? "active" : ""} onClick={() => setWorkspaceTab("assistant")}><Bot size={15} />Atendente virtual</button><button type="button" className={workspaceTab === "templates" ? "active" : ""} onClick={() => setWorkspaceTab("templates")}><Sparkles size={15} />Mensagens automáticas</button></nav>{workspaceTab === "conversations" ? <div className="support-inbox-shell"><aside className="support-contact-list"><header><div className="lab-search-form client-local-search"><Search size={17} /><input value={conversationSearch} onChange={(event) => setConversationSearch(event.target.value)} placeholder="Buscar conversa..." /></div><span>{visible.length} conversas</span></header><div>{visible.filter((item) => `${item.person} ${item.subject}`.toLowerCase().includes(conversationSearch.toLowerCase())).map((item) => <button type="button" className={selected?.number === item.number ? "active" : ""} key={item.number} onClick={() => setSelectedNumber(item.number)}><i>{item.person.split(" ").map((part) => part[0]).join("").slice(0, 2)}</i><span><strong>{item.person}</strong><small>{item.subject}</small><em className={`support-stage-${item.stage.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-")}`}>{item.stage}</em></span><time>{item.updated.replace("Hoje, ", "")}</time></button>)}</div></aside>{selected ? <article className="support-chat" style={{ "--chat-font-size": `${chatFontSize}px` } as React.CSSProperties}><header><i>{selected.person.split(" ").map((part) => part[0]).join("").slice(0, 2)}</i><span><strong>{selected.person}</strong><small>{selected.phone} · Demonstração local</small></span><ClientSelect compact hideLabel label="Etapa do atendimento" value={selected.stage} onChange={(value) => setItems((current) => current.map((entry) => entry.number === selected.number ? { ...entry, stage: value } : entry))} options={supportStages} /><div className="support-font-controls" role="group" aria-label="Tamanho da fonte da conversa"><button type="button" aria-label="Diminuir fonte" onClick={() => setChatFontSize((size) => Math.max(12, size - 1))}>A−</button><button type="button" aria-label="Aumentar fonte" onClick={() => setChatFontSize((size) => Math.min(22, size + 1))}>A+</button></div></header><ContactJourney name={selected.person} onChange={()=>setContactJourneys(readJourneys())}/><div className="support-chat-history"><small>HOJE</small>{(messages[selected.number] ?? [{ from: "client" as const, text: selected.subject, time: selected.updated.replace("Hoje, ", "") }]).map((message, index) => <div className={message.from} key={`${message.time}-${index}`}><span>{message.from === "ai" ? <b><Bot size={13} />Atendente virtual</b> : null}{message.text}{"attachment" in message && message.attachment ? <a href={message.attachment.url || `data:text/plain;charset=utf-8,${encodeURIComponent(message.attachment.content??"")}`} download={message.attachment.name} className="chat-attachment-link">Abrir / salvar anexo</a> : null}<time>{message.time}</time></span></div>)}</div><footer><MessageAttachments onAttach={file=>setMessages(current=>({...current,[selected.number]:[...(current[selected.number]??[]),{from:"team",text:`📎 ${file.name}`,time:"Agora",attachment:file}]}))}/><textarea className="support-message-draft" rows={draft.includes("\n")?4:1} aria-label="Mensagem preparada" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder="Digite uma mensagem (simulação local)..." /><button type="button" className="support-send" onClick={sendMessage} aria-label="Enviar mensagem"><ArrowUpRight size={18} /></button></footer></article> : null}</div> : workspaceTab === "assistant" ? <section className="support-automation-panel"><header><i><Bot size={22} /></i><div><small>ATENDENTE VIRTUAL</small><h2>Automação do WhatsApp</h2><p>Configure como a atendente recebe, direciona e responde os contatos da clínica.</p></div><button type="button" className="lab-create-activity" onClick={() => { setMode("list"); setWorkspaceTab("conversations"); setSelectedNumber(1); window.alert("Conversa de teste aberta. As mensagens desta prévia permanecem apenas neste navegador."); }}>Testar conversa</button></header><div className="support-rule-grid">{[["greeting", "Saudação inicial", "Responde automaticamente quando a conversa começa."], ["away", "Fora do horário", "Informa o horário de atendimento e registra a solicitação."]].map(([key, title, detail]) => <article key={key}><span><strong>{title}</strong><small>{detail}</small></span><button type="button" className={automaticRules[key] ? "switch on" : "switch"} onClick={() => setAutomaticRules((current) => ({ ...current, [key]: !current[key] }))} aria-pressed={automaticRules[key]}><i /></button></article>)}</div></section> : <section className="support-automation-panel support-templates"><header><i><Sparkles size={22} /></i><div><small>MENSAGENS AUTOMÁTICAS</small><h2>Respostas pré-programadas</h2><p>Textos prontos para agilizar conversas frequentes no WhatsApp.</p></div><button type="button" className="lab-create-activity" onClick={() => { setTemplateEditor("new"); }}><Plus size={15} />Nova mensagem</button></header><MessageAutomationSettings/><div className="support-template-list">{templates.map(([title, text], index) => <article key={title}><span><strong>{title}</strong><p>{text}</p></span><button type="button" onClick={() => { setTemplateEditor(index); }}>Editar</button></article>)}</div></section>}</section>}
     {mode === "list" && workspaceTab === "templates" ? <SupportAutomaticCampaigns campaigns={campaigns} onChange={setCampaigns} /> : null}
     {clientHistoryOpen && linkedClient ? <div className="support-client-history-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setClientHistoryOpen(false); }}><section className="support-client-history" role="dialog" aria-modal="true" aria-label={`Histórico de ${linkedClient[2]}`}><header><button type="button" className="lab-create-activity" onClick={() => setClientHistoryOpen(false)}><ChevronLeft size={16} />Voltar à conversa</button><div><small>HISTÓRICO DO CLIENTE</small><h2>{linkedClient[2]}</h2><p>{linkedClient[0]} · {linkedClient[4]} · {linkedClient[3]}</p></div></header><div className="support-client-history-summary"><article><small>Data de nascimento</small><strong>{linkedClient[9] ? new Date(`${linkedClient[9]}T12:00:00`).toLocaleDateString("pt-BR") : "Não informada"}</strong></article><article><small>Total comprado</small><strong>{linkedClient[7]}</strong></article><article><small>Status</small><strong>{linkedClient[8]}</strong></article></div><h3>Atendimentos e pagamentos</h3><div className="support-client-history-list">{[["23/05/2025 · 14:20", "Serviço realizado · Avaliação e limpeza", "R$ 3.250,00 · Crédito Visa · 2 parcelas · Concluída"], ["21/05/2025 · 10:15", "Atendimento · Procedimento estético", "R$ 12.800,00 · Pix à vista · Pendente"], ["12/05/2025 · 16:00", "Pagamento recebido", "R$ 3.250,00 · Pix · Venda #VND-1278"]].map(([date, title, detail]) => <article key={date}><i /><div><strong>{title}</strong><small>{detail}</small></div><time>{date}</time></article>)}</div><footer><button type="button" className="lab-create-activity" onClick={() => setClientHistoryOpen(false)}>Voltar à conversa</button></footer></section></div> : null}
-    {creating ? <RecordDialog title="Novo atendimento" onClose={() => setCreating(false)} onSave={(values) => { setItems((current) => [{ number: current.length + 1, person: values.Pessoa || "Novo contato", phone: values.WhatsApp || "WhatsApp não informado", subject: values.Registro || "Novo atendimento", channel: "WhatsApp", updated: "Agora", owner: values.Responsável || "Sem responsável", stage: "Novos", priority: "Normal", returnDate: values["Data prevista para retorno"] || "A definir" }, ...current]); setCreating(false); }} fields={["Pessoa", "WhatsApp", "Registro", "Responsável", "Data prevista para retorno", "Descrição"]} /> : null}
+    {templateEditor !== null ? <RecordDialog title={templateEditor === "new" ? "Nova mensagem pronta" : "Editar mensagem pronta"} fields={["Nome", "Descrição"]} initialValues={typeof templateEditor === "number" ? {Nome:templates[templateEditor][0],Descrição:templates[templateEditor][1]} : undefined} onClose={()=>setTemplateEditor(null)} onSave={values=>{if(!values.Nome?.trim() || !values.Descrição?.trim())return; const next:[string,string]=[values.Nome.trim(),values.Descrição.trim()];setTemplates(current=>templateEditor === "new" ? [...current,next] : current.map((row,index)=>index===templateEditor?next:row));setTemplateEditor(null);}} /> : null}
+    {creating ? <RecordDialog title="Novo atendimento" onClose={() => setCreating(false)} onSave={(values) => { setItems((current) => [{ createdAt: new Date().toISOString(), number: Math.max(0,...current.map(row=>row.number))+1, person: values.Pessoa || "Novo contato", phone: values.WhatsApp || "WhatsApp não informado", subject: values.Registro || "Novo atendimento", channel: "WhatsApp", updated: "Agora", owner: values.Responsável || "Sem responsável", stage: "Novos", priority: "Normal", returnDate: values["Data prevista para retorno"] || "A definir" }, ...current]); setCreating(false); }} fields={["Pessoa", "WhatsApp", "Registro", "Responsável", "Data prevista para retorno", "Descrição"]} /> : null}
   </>;
 }
 
@@ -4509,14 +4253,14 @@ function EnhancedModuleView({ view }: { view: View }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("Mais recentes");
   const [form, setForm] = useState<"new" | "edit" | null>(null);
-  const [records, setRecords] = useState<string[][]>(config.rows);
+  const [records, setRecords] = useStoredData<string[][]>(moduleKey(view), []);
   const [chartPeriod, setChartPeriod] = useState("30 dias");
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [purchaseMetrics, setPurchaseMetrics] = useState(modules.Compras.metrics);
+  const [purchaseMetrics, setPurchaseMetrics] = useState<Array<[string,string,string,string]>>([]);
   useEffect(() => {
     let savedCatalog: string[][] = [];
     let savedStock: string[][] = [];
@@ -4530,7 +4274,7 @@ function EnhancedModuleView({ view }: { view: View }) {
     }
     let savedDocuments: string[][] | null = null;
     if (view === "Documentos") { try { savedDocuments = JSON.parse(appStorage.getItem("gest-document-records") ?? "null"); } catch { /* Mantém demonstração. */ } }
-    setRecords(view === "Documentos" ? savedDocuments ?? config.rows : view === "Estoque" ? [...savedStock, ...config.rows] : [...savedCatalog, ...config.rows]);
+    setRecords(view === "Documentos" ? savedDocuments ?? [] : view === "Estoque" ? savedStock : view === "Catálogo" ? [...new Map(savedCatalog.map(row => [row[0], row])).values()] : readData<string[][]>(moduleKey(view), []));
     setSelected(null);
     setForm(null);
     setFilterValues({});
@@ -4567,18 +4311,21 @@ function EnhancedModuleView({ view }: { view: View }) {
     );
   const rows = [...records]
     .filter((row) => row.join(" ").toLowerCase().includes(query.toLowerCase()))
-    .filter((row) => config.filters.every((filter) => !filterValues[filter] || filterValues[filter] === "Todos" || moduleFilterValue(row, filter) === filterValues[filter]))
+    .filter((row) => config.filters.every((filter) => !filterValues[filter] || filterValues[filter] === "Todos" || moduleFilterValue(row, filter, view) === filterValues[filter]))
     .sort((a, b) =>
       sort === "A–Z"
         ? a[1].localeCompare(b[1])
         : sort === "Z–A"
           ? b[1].localeCompare(a[1])
-          : 0,
+          : sort === "Menor valor" ? numberValue(a[4]) - numberValue(b[4]) : sort === "Maior valor" ? numberValue(b[4]) - numberValue(a[4]) : (() => {
+            const parseDate=(value:string)=>{ const br=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);return Date.parse(br ? `${br[3]}-${br[2]}-${br[1]}` : value) || 0; };
+            return (parseDate(a[3]) - parseDate(b[3])) * (sort === "Mais antigos" ? 1 : -1);
+          })(),
     );
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
   const pageRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const maintenanceValues = reportValues("Manutenção · Custo");
-  const maintenanceChange = ((maintenanceValues.at(-1)! - maintenanceValues.at(-2)!) / maintenanceValues.at(-2)!) * 100;
+  const maintenanceChange = maintenanceValues.at(-2) ? ((maintenanceValues.at(-1)! - maintenanceValues.at(-2)!) / maintenanceValues.at(-2)!) * 100 : 0;
   const statusTone = (value: string) =>
     /Ativo|Paga|Pago|Recebido|Concluída|Normal|Respondido|Positivo/.test(value)
       ? "active"
@@ -4596,8 +4343,8 @@ function EnhancedModuleView({ view }: { view: View }) {
             <Metric
               key={metric[0]}
               label={metric[0]}
-              value={metric[1]}
-              detail={metric[2]}
+              value={moduleMetric(metric[0], readData<string[][]>(moduleKey(view), []), moduleColumns(view))}
+              detail="Registros cadastrados"
               tone={metric[3]}
             />
           ))}
@@ -4625,9 +4372,9 @@ function EnhancedModuleView({ view }: { view: View }) {
               setForm(null);
               setSelected(null);
             }}
-            initialValues={selected ? { Nome: selected[1], Tipo: selected[4], Descrição: selected[6] ?? "" } : undefined}
+            initialValues={selected ? { Nome: selected[1], Tipo: selected[4], Descrição: selected[6] ?? "", Cliente:selected[7] ?? "", "Venda / serviço":selected[8] ?? "", Arquivo:selected[9] ?? "" } : undefined}
             onSave={(values) => {
-              const next = [selected?.[0] ?? crypto.randomUUID(), values.Nome || selected?.[1] || "Novo documento", selected?.[2] ?? "Cliente", new Date().toLocaleDateString("pt-BR"), values.Tipo || selected?.[4] || "Texto", "Ativo", values.Descrição ?? ""];
+              const next = [selected?.[0] ?? crypto.randomUUID(), values.Nome || selected?.[1] || "Novo documento", selected?.[2] ?? "Cliente", new Date().toLocaleDateString("pt-BR"), values.Tipo || selected?.[4] || "Texto", "Ativo", values.Descrição ?? "", values.Cliente ?? "", values["Venda / serviço"] ?? "", values.Arquivo ?? ""];
               const updated = form === "edit" && selected ? records.map((row) => row[0] === selected[0] ? next : row) : [next, ...records];
               setRecords(updated); appStorage.setItem("gest-document-records", JSON.stringify(updated));
               setForm(null);
@@ -4653,8 +4400,8 @@ function EnhancedModuleView({ view }: { view: View }) {
           <Metric
             key={metric[0]}
             label={metric[0]}
-            value={metric[1]}
-            detail={metric[2]}
+            value={moduleMetric(metric[0], readData<string[][]>(moduleKey(view), []), moduleColumns(view))}
+            detail="Registros cadastrados"
             tone={metric[3]}
           />
         ))}
@@ -4677,7 +4424,7 @@ function EnhancedModuleView({ view }: { view: View }) {
               value={filterValues[filter] ?? "Todos"}
               onChange={(value) => setFilterValues((current) => ({ ...current, [filter]: value }))}
               showDot={filter.toLocaleLowerCase("pt-BR").includes("status")}
-              options={["Todos", ...Array.from(new Set(records.map((row) => moduleFilterValue(row, filter)).filter(Boolean)))]}
+              options={["Todos", ...Array.from(new Set(records.map((row) => moduleFilterValue(row, filter, view)).filter(Boolean)))]}
             />
           ))}
           <ClientSelect label="Ordenar por" value={sort} onChange={setSort} options={["Mais recentes", "Mais antigos", "A–Z", "Z–A", "Maior valor", "Menor valor"]} />
@@ -4707,14 +4454,14 @@ function EnhancedModuleView({ view }: { view: View }) {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <EmptyTableBody>
             {pageRows.map((row, index) => view === "Vendas" ? (
               <tr key={row[0]}>
                 <td>{(currentPage - 1) * pageSize + index + 1}</td><td><strong>{row[1]}</strong></td><td>{row[2]}</td>
-                <td>{["R$ 9.200", "R$ 13.500", "R$ 5.100", "R$ 2.300"][index] ?? row[4]}</td>
-                <td><strong>{row[4]}</strong></td>
-                <td><span className="sales-discount">{["R$ 800 · 8,7%", "R$ 700 · 5,2%", "R$ 250 · 4,9%", "R$ 150 · 6,5%"][index] ?? "R$ 0 · 0%"}</span></td>
-                <td>{row[2] === "Cartão" ? "3x · taxa R$ 214" : row[2] === "Boleto" ? "2 parcelas · taxa R$ 48" : "À vista · sem taxa"}</td>
+                <td>{row[4]}</td>
+                <td><strong>{money(numberValue(row[4])*(1-numberValue(row[6])/100))}</strong></td>
+                <td><span className="sales-discount">{numberValue(row[6])}%</span></td>
+                <td>{row[7] ? row[7]+"x" : "—"}</td>
                 <td><span className={`status ${statusTone(row[5])}`}>●　{row[5]}</span></td>
                 <td><button onClick={() => setSelected(row)}>Ver detalhes</button><button className="v2-icon-button" onClick={() => { setSelected(row); setForm("edit"); }} aria-label="Editar"><Edit3 size={16} /></button></td>
               </tr>
@@ -4762,11 +4509,11 @@ function EnhancedModuleView({ view }: { view: View }) {
                 </td>
               </tr>
             ))}
-          </tbody>
+          </EmptyTableBody>
         </table> : (
           <section className="client-card-grid" aria-label={`${view} em grade`}>
             {pageRows.map((row, index) => {
-              const recordStatus = row.at(-1) ?? "";
+              const recordStatus = moduleFilterValue(row, "Status", view);
               const recordTone = statusTone(recordStatus);
               const cardTone = (["peach", "gray", "blue"] as const)[index % 3];
               return (
@@ -4836,30 +4583,39 @@ function EnhancedModuleView({ view }: { view: View }) {
             setForm(null);
             if (selected) setSelected(null);
           }}
-          initialValues={view === "Estoque" && form === "edit" && selected ? { "Nome do produto": selected[1], "Tipo": selected[2], "Quantidade": selected[3], "Lote": selected[7], "Validade": selected[8], "Preço unitário": selected[5], "Status": selected[6] } : undefined}
+          initialValues={view === "Estoque" && form === "edit" && selected ? { "Nome do produto": selected[1], "Tipo": selected[2], "Quantidade": selected[3], "Lote": selected[7], "Validade": selected[8], "Preço unitário": selected[5], "Status": selected[6] } : selected ? readData<Record<string,string>>(`gest-record-inputs-${view}-${selected[0]}`, {"Nome / título":selected[1],"Tipo":selected[2],"Forma de pagamento":selected[2],"Data":selected[3]?.slice(0,10),"Valor":selected[4],"Preço de venda":selected[4],"Status":selected[5]}) : undefined}
           onSave={(values) => {
             if (view === "Estoque") {
-              const next = [form === "edit" && selected ? selected[0] : String(Date.now()).slice(-5), values["Nome do produto"] || selected?.[1] || "Novo produto", values["Tipo"] || selected?.[2] || "Produto", values["Quantidade"] || selected?.[3] || "0 unidades", "Agora", values["Preço unitário"] || selected?.[5] || "R$ 0,00", values["Status"] || selected?.[6] || "Ativo", values["Lote"] || selected?.[7] || "", values["Validade"] || selected?.[8] || ""];
+              const next = [form === "edit" && selected ? selected[0] : crypto.randomUUID(), values["Nome do produto"] || selected?.[1] || "Novo produto", values["Tipo"] || selected?.[2] || "Produto", values["Quantidade"] || selected?.[3] || "0 unidades", new Date().toISOString(), values["Preço unitário"] || selected?.[5] || "R$ 0,00", values["Status"] || selected?.[6] || "Ativo", values["Lote"] || selected?.[7] || "", values["Validade"] || selected?.[8] || ""];
               setRecords((current) => { const updated = form === "edit" && selected ? current.map((row) => row[0] === selected[0] ? next : row) : [next, ...current]; appStorage.setItem("gest-stock-records", JSON.stringify(updated.filter((row) => !config.rows.some((sample) => sample[0] === row[0])))); return updated; });
               setForm(null);
               setSelected(null);
               return;
             }
             const next: string[] = [
-              form === "edit" && selected ? selected[0] : String(Date.now()).slice(-5),
+              form === "edit" && selected ? selected[0] : crypto.randomUUID(),
               values["Nome / título"] || selected?.[1] || "Novo registro",
-              values["Tipo"] || values["Categoria"] || selected?.[2] || "Geral",
-              "Agora",
+              values["Forma de pagamento"] || values["Tipo"] || values["Categoria"] || selected?.[2] || "Geral",
+              values["Data"] || new Date().toISOString(),
               values["Preço de venda"] || values["Valor"] || selected?.[4] || "R$ 0,00",
-              "Ativo",
+              values["Status"] || selected?.[5] || "Ativo",
+              values["Desconto (%)"] || selected?.[6] || "0",
+              values["Parcelas"] || selected?.[7] || "1",
+              values["Cliente"] || selected?.[8] || "",
+              values["Taxa (%)"] || selected?.[9] || "0",
+              values["Custo direto"] || selected?.[10] || "0",
             ];
+            next[11] = values.Responsável ?? selected?.[11] ?? "";
+            if (view === "Vendas") { try { registerModuleSale(next); } catch(error) { showAppToast(error instanceof Error ? error.message : "Não foi possível atualizar a venda."); return; } }
+            appStorage.setItem(`gest-record-inputs-${view}-${next[0]}`,JSON.stringify(values));
             setRecords((current) => {
               const updated = form === "edit" && selected ? current.map((row) => row[0] === selected[0] ? next : row) : [next, ...current];
               if (view === "Catálogo") {
                 try {
                   const priced = JSON.parse(appStorage.getItem("gest-priced-catalog") || "[]");
                   const pricedIds = new Set((Array.isArray(priced) ? priced : []).filter(Array.isArray).map((row: string[]) => row[0]));
-                  appStorage.setItem("gest-catalog-records", JSON.stringify(updated.filter((row) => !config.rows.some((sample) => sample[0] === row[0]) && !pricedIds.has(row[0]))));
+                  if(pricedIds.has(next[0])) appStorage.setItem("gest-priced-catalog",JSON.stringify(priced.map((row:string[])=>row[0]===next[0]?next:row)));
+                  appStorage.setItem("gest-catalog-records", JSON.stringify(updated));
                 } catch { /* O cadastro continua visível nesta sessão. */ }
               }
               return updated;
@@ -4867,7 +4623,7 @@ function EnhancedModuleView({ view }: { view: View }) {
             setForm(null);
             setSelected(null);
           }}
-          fields={view === "Estoque" ? ["Nome do produto", "Tipo", "Quantidade", "Lote", "Validade", "Preço unitário", "Status"] : view === "Catálogo" ? ["Nome / título", "Tipo", "Categoria", "Duração estimada do serviço (opcional)", "SKU / código", "Custo total", "Preço de venda", "Margem estimada", "Quantidade / unidade", "Impostos e taxas", "Descrição"] : ["Nome / título", "Tipo", "Responsável", "Data", "Valor", "Descrição"]}
+          fields={view === "Estoque" ? ["Nome do produto", "Tipo", "Quantidade", "Lote", "Validade", "Preço unitário", "Status"] : view === "Catálogo" ? ["Nome / título", "Tipo", "Categoria", "Duração estimada do serviço (opcional)", "SKU / código", "Custo total", "Preço de venda", "Margem estimada", "Quantidade / unidade", "Impostos e taxas", "Descrição"] : view === "Vendas" ? ["Nome / título", "Cliente", "Forma de pagamento", "Data", "Valor", "Desconto (%)", "Parcelas", "Taxa (%)", "Custo direto", "Status"] : ["Nome / título", "Tipo", "Responsável", "Data", "Valor", "Descrição"]}
         />
       )}
     </>
@@ -5022,12 +4778,7 @@ function TeamAttendanceView({ onOpenClock }: { onOpenClock: () => void }) {
     records.forEach((record, index) => { if (record.type === "entrada" && records[index + 1]?.type === "saída") total += new Date(records[index + 1].at).getTime() - new Date(record.at).getTime(); });
     return `${Math.max(0, total / 3600000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}h`;
   };
-  const peopleDetails = [
-    { birth: "14/03/1991", admission: "08/01/2022", role: "Coordenadora" },
-    { birth: "22/07/1988", admission: "15/05/2023", role: "Atendimento" },
-    { birth: "09/11/1994", admission: "02/02/2024", role: "Operações" },
-  ];
-  const people = clock.workers.map((worker, index) => ({ ...worker, ...peopleDetails[index % peopleDetails.length], worked: workedHours(worker.id), workedDays: days(worker.id), lateDays: late(worker.id, worker.start), status: late(worker.id, worker.start) ? "Acompanhar" : "Em dia" }));
+  const people = clock.workers.map(worker => ({ ...worker, birth:"Não informado", admission:"Não informado", role:"Não informado", worked:workedHours(worker.id),workedDays:days(worker.id),lateDays:late(worker.id,worker.start),status:late(worker.id,worker.start)?"Acompanhar":"Em dia" }));
   const visiblePeople = people.filter((person) => `${person.name} ${person.role}`.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR"))).filter((person) => statusFilter === "Todos" || person.status === statusFilter).filter((person) => shiftFilter === "Todas as jornadas" || `${person.start}–${person.end}` === shiftFilter).sort((a, b) => sort === "Z–A" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
   const presentToday = clock.workers.filter((worker) => entries(worker.id).some((entry) => new Date(entry.at).toLocaleDateString("pt-BR") === new Date().toLocaleDateString("pt-BR"))).length;
   return <section className="clock-page"><StandardModuleTop title="Equipe" help="Resumo de presença e atrasos. Cadastros, horários e marcação ficam em Ponto." action={<button type="button" className="lab-create-activity" onClick={onOpenClock}><Clock3 size={16} />Configurar ponto</button>}>
@@ -5044,7 +4795,7 @@ function TeamAttendanceView({ onOpenClock }: { onOpenClock: () => void }) {
       <ClientSelect label="Ordenar por" value={sort} onChange={setSort} options={["A–Z", "Z–A"]} />
       <div className="client-view-toggle module-view-toggle" role="group" aria-label="Visualização do resumo por pessoa"><button type="button" className={viewMode === "list" ? "active" : ""} aria-label="Visualizar em lista" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")}><List size={17} /></button><button type="button" className={viewMode === "grid" ? "active" : ""} aria-label="Visualizar em cards" aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")}><Grid2X2 size={16} /></button></div>
     </header>
-    {viewMode === "list" ? <div className="team-table-scroll"><table><thead><tr><th>Linha</th><th>Pessoa</th><th>Cargo</th><th>Ingresso</th><th>Jornada</th><th>Horas trabalhadas</th><th>Dias trabalhados</th><th>Atrasos</th><th>Status</th></tr></thead><tbody>{visiblePeople.map((person, index) => <tr key={person.id}><td className="team-row-number">{index + 1}</td><td><strong>{person.name}</strong></td><td><span className="type">{person.role}</span></td><td>{person.admission}</td><td>{person.start}–{person.end}</td><td>{person.worked}</td><td>{person.workedDays}</td><td>{person.lateDays}</td><td><span className={`status ${person.lateDays ? "warn" : "active"}`}>●　{person.status}</span></td></tr>)}</tbody></table></div> : <section className="client-card-grid team-card-grid" aria-label="Resumo por pessoa em cards">{visiblePeople.map((person, index) => <article className={`client-grid-card is-${(["peach", "gray", "blue"] as const)[index % 3]}`} key={person.id}><div className="client-grid-profile"><div className="client-grid-avatar"><span>{person.name.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span><i className={person.lateDays ? "warn" : "active"} /></div><h2>{person.name}</h2><p>{person.role}</p></div><div className="client-grid-facts"><div><small>Nascimento</small><strong>{person.birth}</strong></div><div><small>Ingresso</small><strong>{person.admission}</strong></div><div><small>Jornada</small><strong>{person.start}–{person.end}</strong></div><div><small>Horas trabalhadas</small><strong>{person.worked}</strong></div><div><small>Dias trabalhados</small><strong>{person.workedDays}</strong></div><div><small>Atrasos</small><strong>{person.lateDays}</strong></div><div><small>Status</small><strong className={`client-grid-status is-${person.lateDays ? "warn" : "active"}`}><i />{person.status}</strong></div></div></article>)}</section>}
+    {viewMode === "list" ? <div className="team-table-scroll"><table><thead><tr><th>Linha</th><th>Pessoa</th><th>Cargo</th><th>Ingresso</th><th>Jornada</th><th>Horas trabalhadas</th><th>Dias trabalhados</th><th>Atrasos</th><th>Status</th></tr></thead><EmptyTableBody>{visiblePeople.map((person, index) => <tr key={person.id}><td className="team-row-number">{index + 1}</td><td><strong>{person.name}</strong></td><td><span className="type">{person.role}</span></td><td>{person.admission}</td><td>{person.start}–{person.end}</td><td>{person.worked}</td><td>{person.workedDays}</td><td>{person.lateDays}</td><td><span className={`status ${person.lateDays ? "warn" : "active"}`}>●　{person.status}</span></td></tr>)}</EmptyTableBody></table></div> : <section className="client-card-grid team-card-grid" aria-label="Resumo por pessoa em cards">{visiblePeople.map((person, index) => <article className={`client-grid-card is-${(["peach", "gray", "blue"] as const)[index % 3]}`} key={person.id}><div className="client-grid-profile"><div className="client-grid-avatar"><span>{person.name.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span><i className={person.lateDays ? "warn" : "active"} /></div><h2>{person.name}</h2><p>{person.role}</p></div><div className="client-grid-facts"><div><small>Nascimento</small><strong>{person.birth}</strong></div><div><small>Ingresso</small><strong>{person.admission}</strong></div><div><small>Jornada</small><strong>{person.start}–{person.end}</strong></div><div><small>Horas trabalhadas</small><strong>{person.worked}</strong></div><div><small>Dias trabalhados</small><strong>{person.workedDays}</strong></div><div><small>Atrasos</small><strong>{person.lateDays}</strong></div><div><small>Status</small><strong className={`client-grid-status is-${person.lateDays ? "warn" : "active"}`}><i />{person.status}</strong></div></div></article>)}</section>}
   </article></section>;
 }
 
@@ -5081,6 +4832,13 @@ function InicioApp() {
   const access = useAccess();
   const [active, setActiveState] = useState<View>("Início");
   const setActive = (view: View) => { if (access.allowed(view)) setActiveState(view); };
+  useEffect(() => {
+    if (!access.member || !access.allowed("Prontuário") || !access.allowed("Financeiro")) return;
+    let active=true;
+    const update=()=>{if(active) void syncClinicalFinance(access.member!.businessId).catch(()=>showAppToast("Não foi possível atualizar os lançamentos clínicos."));};
+    update(); window.addEventListener("gest-clinical-record-saved",update);
+    return ()=>{active=false;window.removeEventListener("gest-clinical-record-saved",update);};
+  },[access.member?.businessId]);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [storageWarning, setStorageWarning] = useState(false);
   useEffect(() => { const warn = () => setStorageWarning(true); window.addEventListener("gest-storage-warning", warn); return () => window.removeEventListener("gest-storage-warning", warn); }, []);
@@ -5122,6 +4880,8 @@ function InicioApp() {
   useEffect(() => {
     if (preferencesLoaded) appStorage.setItem("gest-theme", dark ? "dark" : "light");
   }, [dark, preferencesLoaded]);
+
+  useEffect(() => applyDocumentTheme(document.documentElement, dark), [dark]);
 
   useEffect(() => {
     if (preferencesLoaded) appStorage.setItem("gest-sidebar-color", sidebarColor);
@@ -5174,6 +4934,7 @@ function InicioApp() {
       />
     ) : active === "Detalhe" ? (
       <ClientDetailPage
+        onMessage={()=>setActive("Atendimento")}
         record={selectedClientRecord ?? undefined}
         onBack={() => setActive("Clientes")}
         onOpenClinical={(record) => { setClinicalContext({ patientId: record[7] ?? record[0], patientName: record[1], origin: "Detalhe" }); setActive("Prontuário"); }}
@@ -5181,7 +4942,7 @@ function InicioApp() {
     ) : active === "Prontuário" ? (
       clinicalContext ? null : <ClinicalAttendancePicker onResume={record=>{setClinicalContext({patientId:record.patientId,patientName:record.patientName,appointment:record.draft?.appointmentId?{id:record.draft.appointmentId,service:record.draft.service,coverage:record.coverage}:undefined,origin:"Início"});setActive("Prontuário");}} onOpenAgenda={()=>setActive("Agenda")} onOpen={event=>{const patient=modules.Clientes.rows.find(row=>row[1]===event.patientName);setClinicalContext({patientId:patient?.[7]??patient?.[0]??event.patientName,patientName:event.patientName,appointment:event,origin:"Início"});}}/>
     ) : active === "Configurações" ? (
-      <SettingsView dark={dark} setDark={setDark} sidebarColor={sidebarColor} setSidebarColor={setSidebarColor} appScale={appScale} setAppScale={setAppScale} initialTab={settingsTab} />
+      <SettingsView onPlans={() => setActive("Loja")} dark={dark} setDark={setDark} sidebarColor={sidebarColor} setSidebarColor={setSidebarColor} appScale={appScale} setAppScale={setAppScale} initialTab={settingsTab} />
     ) : active === "Assistente" ? (
       <AssistantExperience onNavigate={(view) => setActive(view as View)} />
     ) : active === "Financeiro" ? (
@@ -5224,7 +4985,7 @@ function InicioApp() {
           {access.mode === "demo" && access.member?.role !== "owner" ? <div className="access-demo-banner">Prévia de acesso: {access.member?.name}<button className="lab-create-activity" onClick={() => access.preview("owner")}>Voltar ao dono</button></div> : null}
           {page}
           {active === "Agenda" && <ClinicalDrafts onResume={record=>{setClinicalContext({patientId:record.patientId,patientName:record.patientName,appointment:record.draft?.appointmentId?{id:record.draft.appointmentId,service:record.draft.service,coverage:record.coverage}:undefined,origin:"Agenda"});setActive("Prontuário");}}/>}
-          {clinicalContext && access.allowed("Prontuário") ? <div hidden={active !== "Prontuário"}><ClinicalWorkspace onMessage={() => setActive("Atendimento")} documentModels={modules.Documentos.rows} key={`${clinicalContext.patientId}:${clinicalContext.appointment?.id ?? "client"}`} patientId={clinicalContext.patientId} patientName={clinicalContext.patientName} appointment={clinicalContext.appointment} onBack={() => {setClinicalContext(null);setActive("Prontuário");}} /></div> : null}
+          {clinicalContext && access.allowed("Prontuário") ? <div hidden={active !== "Prontuário"}><ClinicalWorkspace onMessage={() => setActive("Atendimento")} documentModels={readData<string[][]>("gest-document-records", [])} key={`${clinicalContext.patientId}:${clinicalContext.appointment?.id ?? "client"}`} patientId={clinicalContext.patientId} patientName={clinicalContext.patientName} appointment={clinicalContext.appointment} onBack={() => {setClinicalContext(null);setActive("Prontuário");}} /></div> : null}
           {appToast ? <div key={toastToken} className={`gest-app-toast ${/remov|exclu|apag/i.test(appToast) ? "is-delete" : /erro|não foi possível|falha/i.test(appToast) ? "is-error" : ""}`} role="status">{/remov|exclu|apag/i.test(appToast) ? <Trash2 size={17} /> : <CheckCircle2 size={17} />}{appToast}</div> : null}
           {access.manage && access.allowed(active) && !(["Loja", "Início", "Tarefas", "Projetos", "Propostas", "Catálogo"] as View[]).includes(active) && (
             <ProfessionalRecommendation area={recommendationArea} />

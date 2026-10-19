@@ -1,0 +1,11 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import ts from "typescript";
+const source=await readFile(new URL("../lib/message-automations.ts",import.meta.url),"utf8");
+const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+const {resolveMessageRules,pendingConfirmations}=await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+test("configuração ausente, vazia ou inválida mantém as cinco regras",()=>{for(const stored of [undefined,null,[],{}])assert.equal(resolveMessageRules(stored).length,5);});
+test("preferências existentes são preservadas sem alterar a entrada",()=>{const stored=[{id:"confirmation",days:10,enabled:true,text:"Texto personalizado"}];const before=JSON.stringify(stored);const rule=resolveMessageRules(stored).find(item=>item.id==="confirmation");assert.equal(rule.days,10);assert.equal(rule.text,"Texto personalizado");assert.equal(rule.enabled,true);assert.equal(JSON.stringify(stored),before);});
+test("prazos inválidos são normalizados",()=>{assert.equal(resolveMessageRules([{id:"confirmation",days:Infinity}])[1].days,1);assert.equal(resolveMessageRules([{id:"confirmation",days:-5}])[1].days,0);assert.equal(resolveMessageRules([{id:"confirmation",days:999}])[1].days,365);});
+test("lembretes usam período configurado e ignoram confirmados, cancelados e datas ausentes",()=>{const rows=[{id:1,date:"2026-10-15",status:"pending"},{id:2,date:"2026-10-16",status:"pending"},{id:3,date:"2026-10-17",status:"pending"},{id:4,date:"2026-10-15",status:"confirmed"},{id:5,date:"2026-10-15",status:"canceled"},{id:6},{id:7,date:"invalid"}];const before=JSON.stringify(rows);assert.deepEqual(pendingConfirmations(rows,[],new Date(2026,9,15,12)).map(row=>row.id),[1,2]);assert.equal(JSON.stringify(rows),before);});

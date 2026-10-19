@@ -4,7 +4,18 @@ const globalPreferences = new Set(["gest-theme", "gest-sidebar-color", "gest-app
 const volatile = new Map<string, string>();
 const keyFor = (key: string) => globalPreferences.has(key) ? key : `gest-local:${scope}:${key}`;
 function browserStorage(): Storage | null { try { return typeof window === "undefined" ? null : window.localStorage; } catch { return null; } }
-export function setStorageScope(businessId: string, userId: string) { scope = `${encodeURIComponent(businessId)}:${encodeURIComponent(userId)}`; }
+export function setStorageScope(businessId: string, userId: string) {
+  const next = `${encodeURIComponent(businessId)}:${encodeURIComponent(userId)}`;
+  if (next !== scope) {
+    // Remove legacy remote clinical copies only; demo records and other modules are preserved.
+    for (const target of [scope,next]) if (!target.startsWith("demo:")) {
+      const prefix = `gest-local:${target}:clinical-record:`;
+      try { const storage = browserStorage(); if (storage) for (let i=storage.length-1;i>=0;i--) { const key=storage.key(i); if(key?.startsWith(prefix))storage.removeItem(key); } } catch { /* Fail-safe: never read these legacy copies below. */ }
+      for (const key of volatile.keys()) if(key.startsWith(prefix))volatile.delete(key);
+    }
+  }
+  scope = next;
+}
 export const appStorage = {
   keys(): string[] {
     const prefix = `gest-local:${scope}:`;
@@ -17,6 +28,7 @@ export const appStorage = {
     return [...keys];
   },
   getItem(key: string): string | null {
+    if (key.startsWith("clinical-record:") && !scope.startsWith("demo:")) return null;
     const target = keyFor(key); const storage = browserStorage();
     try {
       const stored = volatile.get(target) ?? storage?.getItem(target) ?? null;
@@ -29,7 +41,7 @@ export const appStorage = {
     } catch { /* Cotas e navegação privada não interrompem a interface. */ }
     return volatile.get(target) ?? null;
   },
-  setItem(key: string, value: string): void { const target = keyFor(key); volatile.set(target, value); try { const storage = browserStorage(); if (!storage) throw new Error("Storage unavailable"); storage.setItem(target, value); } catch { if (typeof window !== "undefined") window.dispatchEvent(new Event("gest-storage-warning")); } },
+  setItem(key: string, value: string): void { if(key.startsWith("clinical-record:") && !scope.startsWith("demo:"))return; const previous = this.getItem(key); const target = keyFor(key); volatile.set(target, value); try { const storage = browserStorage(); if (!storage) throw new Error("Storage unavailable"); storage.setItem(target, value); } catch { if (typeof window !== "undefined") window.dispatchEvent(new Event("gest-storage-warning")); } if (previous !== value && typeof window !== "undefined") window.dispatchEvent(new CustomEvent("gest-data-changed", { detail: { key } })); },
   removeItem(key: string): void { const target = keyFor(key); volatile.delete(target); try { browserStorage()?.removeItem(target); if (scope === "demo:owner") browserStorage()?.removeItem(key); } catch { /* Sem armazenamento disponível. */ } },
   clearNamespace(): void {
     const storage = browserStorage();

@@ -15,6 +15,11 @@ export type FinanceInstallment = {
 };
 
 export type FinanceTransaction = {
+  clinicalEncounterId?: string;
+  clinicalPatientId?: string;
+  clinicalCommissionId?: string;
+  commissionRate?: number;
+  customerInstallments?: number;
   id: string;
   description: string;
   kind: FinanceKind;
@@ -60,7 +65,7 @@ export const brl = (cents: number, compact = false) => {
   if (compact && Math.abs(cents) >= 100_000_000)
     return `R$ ${(cents / 100_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mi`;
   if (compact && Math.abs(cents) >= 100_000)
-    return `R$ ${(cents / 100_000).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mil`;
+    return `R$ ${(cents / 100_000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} mil`;
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
@@ -70,19 +75,29 @@ export const brl = (cents: number, compact = false) => {
 export const pct = (value: number) =>
   `${value.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
+export function validIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T12:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10) === value;
+}
+
 export function splitInstallments(
   transactionId: string,
   totalCents: number,
   count: number,
   firstDueDate: string,
 ): FinanceInstallment[] {
-  const safeCount = Math.max(1, Math.min(24, count));
+  if (!validIsoDate(firstDueDate)) throw new Error("Informe uma data de vencimento válida.");
+  const safeCount = Math.max(1, Math.min(24, Math.trunc(Number.isFinite(count) ? count : 1)));
   const base = Math.floor(totalCents / safeCount);
   const remainder = totalCents - base * safeCount;
-  const first = new Date(`${firstDueDate}T12:00:00`);
+  const first = new Date(`${firstDueDate}T12:00:00Z`);
   return Array.from({ length: safeCount }, (_, index) => {
     const due = new Date(first);
-    due.setMonth(due.getMonth() + index);
+    const originalDay=due.getUTCDate();
+    due.setUTCDate(1);
+    due.setUTCMonth(due.getUTCMonth() + index);
+    due.setUTCDate(Math.min(originalDay,new Date(Date.UTC(due.getUTCFullYear(),due.getUTCMonth()+1,0)).getUTCDate()));
     return {
       id: `${transactionId}-${index + 1}`,
       transactionId,
@@ -106,7 +121,16 @@ export function transactionValues(transaction: FinanceTransaction) {
   return { discountCents, afterDiscountCents, feeCents, taxCents, resultCents };
 }
 
-export function statusOf(installment: FinanceInstallment, today = "2026-08-05"): FinanceStatus {
+export function cashBalance(transactions: FinanceTransaction[], openingCents=0) {
+  return transactions.filter(row=>!row.cancelled).reduce((balance,row)=>{
+    const values=transactionValues(row);
+    const settled=row.installments.filter(part=>part.status!=="cancelled" && Boolean(part.settledAt)).reduce((sum,part)=>sum+part.amountCents,0);
+    const fees=row.kind==="income" ? Math.round(values.feeCents*settled/Math.max(values.afterDiscountCents,1)) : 0;
+    return balance+(row.kind==="income" ? settled-fees : -settled);
+  },openingCents);
+}
+
+export function statusOf(installment: FinanceInstallment, today = new Date().toLocaleDateString("en-CA")): FinanceStatus {
   if (installment.status === "cancelled") return "cancelled";
   if (installment.settledAt || installment.status === "paid") return "paid";
   return installment.dueDate < today ? "overdue" : "pending";
@@ -158,9 +182,9 @@ export function summarize(
   for (const transaction of inRange) {
     const values = transactionValues(transaction);
     const ratio = basis === "accrual"
-      ? 1
+      ? (values.afterDiscountCents === 0 ? (transaction.installments.some(item=>item.status!=="cancelled") ? 1 : 0) : transaction.installments.filter(item=>item.status!=="cancelled").reduce((sum,item)=>sum+item.amountCents,0) / values.afterDiscountCents)
       : transaction.installments
-          .filter((item) => appliesToRange(item.settledAt, range))
+          .filter((item) => item.status!=="cancelled" && appliesToRange(item.settledAt, range))
           .reduce((sum, item) => sum + item.amountCents, 0) /
         Math.max(values.afterDiscountCents, 1);
     transactionCount += 1;
@@ -178,7 +202,7 @@ export function summarize(
 
   const profitCents = receivedCents - expensesCents - directCostsCents - feesCents - taxesCents;
   const margin = grossCents ? (profitCents / grossCents) * 100 : 0;
-  const allInstallments = transactions.flatMap((transaction) =>
+  const allInstallments = transactions.filter(transaction=>!transaction.cancelled).flatMap((transaction) =>
     transaction.installments.map((installment) => ({ transaction, installment })),
   );
   const receivableCents = allInstallments
@@ -231,17 +255,7 @@ function mockTransaction(input: Omit<FinanceTransaction, "installments"> & { ins
   return { ...transaction, installments };
 }
 
-export const initialTransactions: FinanceTransaction[] = [
-  mockTransaction({ id: "FIN-1042", description: "Projeto de identidade visual", kind: "income", category: "Serviços", source: "sale", customer: "Arco Studio", product: "Projeto completo", competenceDate: "2026-08-02", grossCents: 840000, discountBps: 500, taxBps: 600, directCostCents: 95000, feeBps: 299, paymentMethod: "Cartão de crédito", processor: "GetPay", brand: "Visa", installmentCount: 3, firstDueDate: "2026-08-05", paidCount: 1 }),
-  mockTransaction({ id: "FIN-1041", description: "Assinaturas de software", kind: "expense", category: "Operacional", source: "manual", competenceDate: "2026-08-01", grossCents: 128000, discountBps: 0, taxBps: 0, directCostCents: 0, feeBps: 0, paymentMethod: "Boleto", installmentCount: 1, firstDueDate: "2026-08-10" }),
-  mockTransaction({ id: "FIN-1040", description: "Consultoria estratégica", kind: "income", category: "Serviços", source: "sale", customer: "Lojas Fênix", product: "Consultoria", competenceDate: "2026-07-24", grossCents: 1280000, discountBps: 0, taxBps: 600, directCostCents: 180000, feeBps: 0, paymentMethod: "Pix", installmentCount: 1, firstDueDate: "2026-07-24", paidCount: 1 }),
-  mockTransaction({ id: "FIN-1039", description: "Compra de embalagens", kind: "expense", category: "Materiais e insumos", source: "manual", competenceDate: "2026-07-20", grossCents: 270000, discountBps: 0, taxBps: 0, directCostCents: 0, feeBps: 0, paymentMethod: "Boleto", installmentCount: 2, firstDueDate: "2026-07-28", paidCount: 1 }),
-  mockTransaction({ id: "FIN-1038", description: "Pacote de manutenção", kind: "income", category: "Serviços", source: "sale", customer: "Casa & Ambiente", product: "Manutenção", competenceDate: "2026-07-12", grossCents: 485000, discountBps: 300, taxBps: 600, directCostCents: 42000, feeBps: 149, paymentMethod: "Cartão de débito", processor: "GetPay", installmentCount: 1, firstDueDate: "2026-07-12", paidCount: 1 }),
-  mockTransaction({ id: "FIN-1037", description: "Serviço de fotografia", kind: "expense", category: "Marketing", source: "manual", competenceDate: "2026-06-18", grossCents: 185000, discountBps: 0, taxBps: 0, directCostCents: 0, feeBps: 0, paymentMethod: "Transferência", installmentCount: 1, firstDueDate: "2026-06-25", paidCount: 1 }),
-  mockTransaction({ id: "FIN-1036", description: "Venda corporativa", kind: "income", category: "Vendas", source: "sale", customer: "TechConnect", product: "Kit corporativo", competenceDate: "2026-06-10", grossCents: 1890000, discountBps: 800, taxBps: 600, directCostCents: 460000, feeBps: 449, paymentMethod: "Cartão de crédito", processor: "GetPay", brand: "Mastercard", installmentCount: 4, firstDueDate: "2026-06-12", paidCount: 2 }),
-  mockTransaction({ id: "FIN-1035", description: "Aluguel do escritório", kind: "expense", category: "Operacional", source: "manual", competenceDate: "2026-05-05", grossCents: 350000, discountBps: 0, taxBps: 0, directCostCents: 0, feeBps: 0, paymentMethod: "Pix", installmentCount: 1, firstDueDate: "2026-05-05", paidCount: 1 }),
-  mockTransaction({ id: "FIN-1034", description: "Implantação comercial", kind: "income", category: "Serviços", source: "sale", customer: "Mercado Bom Preço", competenceDate: "2026-05-03", grossCents: 1450500, discountBps: 0, taxBps: 600, directCostCents: 210000, feeBps: 0, paymentMethod: "Transferência", installmentCount: 2, firstDueDate: "2026-05-10", paidCount: 2 }),
-];
+export const initialTransactions: FinanceTransaction[] = [];
 
 const currentDate = new Date();
 const currentYear = currentDate.getFullYear();

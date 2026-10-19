@@ -46,7 +46,7 @@ test('attachments reject executable formats and forged MIME types', async () => 
 test('a full browser cache keeps the newest change in session and warns the user', () => {
   const previous=globalThis.window;
   let warned=0;
-  globalThis.window={localStorage:{getItem:()=> 'older-value',setItem:()=>{throw new Error('quota');}},dispatchEvent:()=>{warned++;}};
+  globalThis.window={localStorage:{getItem:()=> 'older-value',setItem:()=>{throw new Error('quota');}},dispatchEvent:event=>{if(event.type === "gest-storage-warning") warned++;}};
   try { setStorageScope('quota-test','user'); appStorage.setItem('gest-document','newer-value'); assert.equal(appStorage.getItem('gest-document'),'newer-value'); assert.equal(warned,1); }
   finally { if(previous===undefined) delete globalThis.window; else globalThis.window=previous; }
 });

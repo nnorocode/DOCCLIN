@@ -4,6 +4,7 @@ import { appStorage } from "../../lib/local-store";
 import { useEffect, useState } from "react";
 import { CalendarDays, CheckCircle2, CircleHelp, Clock3, Edit3, MapPin, Plus, Smartphone, Trash2, UsersRound, X } from "lucide-react";
 import { ClientSelect, StandardModuleTop } from "./ClientsExperience";
+import ScrollableTabBar from "./ScrollableTabBar";
 import { InformativeMetricCardPreview } from "../laboratorio/page";
 import TutorialStoryboard from "./TutorialStoryboard";
 import { useAccess } from "./AccessControl";
@@ -13,11 +14,7 @@ export type ClockRecord = { id: string; workerId: string; type: "entrada" | "sa�
 export type ClockState = { workers: ClockWorker[]; records: ClockRecord[]; place: { name: string; address: string; latitude: number | null; longitude: number | null; radius: number } };
 export const clockStorageKey = "gest-time-clock";
 export const initialClockState: ClockState = {
-  workers: [
-    { id: "1", name: "Mariana Oliveira", phone: "", start: "08:00", end: "17:00" },
-    { id: "2", name: "João Silva", phone: "", start: "08:00", end: "17:00" },
-    { id: "3", name: "Carlos Lima", phone: "", start: "09:00", end: "18:00" },
-  ],
+  workers: [],
   records: [],
   place: { name: "Bella Gestão", address: "", latitude: null, longitude: null, radius: 150 },
 };
@@ -162,7 +159,7 @@ export default function TimeClockExperience() {
       <InformativeMetricCardPreview tone="violet" icon={CheckCircle2} title="No estabelecimento" value={String(inside.length)} change="Pessoas presentes" />
       <InformativeMetricCardPreview tone="amber" icon={MapPin} title="Raio permitido" value={`${state.place.radius} m`} change={state.place.latitude === null ? "Local pendente" : "Local configurado"} />
     </StandardModuleTop>
-    <nav className="clock-tabs settings-modern-tabs" aria-label="Áreas do controle de ponto">{["Visão geral", "Pessoas", "Marcação de pontos", "Configuração"].map((item) => <button type="button" key={item} className={tab === item ? "active" : ""} onClick={() => { setTab(item); setFeedback(""); }}>{item === "Visão geral" ? <CalendarDays size={15} /> : item === "Marcação de pontos" ? <Clock3 size={15} /> : item === "Pessoas" ? <UsersRound size={15} /> : <MapPin size={15} />}{item}</button>)}</nav>
+    <ScrollableTabBar className="clock-tabs settings-modern-tabs" label="Áreas do controle de ponto">{["Visão geral", "Pessoas", "Marcação de pontos", "Configuração"].map((item) => <button type="button" key={item} className={tab === item ? "active" : ""} onClick={() => { setTab(item); setFeedback(""); }}>{item === "Visão geral" ? <CalendarDays size={15} /> : item === "Marcação de pontos" ? <Clock3 size={15} /> : item === "Pessoas" ? <UsersRound size={15} /> : <MapPin size={15} />}{item}</button>)}</ScrollableTabBar>
     {feedback ? <p role="status" className="clock-feedback">{feedback}</p> : null}
     {tab === "Visão geral" ? <div className="clock-layout"><article className="v2-card clock-panel"><h2>Jornada da equipe</h2><div className="clock-worker-list">{state.workers.map((worker, index) => <div key={worker.id}><span className="clock-worker-number"><i>{index + 1}</i><span><strong>{worker.name}</strong><small>{worker.start}–{worker.end} · {workedDays(worker.id)} dias trabalhados · {lateDays(worker)} com atraso</small></span></span><b className={inside.some((record) => record.workerId === worker.id) ? "clock-present" : ""}>{inside.some((record) => record.workerId === worker.id) ? "Presente" : "Fora"}</b></div>)}</div></article><article className="v2-card clock-panel"><h2>Registros recentes</h2><div className="clock-worker-list">{state.records.length ? [...state.records].reverse().slice(0, 12).map((record) => <div key={record.id}><span><strong>{state.workers.find((worker) => worker.id === record.workerId)?.name || "Pessoa removida"}</strong><small>{dateLabel(record.at)} · {timeLabel(record.at)} · {record.distance} m</small></span><b className={record.type === "entrada" ? "clock-present" : ""}>{record.type}</b></div>) : <p>Nenhum ponto registrado ainda.</p>}</div></article></div> : null}
     {tab === "Marcação de pontos" ? <article className="v2-card clock-panel clock-mobile-card"><i className="clock-large-icon"><Smartphone size={28} /></i><h2>Marcar ponto pelo celular</h2><p>Abra o GEST no celular, vincule este navegador ao funcionário e permita o acesso à localização.</p><ClientSelect compact label="Funcionário" value={selected?.name || "Selecione"} onChange={(value) => setWorkerId(state.workers.find((worker) => worker.name === value)?.id || "")} options={state.workers.map((worker) => worker.name)} /><div className="clock-actions"><button type="button" className="clock-secondary" onClick={registerDevice} disabled={!selected}><Smartphone size={16} />Vincular este aparelho</button><button type="button" className="lab-create-activity" onClick={mark} disabled={busy || !selected}><Clock3 size={16} />{todayRecords.filter((record) => record.workerId === workerId).at(-1)?.type === "entrada" ? "Registrar saída" : "Registrar entrada"}</button></div><small>Localização configurada: {state.place.latitude === null ? "pendente" : `${state.place.name} · raio de ${state.place.radius} m`}</small></article> : null}

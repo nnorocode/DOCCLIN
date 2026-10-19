@@ -47,9 +47,8 @@ export default defineConfig(async () => {
   return {
     server: {
       headers: securityHeaders,
-      // Escuta em IPv4 e IPv6 para que localhost não oscile entre um endereço
-      // disponível e outro recusado durante as sessões de preview.
-      host: "0.0.0.0",
+      // Local previews are private by default; LAN exposure requires an explicit override.
+      host: "127.0.0.1",
       ...(isCodexSeatbeltSandbox
         ? { watch: { useFsEvents: false, usePolling: true } }
         : {}),

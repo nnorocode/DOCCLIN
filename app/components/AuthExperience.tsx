@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { getSupabase, setSessionPersistence, supabaseConfigured } from "../../lib/supabase/client";
+import { demoAllowed, getSupabase, setSessionPersistence, supabaseConfigured } from "../../lib/supabase/client";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import {
@@ -223,6 +223,7 @@ function LoginForms({ view, setView }: { view: LoginView; setView: (view: LoginV
 
   async function submitLogin() {
     if (busy) return;
+    if (!supabaseConfigured && !demoAllowed) { setMessage("Configure o acesso seguro antes de utilizar o aplicativo."); return; }
     const missing = [!email ? "email" : "", !password ? "password" : ""].filter(Boolean);
     setErrors(missing);
     if (missing.length) {
@@ -252,6 +253,7 @@ function LoginForms({ view, setView }: { view: LoginView; setView: (view: LoginV
 
   async function submitRecover() {
     if (busy) return;
+    if (!supabaseConfigured && !demoAllowed) { setMessage("Configure o acesso seguro antes de utilizar o aplicativo."); return; }
     setErrors(!email ? ["email"] : []);
     if (!email) {
       setMessage("Digite o e-mail para simular o envio.");
@@ -268,6 +270,7 @@ function LoginForms({ view, setView }: { view: LoginView; setView: (view: LoginV
 
   async function submitReset() {
     if (busy) return;
+    if (!supabaseConfigured && !demoAllowed) { setMessage("Configure o acesso seguro antes de utilizar o aplicativo."); return; }
     const missing = [!newPassword ? "newPassword" : "", !confirmPassword ? "confirmPassword" : ""].filter(Boolean);
     setErrors(missing);
     if (missing.length || newPassword !== confirmPassword || newPassword.length < 8) {
@@ -386,6 +389,7 @@ function SignupForms({ step, setStep }: { step: SignupStep; setStep: (step: Sign
 
   async function finishSignup() {
     if (busy || !validateUserStep() || !validateCompanyStep()) return;
+    if (!supabaseConfigured && !demoAllowed) { setMessage("Configure o acesso seguro antes de utilizar o aplicativo."); return; }
     if (supabaseConfigured) {
       setBusy(true);
       try {

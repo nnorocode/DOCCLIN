@@ -1,5 +1,6 @@
 "use client";
 import { appStorage } from "../../lib/local-store";
+import { agendaRecordDate } from "../../lib/operational-data";
 
 import InfoHint from "../inicio/InfoHint";
 import { ClientSelect } from "../inicio/ClientsExperience";
@@ -195,17 +196,17 @@ function LabNotification({
   );
 }
 
-export function NotificationCenterPreview({ onUnreadCountChange }: { onUnreadCountChange?: (count: number) => void } = {}) {
+export function NotificationCenterPreview({ onUnreadCountChange, items = centerItems }: { items?: typeof centerItems; onUnreadCountChange?: (count: number) => void } = {}) {
   const [activeTab, setActiveTab] = useState<CenterTab>("system");
   const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
-  const unreadCount = centerItems.filter((item) => item.unread && !readIds.has(item.id)).length;
+  const unreadCount = items.filter((item) => item.unread && !readIds.has(item.id)).length;
   const visibleItems = activeTab === "all"
-    ? centerItems
-    : centerItems.filter((item) => item.category === activeTab);
+    ? items
+    : items.filter((item) => item.category === activeTab);
   const counts: Record<CenterTab, number> = {
-    all: centerItems.length,
-    mentions: centerItems.filter((item) => item.category === "mentions").length,
-    system: centerItems.filter((item) => item.category === "system").length,
+    all: items.length,
+    mentions: items.filter((item) => item.category === "mentions").length,
+    system: items.filter((item) => item.category === "system").length,
   };
 
   useEffect(() => {
@@ -445,32 +446,34 @@ function EventSelect({ id, icon: Icon, label, initial = "", placeholder, options
   );
 }
 
-function EventDatePicker({ openPicker, setOpenPicker }: { openPicker: EventPickerId | null; setOpenPicker: (id: EventPickerId | null) => void }) {
-  const [day, setDay] = useState<number | null>(null);
-  const days = Array.from({ length: 30 }, (_, index) => index + 1);
+function EventDatePicker({ openPicker, setOpenPicker, initial, onChange }: { initial?:string; onChange?:(date:string)=>void; openPicker: EventPickerId | null; setOpenPicker: (id: EventPickerId | null) => void }) {
+  const [selectedDate,setSelectedDate]=useState(initial||new Date().toLocaleDateString("en-CA"));
+  const [month,setMonth]=useState(new Date(selectedDate+"T12:00:00"));
+  const day=new Date(selectedDate+"T12:00:00").getDate();
+  const days=Array.from({length:new Date(month.getFullYear(),month.getMonth()+1,0).getDate()},(_,index)=>index+1);
   const open = openPicker === "date";
 
   return (
     <div className="lab-event-picker">
       <button type="button" className="lab-event-field" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpenPicker(open ? null : "date")}>
         <CalendarClock size={18} />
-        <span><small>Data</small><strong className={day ? "" : "placeholder"}>{day ? `${String(day).padStart(2, "0")} de setembro de 2026` : "Selecionar data"}</strong></span>
+        <span><small>Data</small><strong className={day ? "" : "placeholder"}>{day ? new Date(selectedDate+"T12:00:00").toLocaleDateString("pt-BR") : "Selecionar data"}</strong></span>
         <ChevronDown size={16} className={open ? "open" : ""} />
       </button>
       {open ? (
         <div className="lab-event-calendar" role="dialog" aria-label="Escolher data">
-          <header><button type="button" aria-label="Mês anterior"><ChevronLeft size={16} /></button><strong>Setembro de 2026</strong><button type="button" aria-label="Próximo mês"><ChevronRight size={16} /></button></header>
+          <header><button type="button" aria-label="Mês anterior" onClick={()=>setMonth(current=>new Date(current.getFullYear(),current.getMonth()-1,1))}><ChevronLeft size={16} /></button><strong>{month.toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</strong><button type="button" aria-label="Próximo mês" onClick={()=>setMonth(current=>new Date(current.getFullYear(),current.getMonth()+1,1))}><ChevronRight size={16} /></button></header>
           <div className="lab-calendar-week"><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span><span>D</span></div>
-          <div className="lab-calendar-days"><i />{days.map((date) => <button key={date} type="button" className={day === date ? "active" : ""} onClick={() => { setDay(date); setOpenPicker(null); }}>{date}</button>)}</div>
+          <div className="lab-calendar-days"><i />{days.map((date) => <button key={date} type="button" className={day === date ? "active" : ""} onClick={() => { const value=new Date(month.getFullYear(),month.getMonth(),date).toLocaleDateString("en-CA");setSelectedDate(value);onChange?.(value);setOpenPicker(null); }}>{date}</button>)}</div>
         </div>
       ) : null}
     </div>
   );
 }
 
-function EventTimePicker({ openPicker, setOpenPicker }: { openPicker: EventPickerId | null; setOpenPicker: (id: EventPickerId | null) => void }) {
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
+function EventTimePicker({ openPicker, setOpenPicker,initialStart="",initialEnd="",onChange }: { initialStart?:string;initialEnd?:string;onChange?:(start:string,end:string)=>void;openPicker: EventPickerId | null; setOpenPicker: (id: EventPickerId | null) => void }) {
+  const [start, setStart] = useState(initialStart);
+  const [end, setEnd] = useState(initialEnd);
   const [currentTime, setCurrentTime] = useState("12:00");
   const menuRef = useRef<HTMLDivElement>(null);
   const times = Array.from({ length: 96 }, (_, index) => {
@@ -501,18 +504,26 @@ function EventTimePicker({ openPicker, setOpenPicker }: { openPicker: EventPicke
         <em>–</em>
         <button type="button" className={end ? "" : "placeholder"} onClick={() => setOpenPicker(openPicker === "timeEnd" ? null : "timeEnd")}>{end || "Fim"}</button>
       </span></span>
-      {activeId ? <div ref={menuRef} className="lab-event-menu lab-event-time-menu" role="listbox" aria-label={activeId === "timeStart" ? "Hora inicial" : "Hora final"}>{times.map((time) => <button key={time} type="button" role="option" aria-selected={activeValue === time} className={time === currentTime ? "current" : ""} onClick={() => { if (activeId === "timeStart") setStart(time); else setEnd(time); setOpenPicker(null); }}><span>{time}</span>{activeValue === time ? <Check size={15} /> : time === currentTime ? <small>Agora</small> : null}</button>)}</div> : null}
+      {activeId ? <div ref={menuRef} className="lab-event-menu lab-event-time-menu" role="listbox" aria-label={activeId === "timeStart" ? "Hora inicial" : "Hora final"}>{times.map((time) => <button key={time} type="button" role="option" aria-selected={activeValue === time} className={time === currentTime ? "current" : ""} onClick={() => { if (activeId === "timeStart") {setStart(time);onChange?.(time,end);} else {setEnd(time);onChange?.(start,time);} setOpenPicker(null); }}><span>{time}</span>{activeValue === time ? <Check size={15} /> : time === currentTime ? <small>Agora</small> : null}</button>)}</div> : null}
     </div>
   );
 }
 
-type EventDraft = { status: TimelineStatus; title: string; priority: "Alta" | "Média" | "Leve"; reminder: string; repeat: string; service: string; client: string; coverageKind: "Particular" | "Plano"; insurer: string; category: string; authorization: string };
+type EventDraft = {responsible:string;location:string;note:string;tone:"blue"|"peach"|"green"|"violet";videoUrl:string;eventType:"reuniao"|"consulta"|"compromisso";date:string; startMinutes:number;durationSlots:number; status: TimelineStatus; title: string; priority: "Alta" | "Média" | "Leve"; reminder: string; repeat: string; service: string; client: string; coverageKind: "Particular" | "Plano"; insurer: string; category: string; authorization: string };
 
-function EventCardPreview({ heading = "Adicionar à agenda", initialStatus = "pending", initialTitle = "", initialPriority = "Média", initialReminder = "15 minutos antes", initialRepeat = "Não se repete", initialService = "", initialClient = "", initialCoverageKind = "Particular", initialInsurer = "", initialCategory = "", initialAuthorization = "", onClose, onCancel, onSave, onDelete }: { heading?: string; initialStatus?: TimelineStatus; initialTitle?: string; initialPriority?: "Alta" | "Média" | "Leve"; initialReminder?: string; initialRepeat?: string; initialService?: string; initialClient?: string; initialCoverageKind?: "Particular" | "Plano"; initialInsurer?: string; initialCategory?: string; initialAuthorization?: string; onClose?: () => void; onCancel?: () => void; onSave?: (draft: EventDraft) => void; onDelete?: () => void }) {
+function EventCardPreview({ heading = "Adicionar à agenda", initialStatus = "pending", initialTitle = "", initialPriority = "Média", initialReminder = "15 minutos antes", initialRepeat = "Não se repete", initialService = "", initialClient = "", initialCoverageKind = "Particular", initialInsurer = "", initialCategory = "", initialAuthorization = "", initialDate,initialStart,initialEnd,initialResponsible="",initialLocation="",initialNote="",initialTone="blue",initialVideoUrl="",initialEventType="reuniao",onClose, onCancel, onSave, onDelete }: { heading?: string; initialStatus?: TimelineStatus; initialTitle?: string; initialPriority?: "Alta" | "Média" | "Leve"; initialReminder?: string; initialRepeat?: string; initialService?: string; initialClient?: string; initialCoverageKind?: "Particular" | "Plano"; initialInsurer?: string; initialCategory?: string; initialAuthorization?: string;initialDate?:string;initialStart?:string;initialEnd?:string;initialResponsible?:string;initialLocation?:string;initialNote?:string;initialTone?:"blue"|"peach"|"green"|"violet";initialVideoUrl?:string;initialEventType?:"reuniao"|"consulta"|"compromisso"; onClose?: () => void; onCancel?: () => void; onSave?: (draft: EventDraft) => void; onDelete?: () => void }) {
   const [eventStatus,setEventStatus]=useState<TimelineStatus>(initialStatus);
-  const [eventType, setEventType] = useState<"reuniao" | "consulta" | "compromisso">("reuniao");
-  const [tagColor, setTagColor] = useState<"blue" | "peach" | "green" | "violet">("blue");
-  const [showNote, setShowNote] = useState(false);
+  const [eventDate,setEventDate]=useState(initialDate||new Date().toLocaleDateString("en-CA"));
+  const [eventStart,setEventStart]=useState(initialStart||"09:00");
+  const [eventEnd,setEventEnd]=useState(initialEnd||"10:00");
+  const [eventType, setEventType] = useState<"reuniao" | "consulta" | "compromisso">(initialEventType);
+  const [tagColor, setTagColor] = useState<"blue" | "peach" | "green" | "violet">(initialTone);
+  const [responsible,setResponsible]=useState(initialResponsible);
+  const [location,setLocation]=useState(initialLocation);
+  const [note,setNote]=useState(initialNote);
+  const [videoUrl,setVideoUrl]=useState(initialVideoUrl);
+  const [showVideo,setShowVideo]=useState(Boolean(initialVideoUrl));
+  const [showNote, setShowNote] = useState(Boolean(initialNote));
   const [openPicker, setOpenPicker] = useState<EventPickerId | null>(null);
   const [title, setTitle] = useState(initialTitle);
   const [priority, setPriority] = useState<"Alta" | "Média" | "Leve">(initialPriority);
@@ -524,7 +535,7 @@ function EventCardPreview({ heading = "Adicionar à agenda", initialStatus = "pe
   const [insurer, setInsurer] = useState(initialInsurer);
   const [category, setCategory] = useState(initialCategory);
   const [authorization, setAuthorization] = useState(initialAuthorization);
-  const [clientOptions, setClientOptions] = useState<string[]>(["Ana Carolina", "Bruno Lima", "Camila Souza"]);
+  const [clientOptions, setClientOptions] = useState<string[]>([]);
   const cardRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -573,14 +584,14 @@ function EventCardPreview({ heading = "Adicionar à agenda", initialStatus = "pe
       </div>
 
       <div className="lab-event-grid">
-        <EventDatePicker openPicker={openPicker} setOpenPicker={setOpenPicker} />
-        <EventTimePicker openPicker={openPicker} setOpenPicker={setOpenPicker} />
+        <EventDatePicker initial={eventDate} onChange={setEventDate} openPicker={openPicker} setOpenPicker={setOpenPicker} />
+        <EventTimePicker initialStart={eventStart} initialEnd={eventEnd} onChange={(start,end)=>{setEventStart(start);setEventEnd(end);}} openPicker={openPicker} setOpenPicker={setOpenPicker} />
         <EventSelect editable id="client" icon={UserRound} label="Cliente" initial={client} placeholder="Digitar cliente" options={clientOptions} openPicker={openPicker} setOpenPicker={setOpenPicker} onValueChange={setClient} />
-        <EventSelect editable id="owner" icon={UserRoundCheck} label="Responsável" placeholder="Digitar responsável" options={["Marina Costa", "Lucas Ferreira", "Paulo Lima"]} openPicker={openPicker} setOpenPicker={setOpenPicker} />
+        <EventSelect editable id="owner" icon={UserRoundCheck} label="Responsável" initial={responsible} onValueChange={setResponsible} placeholder="Digitar responsável" options={["Marina Costa", "Lucas Ferreira", "Paulo Lima"]} openPicker={openPicker} setOpenPicker={setOpenPicker} />
         <EventSelect id="priority" icon={Flag} label="Prioridade" initial={priority} placeholder="Selecionar prioridade" options={["Alta", "Média", "Leve"]} openPicker={openPicker} setOpenPicker={setOpenPicker} onValueChange={(value) => setPriority(value as "Alta" | "Média" | "Leve")} />
         <EventSelect id="reminder" icon={BellRing} label="Lembrete" initial={reminder} placeholder="Selecionar lembrete" options={["15 minutos antes", "30 minutos antes", "1 hora antes", "1 dia antes"]} openPicker={openPicker} setOpenPicker={setOpenPicker} onValueChange={setReminder} />
         <EventSelect editable wide id="service" icon={Sparkles} label="Serviço" initial={service} placeholder="Digitar ou selecionar serviço" options={["Clareamento dental", "Consulta de avaliação", "Limpeza", "Manutenção de aparelho"]} openPicker={openPicker} setOpenPicker={setOpenPicker} onValueChange={setService} />
-        <EventSelect editable wide id="location" icon={MapPin} label="Local" placeholder="Digitar local" options={["Clínica · Sala 2", "Sala de reunião", "Atendimento externo", "Online"]} openPicker={openPicker} setOpenPicker={setOpenPicker} />
+        <EventSelect editable wide id="location" icon={MapPin} label="Local" initial={location} onValueChange={setLocation} placeholder="Digitar local" options={["Clínica · Sala 2", "Sala de reunião", "Atendimento externo", "Online"]} openPicker={openPicker} setOpenPicker={setOpenPicker} />
 <EventSelect id="status" icon={Check} label="Status" placeholder="A confirmar" initial={eventStatus==="confirmed"?"Confirmado":eventStatus==="canceled"?"Cancelado":"A confirmar"} options={["A confirmar","Confirmado","Cancelado"]} openPicker={openPicker} setOpenPicker={setOpenPicker} onValueChange={v=>setEventStatus(v==="Confirmado"?"confirmed":v==="Cancelado"?"canceled":"pending")}/>
         <EventSelect id="coverage" icon={ShieldCheck} label="Atendimento" initial={coverageKind} placeholder="Particular ou plano" options={["Particular", "Plano"]} openPicker={openPicker} setOpenPicker={setOpenPicker} onValueChange={(value) => setCoverageKind(value as "Particular" | "Plano")} />
         {coverageKind === "Plano" ? <><EventSelect editable id="insurer" icon={ShieldCheck} label="Plano / convênio" initial={insurer} placeholder="Selecionar plano" options={["Unimed", "Bradesco Saúde", "Amil", "SulAmérica", "Outro"]} openPicker={openPicker} setOpenPicker={setOpenPicker} onValueChange={setInsurer} /><label className="lab-event-title">Categoria<input value={category} onChange={(event) => setCategory(event.target.value)} /></label><label className="lab-event-title">Autorização<input value={authorization} onChange={(event) => setAuthorization(event.target.value)} /></label></> : null}
@@ -599,14 +610,15 @@ function EventCardPreview({ heading = "Adicionar à agenda", initialStatus = "pe
       </div>
 
       <div className="lab-event-secondary-actions">
-        <button type="button" className="lab-event-video"><Video size={17} /> Adicionar videoconferência</button>
+        <button type="button" className="lab-event-video" onClick={()=>setShowVideo(value=>!value)} aria-expanded={showVideo}><Video size={17} /> Adicionar videoconferência</button>
         <button type="button" className={showNote ? "active" : ""} onClick={() => setShowNote((current) => !current)} aria-label="Adicionar observação" title="Adicionar observação"><MessageSquareText size={18} /></button>
       </div>
-      {showNote ? <textarea className="lab-event-note" autoFocus placeholder="Adicionar observação..." rows={3} /> : null}
+      {showVideo ? <label className="lab-event-title"><span>Link da videoconferência</span><input type="url" value={videoUrl} onChange={event=>setVideoUrl(event.target.value)} placeholder="https://" /></label> : null}
+      {showNote ? <textarea className="lab-event-note" value={note} onChange={event=>setNote(event.target.value)} autoFocus placeholder="Adicionar observação..." rows={3} /> : null}
 
       <footer>
         <button type="button" onClick={onCancel}>Cancelar</button>
-        <button type="button" className="primary" onClick={() => onSave?.({ status:eventStatus, title, priority, reminder, repeat, service, client, coverageKind, insurer, category, authorization })}>Salvar evento</button>
+        <button type="button" className="primary" onClick={() => onSave?.({responsible,location,note,videoUrl,eventType,tone:tagColor, date:eventDate,startMinutes:Number(eventStart.slice(0,2))*60+Number(eventStart.slice(3)),durationSlots:Math.max(1,(Number(eventEnd.slice(0,2))*60+Number(eventEnd.slice(3))-Number(eventStart.slice(0,2))*60-Number(eventStart.slice(3)))/15),status:eventStatus, title, priority, reminder, repeat, service, client, coverageKind, insurer, category, authorization })}>Salvar evento</button>
         {onDelete ? <button type="button" className="danger" onClick={onDelete}>Excluir atividade</button> : null}
       </footer>
     </article>
@@ -715,7 +727,7 @@ export function TimelinePreview({ onOpenAgenda, onOpenClinical, dayOffset=0, app
   const [agendaItems,setAgendaItems] = useState<AgendaEvent[]>(initialAgendaEvents);
   useEffect(()=>{try{const saved=JSON.parse(appStorage.getItem("gest-agenda-events")??"null");if(Array.isArray(saved))setAgendaItems(saved);}catch{}},[]);
   const monday = new Date(today.getFullYear(),today.getMonth(),today.getDate()-((today.getDay()+6)%7));
-  const selectedItems: TimelineItem[] = agendaItems.filter(event=>{const date=new Date(monday);date.setDate(monday.getDate()+event.column-2);return date.toDateString()===selectedDate.toDateString();}).map(event=>({id:event.id,time:agendaTime(event.startMinutes),title:event.title,detail:event.person,patientName:event.client,service:event.service,type:"event",state:"next",status:event.status??"pending"}));
+  const selectedItems: TimelineItem[] = agendaItems.filter(event=>{const date=event.date ? new Date(event.date+"T12:00:00") : new Date(monday);if(!event.date)date.setDate(monday.getDate()+event.column-2);return date.toDateString()===selectedDate.toDateString();}).map(event=>({id:event.id,time:agendaTime(event.startMinutes),title:event.title,detail:event.person,patientName:event.client,service:event.service,type:"event",state:"next",status:event.status??"pending"}));
   const filteredItems = appointmentsOnly?selectedItems.filter(item=>item.type==="event"&&item.patientName):selectedItems;
   const visibleItems = filter === "all" ? filteredItems : filteredItems.filter((item) => item.type === filter);
   const days = Array.from({ length: 7 }, (_, index) => {
@@ -788,6 +800,7 @@ type AgendaEvent = {
   status?: TimelineStatus;
   id: number;
   column: number;
+  date?: string;
   startMinutes: number;
   durationSlots: number;
   daySpan: number;
@@ -797,6 +810,10 @@ type AgendaEvent = {
   initials: string;
   client: string;
   responsible: string;
+  location?:string;
+  note?:string;
+  videoUrl?:string;
+  eventType?:"reuniao"|"consulta"|"compromisso";
   priority: "Alta" | "Média" | "Leve";
   reminder: string;
   repeat: string;
@@ -807,13 +824,7 @@ type AgendaEvent = {
   authorization?: string;
 };
 
-const initialAgendaEvents: AgendaEvent[] = [
-  { id: 1, column: 2, startMinutes: 540, durationSlots: 6, daySpan: 1, tone: "blue", title: "Reunião comercial", person: "Ana Martins", initials: "AM", client: "Ana Martins", responsible: "Marina Costa", priority: "Alta", reminder: "30 minutos antes", repeat: "Não se repete", service: "Clareamento dental" },
-  { id: 2, column: 3, startMinutes: 660, durationSlots: 6, daySpan: 1, tone: "peach", title: "Consulta de retorno", person: "Bruno Lima", initials: "BL", client: "Bruno Lima", responsible: "Paulo Lima", priority: "Média", reminder: "1 hora antes", repeat: "Mensalmente", service: "Consulta de avaliação" },
-  { id: 3, column: 4, startMinutes: 600, durationSlots: 6, daySpan: 1, tone: "green", title: "Revisão do projeto", person: "Equipe Aurora", initials: "EA", client: "Studio Aurora", responsible: "Lucas Ferreira", priority: "Alta", reminder: "15 minutos antes", repeat: "Semanalmente", service: "Planejamento estratégico" },
-  { id: 4, column: 5, startMinutes: 780, durationSlots: 6, daySpan: 1, tone: "violet", title: "Apresentar proposta", person: "Bella Modas", initials: "BM", client: "Bella Modas", responsible: "Marina Costa", priority: "Leve", reminder: "1 dia antes", repeat: "Não se repete", service: "Apresentação comercial" },
-  { id: 5, column: 6, startMinutes: 720, durationSlots: 6, daySpan: 1, tone: "rose", title: "Atendimento inicial", person: "Camila Souza", initials: "CS", client: "Camila Souza", responsible: "Marina Costa", priority: "Média", reminder: "30 minutos antes", repeat: "Não se repete", service: "Limpeza" },
-];
+const initialAgendaEvents: AgendaEvent[] = [];
 
 const agendaMonthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const agendaDayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -832,7 +843,7 @@ export function AgendaPreview({ onOpenClinical }: { onOpenClinical?: (event: { i
   const [weekOffset, setWeekOffset] = useState(0);
   const [events, setEvents] = useState<AgendaEvent[]>(initialAgendaEvents);
   const [eventsLoaded,setEventsLoaded]=useState(false);
-  useEffect(()=>{try{const saved=JSON.parse(appStorage.getItem("gest-agenda-events")??"null");if(Array.isArray(saved))setEvents(saved);}catch{}setEventsLoaded(true);},[]);
+  useEffect(()=>{try{const saved=JSON.parse(appStorage.getItem("gest-agenda-events")??"null");if(Array.isArray(saved))setEvents(saved.map((event:AgendaEvent)=>({...event,date:agendaRecordDate(event)})));}catch{}setEventsLoaded(true);},[]);
   useEffect(()=>{if(eventsLoaded)appStorage.setItem("gest-agenda-events",JSON.stringify(events));},[events,eventsLoaded]);
   const [completedEvents, setCompletedEvents] = useState<Set<number>>(() => new Set());
   const [editingEvent, setEditingEvent] = useState<AgendaEvent | null>(null);
@@ -847,6 +858,15 @@ export function AgendaPreview({ onOpenClinical }: { onOpenClinical?: (event: { i
   const [reviewCustomService, setReviewCustomService] = useState("");
   const [reviewAddingService, setReviewAddingService] = useState(false);
   const [reviewProducts, setReviewProducts] = useState("");
+  const [reviewCoverage, setReviewCoverage] = useState("Particular");
+  const [reviewInsurer, setReviewInsurer] = useState("");
+  const [reviewCategory, setReviewCategory] = useState("");
+  const [reviewAuthorization, setReviewAuthorization] = useState("");
+  const [reviewResponsible, setReviewResponsible] = useState("");
+  const [reviewResponsibleConfirmed, setReviewResponsibleConfirmed] = useState(false);
+  const [reviewHasThirdParty, setReviewHasThirdParty] = useState("Não");
+  const [reviewThirdParty, setReviewThirdParty] = useState("");
+  const [reviewThirdPartyRole, setReviewThirdPartyRole] = useState("");
   const [reviewTotal, setReviewTotal] = useState("850");
   const [reviewInstallments, setReviewInstallments] = useState("1x");
   const [reviewCustomInstallments, setReviewCustomInstallments] = useState("");
@@ -869,10 +889,11 @@ export function AgendaPreview({ onOpenClinical }: { onOpenClinical?: (event: { i
   const currentTop = (currentMinutes / 15) * slotHeight;
   const currentLabel = agendaTime(currentMinutes);
   const visibleDays = view === "day" ? [agendaWeek.find((day) => day.today) ?? agendaWeek[0]] : agendaWeek;
-  const visibleEvents = view === "day" ? events.filter((event) => event.column === agendaWeek.findIndex((day) => day.date === visibleDays[0].date && day.month === visibleDays[0].month) + 2) : events;
+  const weekEvents=events.filter(event=>{const date=new Date(agendaRecordDate(event)+"T12:00:00");return agendaWeek.some(day=>day.year===date.getFullYear()&&day.month===date.getMonth()&&day.date===date.getDate());}).map(event=>({...event,column:agendaWeek.findIndex(day=>new Date(day.year,day.month,day.date).toLocaleDateString("en-CA")===agendaRecordDate(event))+2}));
+  const visibleEvents = view === "day" ? weekEvents.filter(event=>event.column===agendaWeek.findIndex(day=>day.date===visibleDays[0].date&&day.month===visibleDays[0].month)+2) : weekEvents;
   const priorityEvents = events.filter((event) => event.priority === "Alta" && !completedPriorities.has(event.id));
   const monthEventCounts = events.reduce<Record<number, number>>((counts, event) => {
-    const day = 5 + event.column;
+    const date=new Date(agendaRecordDate(event)+"T12:00:00");if(date.getFullYear()!==miniDate.getFullYear()||date.getMonth()!==miniDate.getMonth())return counts;const day=date.getDate();
     counts[day] = (counts[day] ?? 0) + 1;
     return counts;
   }, {});
@@ -890,7 +911,22 @@ export function AgendaPreview({ onOpenClinical }: { onOpenClinical?: (event: { i
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(appStorage.getItem("gest-agenda-event-review") || "null") as { outcome?: "completed" | "missed" } | null;
+      const saved = JSON.parse(appStorage.getItem("gest-agenda-event-review") || "null") as { outcome?: "completed" | "missed"; coverage?: {kind?:string;insurer?:string;category?:string;authorization?:string}; responsible?: {name?:string;confirmed?:boolean}; thirdParty?: {name?:string;role?:string} | null } | null;
+      if (saved?.coverage) {
+        setReviewCoverage(saved.coverage.kind === "Plano" ? "Plano" : "Particular");
+        setReviewInsurer(typeof saved.coverage.insurer === "string" ? saved.coverage.insurer : "");
+        setReviewCategory(typeof saved.coverage.category === "string" ? saved.coverage.category : "");
+        setReviewAuthorization(typeof saved.coverage.authorization === "string" ? saved.coverage.authorization : "");
+      }
+      if (saved?.responsible) {
+        setReviewResponsible(typeof saved.responsible.name === "string" ? saved.responsible.name : "");
+        setReviewResponsibleConfirmed(saved.responsible.confirmed === true);
+      }
+      if (saved?.thirdParty) {
+        setReviewHasThirdParty("Sim");
+        setReviewThirdParty(typeof saved.thirdParty.name === "string" ? saved.thirdParty.name : "");
+        setReviewThirdPartyRole(typeof saved.thirdParty.role === "string" ? saved.thirdParty.role : "");
+      }
       if (saved?.outcome === "completed" || saved?.outcome === "missed") {
         setReviewOutcome(saved.outcome);
         if (saved.outcome === "completed") setCompletedEvents((current) => new Set(current).add(1));
@@ -942,11 +978,11 @@ export function AgendaPreview({ onOpenClinical }: { onOpenClinical?: (event: { i
 
   const saveEvent = (draft: EventDraft) => {
     if (editingEvent) {
-      setEvents((current) => current.map((item) => item.id === editingEvent.id ? { ...item, status:draft.status, title: draft.title.trim() || item.title, priority: draft.priority, reminder: draft.reminder, repeat: draft.repeat, service: draft.service.trim() || item.service, client: draft.client.trim() || item.client, person: draft.client.trim() || item.person, coverageKind: draft.coverageKind, insurer: draft.insurer, category: draft.category, authorization: draft.authorization } : item));
+      setEvents((current) => current.map((item) => item.id === editingEvent.id ? { ...item, responsible:draft.responsible,location:draft.location,note:draft.note,videoUrl:draft.videoUrl,eventType:draft.eventType,tone:draft.tone,date:draft.date,startMinutes:draft.startMinutes,durationSlots:draft.durationSlots,status:draft.status, title: draft.title.trim() || item.title, priority: draft.priority, reminder: draft.reminder, repeat: draft.repeat, service: draft.service.trim() || item.service, client: draft.client.trim() || item.client, person: draft.client.trim() || item.person, coverageKind: draft.coverageKind, insurer: draft.insurer, category: draft.category, authorization: draft.authorization } : item));
       announceAppAction("Atividade atualizada com sucesso.");
     } else if (creatingEvent && draft.title.trim()) {
       const roundedStart = Math.floor(currentMinutes / 15) * 15;
-      setEvents((current) => [...current, { status:draft.status, id: Date.now(), column: 6, startMinutes: roundedStart, durationSlots: 4, daySpan: 1, tone: "blue", title: draft.title.trim(), person: draft.client.trim() || "Novo cliente", initials: (draft.client.trim() || "NC").split(" ").map((part) => part[0]).join("").slice(0,2), client: draft.client.trim() || "Novo cliente", responsible: "Marina Costa", priority: draft.priority, reminder: draft.reminder, repeat: draft.repeat, service: draft.service.trim() || "Serviço não informado", coverageKind: draft.coverageKind, insurer: draft.insurer, category: draft.category, authorization: draft.authorization }]);
+      setEvents((current) => [...current, { status:draft.status, date: draft.date, id: Date.now(), column: new Date(draft.date+"T12:00:00").getDay()+1, startMinutes: draft.startMinutes, durationSlots: draft.durationSlots, daySpan: 1, tone: draft.tone, location:draft.location,note:draft.note,videoUrl:draft.videoUrl,eventType:draft.eventType,title: draft.title.trim(), person: draft.client.trim() || "Novo cliente", initials: (draft.client.trim() || "NC").split(" ").map((part) => part[0]).join("").slice(0,2), client: draft.client.trim() || "Novo cliente", responsible: draft.responsible.trim() || "Sem responsável", priority: draft.priority, reminder: draft.reminder, repeat: draft.repeat, service: draft.service.trim() || "Serviço não informado", coverageKind: draft.coverageKind, insurer: draft.insurer, category: draft.category, authorization: draft.authorization }]);
       announceAppAction("Atividade salva com sucesso.");
     }
     closeEventModal();
@@ -1090,12 +1126,20 @@ export function AgendaPreview({ onOpenClinical }: { onOpenClinical?: (event: { i
       </div>
       {reviewOpen ? (
         <div className="lab-agenda-modal" role="dialog" aria-modal="true" aria-label="Confirmar atividade realizada" onClick={() => setReviewOpen(false)}>
-          <form className="agenda-confirm-card" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); if (reviewOutcome === "pending" || (reviewOutcome === "missed" && !reviewMissReason)) return; if (reviewOutcome === "completed") setCompletedEvents((current) => new Set(current).add(1)); try { appStorage.setItem("gest-agenda-event-review", JSON.stringify({ outcome: reviewOutcome, missedReason: reviewOutcome === "missed" ? reviewMissReason : null, services: reviewServices, products: reviewProducts, total: reviewTotal, installments: reviewInstallments === "+ Personalizar" ? `${reviewCustomInstallments || "1"}x` : reviewInstallments, paymentMethod: reviewPaymentMethod, cardBrand: reviewCardBrand, returnAmount: reviewReturnAmount, returnUnit: reviewReturnUnit, savedAt: new Date().toISOString() })); } catch { /* The visible agenda remains usable if browser storage is unavailable. */ } announceAppAction(reviewOutcome === "completed" ? "Resultado do evento salvo com sucesso." : "Motivo do evento não realizado salvo com sucesso."); setReviewOpen(false); }}>
+          <form className="agenda-confirm-card" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); if (reviewOutcome === "pending" || (reviewOutcome === "missed" && !reviewMissReason)) return; if (reviewOutcome === "completed" && (!reviewResponsible.trim() || !reviewResponsibleConfirmed || (reviewCoverage === "Plano" && !reviewInsurer.trim()) || (reviewHasThirdParty === "Sim" && (!reviewThirdParty.trim() || !reviewThirdPartyRole.trim())))) { announceAppAction("Preencha e confirme o responsável, o plano e os terceiros quando aplicáveis."); return; } if (reviewOutcome === "completed") setCompletedEvents((current) => new Set(current).add(1)); try { appStorage.setItem("gest-agenda-event-review", JSON.stringify({ outcome: reviewOutcome, missedReason: reviewOutcome === "missed" ? reviewMissReason : null, services: reviewServices, products: reviewProducts, coverage: { kind: reviewCoverage, insurer: reviewCoverage === "Plano" ? reviewInsurer : "", category: reviewCoverage === "Plano" ? reviewCategory : "", authorization: reviewCoverage === "Plano" ? reviewAuthorization : "" }, responsible: { name: reviewResponsible.trim(), confirmed: reviewResponsibleConfirmed }, thirdParty: reviewHasThirdParty === "Sim" ? { name: reviewThirdParty.trim(), role: reviewThirdPartyRole.trim() } : null, total: reviewTotal, installments: reviewInstallments === "+ Personalizar" ? `${reviewCustomInstallments || "1"}x` : reviewInstallments, paymentMethod: reviewPaymentMethod, cardBrand: reviewCardBrand, returnAmount: reviewReturnAmount, returnUnit: reviewReturnUnit, savedAt: new Date().toISOString() })); } catch { /* The visible agenda remains usable if browser storage is unavailable. */ } announceAppAction(reviewOutcome === "completed" ? "Resultado do evento salvo com sucesso." : "Motivo do evento não realizado salvo com sucesso."); setReviewOpen(false); }}>
             <header className="agenda-confirm-head"><div><h2>O evento aconteceu?</h2><p>Registre o resultado para atualizar a agenda e os próximos retornos.</p></div><button type="button" aria-label="Fechar" onClick={() => setReviewOpen(false)}><X size={18} /></button></header>
             <section className="agenda-confirm-summary"><span><CalendarClock size={18} /></span><div><strong>Reunião comercial</strong><small>Ana Martins · Hoje, 09:00 · Clareamento dental</small></div></section>
             <div className="agenda-confirm-choice" role="group" aria-label="Resultado da atividade"><button type="button" className={reviewOutcome === "completed" ? "active" : ""} onClick={() => setReviewOutcome("completed")}><Check size={17} />Sim, aconteceu</button><button type="button" className={reviewOutcome === "missed" ? "active missed" : ""} onClick={() => setReviewOutcome("missed")}><X size={17} />Não aconteceu</button></div>
             {reviewOutcome === "completed" ? <section className="agenda-confirm-body">
               <div className="agenda-confirm-services"><header><strong>Serviços prestados:</strong></header><div>{["Clareamento dental", "Consulta de avaliação", "Limpeza", "Consulta de retorno", ...reviewServices.filter((service) => !["Clareamento dental", "Consulta de avaliação", "Limpeza", "Consulta de retorno"].includes(service))].map((service) => <button type="button" key={service} className={reviewServices.includes(service) ? "active" : ""} onClick={() => setReviewServices((current) => current.includes(service) ? current.filter((item) => item !== service) : [...current, service])}>{reviewServices.includes(service) ? <Check size={14} /> : <Plus size={14} />}{service}</button>)}<button type="button" className="agenda-confirm-add-service" onClick={() => setReviewAddingService(true)}><Plus size={14} />Adicionar serviço</button></div>{reviewAddingService ? <div className="agenda-confirm-custom-service"><input autoFocus value={reviewCustomService} onChange={(event) => setReviewCustomService(event.target.value)} placeholder="Nome do serviço" onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); const service = reviewCustomService.trim(); if (service) setReviewServices((current) => current.includes(service) ? current : [...current, service]); setReviewCustomService(""); setReviewAddingService(false); } }} /><button type="button" onClick={() => { const service = reviewCustomService.trim(); if (service) setReviewServices((current) => current.includes(service) ? current : [...current, service]); setReviewCustomService(""); setReviewAddingService(false); }}>Adicionar</button></div> : null}</div>
+              <fieldset className="agenda-review-participants"><legend>Atendimento e responsáveis</legend><div className="agenda-confirm-grid">
+                <div><ClientSelect compact label="Tipo de atendimento" value={reviewCoverage} onChange={setReviewCoverage} options={["Particular", "Plano"]} /></div>
+                {reviewCoverage === "Plano" ? <><label>Plano / convênio<input required value={reviewInsurer} onChange={event => setReviewInsurer(event.target.value)} /></label><label>Categoria<input value={reviewCategory} onChange={event => setReviewCategory(event.target.value)} /></label><label>Autorização<input value={reviewAuthorization} onChange={event => setReviewAuthorization(event.target.value)} /></label></> : null}
+                <label>Responsável pelo atendimento<input required value={reviewResponsible} onChange={event => { setReviewResponsible(event.target.value); setReviewResponsibleConfirmed(false); }} /></label>
+                <label className="agenda-responsible-confirm"><input type="checkbox" required checked={reviewResponsibleConfirmed} onChange={event => setReviewResponsibleConfirmed(event.target.checked)} />Confirmo o responsável pelo atendimento</label>
+                <div><ClientSelect compact label="Participação de terceiros" value={reviewHasThirdParty} onChange={setReviewHasThirdParty} options={["Não", "Sim"]} /></div>
+                {reviewHasThirdParty === "Sim" ? <><label>Nome do terceiro<input required value={reviewThirdParty} onChange={event => setReviewThirdParty(event.target.value)} /></label><label>Participação / função<input required value={reviewThirdPartyRole} onChange={event => setReviewThirdPartyRole(event.target.value)} placeholder="Ex.: profissional auxiliar" /></label></> : null}
+              </div></fieldset>
               <div className="agenda-confirm-grid"><label><span>Produto vendido <small>(opcional)</small></span><input value={reviewProducts} onChange={(event) => setReviewProducts(event.target.value)} placeholder="Informe o produto" /></label><label>Valor total (R$)<input type="number" min="0" value={reviewTotal} onChange={(event) => setReviewTotal(event.target.value)} /></label><label>Forma de pagamento<ClientSelect compact hideLabel label="Forma de pagamento" value={reviewPaymentMethod} onChange={setReviewPaymentMethod} options={["Crédito", "Débito", "Pix", "Dinheiro", "Boleto"]} /></label><label>Parcelamento<ClientSelect compact hideLabel label="Parcelamento" value={reviewInstallments === "+ Personalizar" && reviewCustomInstallments ? `${reviewCustomInstallments}x` : reviewInstallments} onChange={(value) => { setReviewInstallments(value); if (value !== "+ Personalizar") setReviewCustomInstallments(""); }} options={[...Array.from({ length: 12 }, (_, index) => `${index + 1}x`), "+ Personalizar"]} />{reviewInstallments === "+ Personalizar" ? <input className="agenda-confirm-custom-installments" type="number" min="1" autoFocus value={reviewCustomInstallments} onChange={(event) => setReviewCustomInstallments(event.target.value)} placeholder="Quantidade de parcelas" /> : null}</label>{reviewPaymentMethod === "Crédito" ? <label>Bandeira do cartão<ClientSelect compact hideLabel label="Bandeira do cartão" value={reviewCardBrand} onChange={setReviewCardBrand} options={["Visa", "Mastercard", "Elo", "Amex", "Hipercard"]} /></label> : null}<label>Próximo retorno<span className="agenda-confirm-return"><input type="number" min="1" value={reviewReturnAmount} onChange={(event) => setReviewReturnAmount(event.target.value)} /><ClientSelect compact hideLabel label="Unidade do retorno" value={reviewReturnUnit} onChange={setReviewReturnUnit} options={["dias", "meses"]} /></span></label></div>
               <p className="agenda-confirm-help"><Clock3 size={15} />O prazo de retorno aparecerá automaticamente na lista de próximos retornos do Atendimento.</p>
             </section> : null}
@@ -1106,7 +1150,7 @@ export function AgendaPreview({ onOpenClinical }: { onOpenClinical?: (event: { i
       ) : null}
       {editingEvent || creatingEvent ? (
         <div className="lab-agenda-modal" role="dialog" aria-modal="true" aria-label={editingEvent ? "Editar atividade" : "Adicionar à agenda"} onClick={closeEventModal}>
-          <div onClick={(event) => event.stopPropagation()}><EventCardPreview heading={editingEvent ? "Editar atividade" : "Adicionar à agenda"} initialStatus={editingEvent?.status} initialTitle={editingEvent?.title ?? ""} initialPriority={editingEvent?.priority} initialReminder={editingEvent?.reminder} initialRepeat={editingEvent?.repeat} initialService={editingEvent?.service} initialClient={editingEvent?.client} initialCoverageKind={editingEvent?.coverageKind} initialInsurer={editingEvent?.insurer} initialCategory={editingEvent?.category} initialAuthorization={editingEvent?.authorization} onClose={closeEventModal} onCancel={closeEventModal} onSave={saveEvent} onDelete={editingEvent ? () => { setEvents((current) => current.filter((item) => item.id !== editingEvent.id)); announceAppAction("Atividade excluída com sucesso."); closeEventModal(); } : undefined} /></div>
+          <div onClick={(event) => event.stopPropagation()}><EventCardPreview heading={editingEvent ? "Editar atividade" : "Adicionar à agenda"} initialResponsible={editingEvent?.responsible} initialLocation={editingEvent?.location} initialNote={editingEvent?.note} initialTone={editingEvent?.tone === "rose" ? "peach" : editingEvent?.tone} initialVideoUrl={editingEvent?.videoUrl} initialEventType={editingEvent?.eventType} initialDate={editingEvent?.date} initialStart={editingEvent?agendaTime(editingEvent.startMinutes):undefined} initialEnd={editingEvent?agendaTime(editingEvent.startMinutes+editingEvent.durationSlots*15):undefined} initialStatus={editingEvent?.status} initialTitle={editingEvent?.title ?? ""} initialPriority={editingEvent?.priority} initialReminder={editingEvent?.reminder} initialRepeat={editingEvent?.repeat} initialService={editingEvent?.service} initialClient={editingEvent?.client} initialCoverageKind={editingEvent?.coverageKind} initialInsurer={editingEvent?.insurer} initialCategory={editingEvent?.category} initialAuthorization={editingEvent?.authorization} onClose={closeEventModal} onCancel={closeEventModal} onSave={saveEvent} onDelete={editingEvent ? () => { setEvents((current) => current.filter((item) => item.id !== editingEvent.id)); announceAppAction("Atividade excluída com sucesso."); closeEventModal(); } : undefined} /></div>
         </div>
       ) : null}
     </section>
@@ -1160,15 +1204,20 @@ export function DocumentCardPreview({
   );
 }
 
-export function AiThinkingPreview() {
+export function AiThinkingPreview({ onReady, statusText }: { onReady?: () => void; statusText?: string } = {}) {
   const [cycle, setCycle] = useState(0);
   const [thinking, setThinking] = useState(true);
 
   useEffect(() => {
     setThinking(true);
-    const timer = globalThis.setTimeout(() => setThinking(false), 3200);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setThinking(false);
+      onReady?.();
+      return;
+    }
+    const timer = globalThis.setTimeout(() => { setThinking(false); onReady?.(); }, 3200);
     return () => globalThis.clearTimeout(timer);
-  }, [cycle]);
+  }, [cycle, onReady]);
 
   return (
     <article className={`lab-ai-thinking ${thinking ? "is-thinking" : "is-ready"}`}>
@@ -1196,7 +1245,7 @@ export function AiThinkingPreview() {
           ))}
           <ellipse cx="450" cy="140" rx="235" ry="32" fill="url(#lab-ai-center-light)" filter="url(#lab-ai-core)" />
         </svg>
-        <div className="lab-ai-status"><span>{thinking ? "Analisando..." : "Análise concluída"}</span></div>
+        <div className="lab-ai-status"><span>{thinking ? statusText ?? "Analisando..." : "Análise concluída"}</span></div>
       </div>
       <div className="lab-ai-results" aria-hidden={thinking}>
         <header><span><Sparkles size={17} /> Gest IA</span><button type="button" onClick={() => setCycle((current) => current + 1)}><RotateCcw size={15} /> Analisar novamente</button></header>
@@ -1454,7 +1503,8 @@ export function MonthlyColumnChartPreview({
   onAction?: () => void;
   changeOverride?: number;
 }) {
-  const values = data.map((item) => item.value);
+  const visibleData = data.slice(-6);
+  const values = visibleData.map((item) => item.value);
   const maximum = Math.max(1, ...values);
   const current = data.at(-1)?.value ?? 0;
   const previous = data.at(-2)?.value ?? current;
@@ -1479,9 +1529,9 @@ export function MonthlyColumnChartPreview({
         <button type="button" onClick={onAction} aria-label={`Abrir detalhes de ${label.toLowerCase()}`}><ChevronRight size={18} /></button>
       </header>
       <div className="lab-column-chart" role="img" aria-label="Gráfico de colunas do faturamento por mês">
-        {data.map((item, index) => (
-          <div className={index === data.length - 1 ? "is-current" : index === 1 ? "is-highlight" : ""} key={`${item.month}-${index}`}>
-            <span title={`${item.month}: ${currency.format(item.value)}`} style={{ height: `${Math.max(12, (item.value / maximum) * 100)}%` }} />
+        {visibleData.map((item, index) => (
+          <div className={index === visibleData.length - 1 ? "is-current" : index === 1 ? "is-highlight" : ""} key={`${item.month}-${index}`}>
+            <span title={`${item.month}: ${isCurrency ? currency.format(item.value) : item.value.toLocaleString("pt-BR")}`} style={{ height: `${Math.max(0, (item.value / maximum) * 100)}%` }} />
             <small>{item.month}</small>
           </div>
         ))}
@@ -1678,6 +1728,7 @@ function LaboratorioContent() {
         <section className="lab-demo-block">
           <div className="lab-component-label">ATLAS CLÍNICO · NOVA PRÉVIA REALISTA</div>
           <a className="lab-create-activity" href="/laboratorio/anatomia">Abrir odontogramas e mapa facial</a>
+          <a className="lab-create-activity" href="/laboratorio/roc-3d">Avaliar ROC · cinco vistas por camada</a>
         </section>
         <section className="lab-demo-block">
           <div className="lab-component-label">01 · NOTIFICAÇÃO DE SALVAMENTO</div>

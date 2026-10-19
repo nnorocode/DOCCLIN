@@ -1,6 +1,6 @@
 /** Shared presentation for chart hover details; values remain formatted by each metric. */
 export const chartTooltipStyle = {
-  border: "1px solid #e2eaf2",
+  border: "1px solid var(--gest-divider, #e2eaf2)",
   borderRadius: 16,
   background: "var(--chart-tooltip-background, #fff)",
   color: "var(--chart-tooltip-text, #52677c)",

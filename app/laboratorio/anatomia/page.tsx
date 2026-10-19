@@ -188,7 +188,7 @@ function ServicePicker({ services, value, onChange }: { services: Service[]; val
 }
 
 export type AnatomyState = { child: boolean; selectedTeeth: number[]; notes: Record<number,string>; faces: Record<number,string[]>; recessions: Record<number,number>; marks: Mark[]; procedures: Record<string,Procedure[]>; groupNote: string; groupMode: boolean; toothConditions?: Record<number,ToothCondition | ToothCondition[]>; surfaceStyles?: Record<string,"satisfactory"|"active"|"undefined">; intraoralExam?: Record<string,string> };
-export function ClinicalAtlas({ mode, initial, onSave, onChange, history = [], onHistory }: { history?: {id:string;label:string}[]; onHistory?: (id:string)=>void; mode?: "dental" | "face"; initial?: AnatomyState; onSave?: (value: AnatomyState) => Promise<boolean>; onChange?: (value: AnatomyState) => void }) {
+export function ClinicalAtlas({ mode, initial, onSave, onChange, history = [], onHistory, readOnly = false }: { readOnly?: boolean; history?: {id:string;label:string}[]; onHistory?: (id:string)=>void; mode?: "dental" | "face"; initial?: AnatomyState; onSave?: (value: AnatomyState) => Promise<boolean>; onChange?: (value: AnatomyState) => void }) {
   const [paintStyle,setPaintStyle]=useState<"satisfactory"|"active"|"undefined">("satisfactory");
   const [surfaceStyles,setSurfaceStyles]=useState<NonNullable<AnatomyState["surfaceStyles"]>>({});
   const [showBudget,setShowBudget]=useState(true);
@@ -295,7 +295,7 @@ export function ClinicalAtlas({ mode, initial, onSave, onChange, history = [], o
   useEffect(() => {
     const boneImage = new Image(); boneImage.src = '/clinical-lab/bone-atlas-v1.png';
     for(const sex of ["female","male"]) for(const view of ["front-v3","quarter-v3","profile-v4"]) { const image=new Image();image.src=`/clinical-lab/${sex}-${view}.png`; }
-    const all = [...catalogDefaults, ...rows("gest-catalog-records"), ...rows("gest-priced-catalog")].filter(row => row[2] === "Serviço" && row[1]?.trim()).map(row => ({id: row[0], name: row[1], price: parsePrice(row[4])}));
+    const all = [...rows("gest-catalog-records"), ...rows("gest-priced-catalog")].filter(row => row[2] === "Serviço" && row[1]?.trim()).map(row => ({id: row[0], name: row[1], price: parsePrice(row[4])}));
     setServices([...new Map(all.map(item => [item.id, item])).values()]);
     setStock(rows("gest-stock-records").filter(row => row[1]?.trim()).map(row => ({id: row[0], name: row[1], price: parsePrice(row[5]), unit: row[3]?.match(/[A-Za-zÀ-ÿ]+/)?.[0] ?? "un."})));
     try { const value = JSON.parse(appStorage.getItem("gest-lab-anatomy-material-links") ?? "{}"); if (value && typeof value === "object" && !Array.isArray(value)) setLinks(value); } catch { /* Vínculos opcionais. */ }
@@ -352,7 +352,13 @@ export function ClinicalAtlas({ mode, initial, onSave, onChange, history = [], o
   };
   const frontalUpper = child ? childUpper : upper;
   const frontalLower = child ? childLower : lower;
-  return <main className={`anatomy-lab ${child ? "al-child-dentition" : ""} ${mode ? "al-embedded al-mode-" + mode : ""}`}>
+  const guardReadOnly = (event: React.SyntheticEvent) => {
+    if (!readOnly) return;
+    const target = event.target as Element;
+    if (target.closest('.al-layer-tabs, .al-turn-controls, .al-model-toggle, .al-consult-history, .al-budget-toggle')) return;
+    if (target.closest('button, input, textarea, select, [role="button"], .al-face')) { event.preventDefault(); event.stopPropagation(); }
+  };
+  return <main data-readonly={readOnly} onClickCapture={guardReadOnly} onPointerDownCapture={guardReadOnly} onKeyDownCapture={guardReadOnly} className={`anatomy-lab ${child ? "al-child-dentition" : ""} ${mode ? "al-embedded al-mode-" + mode : ""}`}>
     <header className="al-heading"><div><span>LABORATÓRIO · PRÉVIA VISUAL</span><h1>Atlas clínico</h1><p>Dois odontogramas e seis camadas faciais para experimentar.</p></div><a className="lab-create-activity" href="/laboratorio">Voltar ao laboratório</a></header>
     <aside className="al-notice">Ilustrações geradas para avaliação visual. Anatomia e áreas de seleção ainda precisam de validação profissional antes do uso clínico. As anotações desta prévia não são prontuários.</aside>
     <section className="al-panel al-dental-panel"><header><div>{mode ? <Smile size={18} /> : <span className="al-step">1</span>}<h2>{mode ? "Odontograma" : "Odontogramas"}</h2></div></header>

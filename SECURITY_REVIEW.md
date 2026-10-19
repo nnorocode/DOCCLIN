@@ -1,3 +1,7 @@
+> Consolidação adicional: [CHECKLIST_DE_SEGURANCA.md](CHECKLIST_DE_SEGURANCA.md) reúne as duas auditorias e os [ajustes do segundo vídeo](.functional-review/ajustes-seguranca-video2-2026-10-19/RESUMO.md), com 109 testes locais e pendências explícitas de implantação.
+
+> Atualização de 19/10/2026: este documento descreve a revisão histórica de setembro. O estado atual e os testes das correções estão em [.functional-review/correcoes-seguranca-2026-10-19/RESUMO.md](.functional-review/correcoes-seguranca-2026-10-19/RESUMO.md). Auditoria atual: zero avisos nas dependências de produção; um aviso residual de desenvolvimento com mitigação local. Implantação Supabase e validação em produção continuam pendentes.
+
 # Revisão de segurança e preparação Supabase
 
 Data: 29/09/2026. Escopo: frontend, acessos, armazenamento, anexos, dependências, infraestrutura inicial e legibilidade no modo escuro. Alterações anteriores do projeto foram preservadas.

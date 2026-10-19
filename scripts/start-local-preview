@@ -6,7 +6,7 @@ project_root="${0:A:h:h}"
 codex_node_dir="/Users/renannoronha/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin"
 
 export PATH="${codex_node_dir}:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-export HOST="0.0.0.0"
+export HOST="127.0.0.1"
 export PORT="3000"
 preview_log="${project_root}/.vinext/local-preview.screen.log"
 

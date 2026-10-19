@@ -1,0 +1,499 @@
+{
+  "status": "generated-validation-failed-not-deployed",
+  "jobs": [
+    {
+      "sex": "female",
+      "angle": "front",
+      "layer": "subcutaneous",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Create an educational SYNTHETIC ANATOMY HEAD model matching the exact geometry and frontal pose of attached woman's face. Display the subcutaneous layer as yellow molded adipose compartments with pale fibrous septa, including rounded bald cranial dome and short upper neck. This is a clean manufactured classroom teaching head only, no body or clinical scene. Keep exact original face dimensions and eye, nose, lips, jaw and ear positions, closed eyelids, neutral expression, original camera and scale. No scalp hair, bun, eyebrows, eyelashes or stubble. Do not substitute a different woman. Ivory and muted golden yellow materials, diffuse neutral lighting; pure white background and same soft neck fade. Single square1024x1024, one head, no words, no extra objects. Preserve framing and identity.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-1c3d4a03-6895-4202-8bfd-87ac517b7095.png"
+    },
+    {
+      "sex": "female",
+      "angle": "left90",
+      "layer": "subcutaneous",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-left90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-subcutaneous-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing yellow lobulated subcutaneous adipose compartments and delicate pale fibrous septa over face, scalp and neck. Retain nose cartilage, lips and closed eyelids exactly as positioned. Bald scalp follows underlying cranium, without hair volume. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-b88a37c7-29c4-4947-8639-e1a166cc38c8.png"
+    },
+    {
+      "sex": "female",
+      "angle": "right45",
+      "layer": "subcutaneous",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-right45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-subcutaneous-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing yellow lobulated subcutaneous adipose compartments and delicate pale fibrous septa over face, scalp and neck. Retain nose cartilage, lips and closed eyelids exactly as positioned. Bald scalp follows underlying cranium, without hair volume. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-b403e4cd-7258-40e9-b3b6-65b659811966.png"
+    },
+    {
+      "sex": "female",
+      "angle": "right90",
+      "layer": "subcutaneous",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-right90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-subcutaneous-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing yellow lobulated subcutaneous adipose compartments and delicate pale fibrous septa over face, scalp and neck. Retain nose cartilage, lips and closed eyelids exactly as positioned. Bald scalp follows underlying cranium, without hair volume. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-6fdddef9-cbb2-4382-8789-53f8737a8837.png"
+    },
+    {
+      "sex": "female",
+      "angle": "front",
+      "layer": "superficial",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-front.png",
+      "palette": null,
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean educational superficial muscle layer with fine muted terracotta-red fibers: frontalis, orbicularis oculi, zygomaticus, masseter, orbicularis oris, platysma and sternocleidomastoid; pale galea over bald crown. Preserve closed eyelid contour, nose cartilage and lips. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-0ed713f4-770b-4b5a-b705-6071df4fd156.png"
+    },
+    {
+      "sex": "female",
+      "angle": "left45",
+      "layer": "superficial",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-left45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-superficial-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean educational superficial muscle layer with fine muted terracotta-red fibers: frontalis, orbicularis oculi, zygomaticus, masseter, orbicularis oris, platysma and sternocleidomastoid; pale galea over bald crown. Preserve closed eyelid contour, nose cartilage and lips. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-9528ea4e-751b-4691-8cfa-c2c3b0b46f42.png"
+    },
+    {
+      "sex": "female",
+      "angle": "left90",
+      "layer": "superficial",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-left90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-superficial-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean educational superficial muscle layer with fine muted terracotta-red fibers: frontalis, orbicularis oculi, zygomaticus, masseter, orbicularis oris, platysma and sternocleidomastoid; pale galea over bald crown. Preserve closed eyelid contour, nose cartilage and lips. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-a091fff5-fc02-40a4-9d86-b857cd9f00c4.png"
+    },
+    {
+      "sex": "female",
+      "angle": "right45",
+      "layer": "superficial",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-right45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-superficial-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean educational superficial muscle layer with fine muted terracotta-red fibers: frontalis, orbicularis oculi, zygomaticus, masseter, orbicularis oris, platysma and sternocleidomastoid; pale galea over bald crown. Preserve closed eyelid contour, nose cartilage and lips. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-91d28422-e194-4578-b8fc-45e992c374e3.png"
+    },
+    {
+      "sex": "female",
+      "angle": "right90",
+      "layer": "superficial",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-right90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-superficial-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean educational superficial muscle layer with fine muted terracotta-red fibers: frontalis, orbicularis oculi, zygomaticus, masseter, orbicularis oris, platysma and sternocleidomastoid; pale galea over bald crown. Preserve closed eyelid contour, nose cartilage and lips. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-86c9989f-88a7-4c67-9763-69ccabeca446.png"
+    },
+    {
+      "sex": "female",
+      "angle": "front",
+      "layer": "deep",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-front.png",
+      "palette": null,
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean manufactured deep-muscle teaching model, showing deep masticatory and buccinator components, pale tendons and ivory zygomatic landmarks; selected superficial components absent, visibly distinct from superficial muscle layer. Retain closed eyelids, nose cartilage and lip landmarks. Bald pale cranial dome. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-396fe137-8891-428e-a466-dc7fc524a643.png"
+    },
+    {
+      "sex": "female",
+      "angle": "left45",
+      "layer": "deep",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-left45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-deep-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean manufactured deep-muscle teaching model, showing deep masticatory and buccinator components, pale tendons and ivory zygomatic landmarks; selected superficial components absent, visibly distinct from superficial muscle layer. Retain closed eyelids, nose cartilage and lip landmarks. Bald pale cranial dome. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-453162af-5905-4587-84d9-f0bedfba5567.png"
+    },
+    {
+      "sex": "female",
+      "angle": "left90",
+      "layer": "deep",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-left90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-deep-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean manufactured deep-muscle teaching model, showing deep masticatory and buccinator components, pale tendons and ivory zygomatic landmarks; selected superficial components absent, visibly distinct from superficial muscle layer. Retain closed eyelids, nose cartilage and lip landmarks. Bald pale cranial dome. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-16f11bb2-d654-4dae-a39b-c8979ed39d9b.png"
+    },
+    {
+      "sex": "female",
+      "angle": "right45",
+      "layer": "deep",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-right45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-deep-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean manufactured deep-muscle teaching model, showing deep masticatory and buccinator components, pale tendons and ivory zygomatic landmarks; selected superficial components absent, visibly distinct from superficial muscle layer. Retain closed eyelids, nose cartilage and lip landmarks. Bald pale cranial dome. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-d99ae415-1da9-4a7c-bda2-2d8bbf80160a.png"
+    },
+    {
+      "sex": "female",
+      "angle": "right90",
+      "layer": "deep",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-right90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-deep-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean manufactured deep-muscle teaching model, showing deep masticatory and buccinator components, pale tendons and ivory zygomatic landmarks; selected superficial components absent, visibly distinct from superficial muscle layer. Retain closed eyelids, nose cartilage and lip landmarks. Bald pale cranial dome. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-2e883f02-2cdc-48c9-bafc-d3a534be1031.png"
+    },
+    {
+      "sex": "female",
+      "angle": "front",
+      "layer": "vessels",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-front.png",
+      "palette": null,
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing fine red arteries, blue veins and yellow nerves across face, bald scalp and neck over pale warm ivory tissue base. Preserve exact nose, lips, closed eyelids, ears and jaw contour of reference. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-b5746c11-b5eb-483c-a513-7a530a9bf754.png"
+    },
+    {
+      "sex": "female",
+      "angle": "left90",
+      "layer": "vessels",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-left90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-vessels-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing fine red arteries, blue veins and yellow nerves across face, bald scalp and neck over pale warm ivory tissue base. Preserve exact nose, lips, closed eyelids, ears and jaw contour of reference. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-c4bfb36d-bc68-4fbd-b9f2-226cf57baa74.png"
+    },
+    {
+      "sex": "female",
+      "angle": "right45",
+      "layer": "vessels",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-right45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-vessels-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing fine red arteries, blue veins and yellow nerves across face, bald scalp and neck over pale warm ivory tissue base. Preserve exact nose, lips, closed eyelids, ears and jaw contour of reference. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-32c015db-7c44-423f-a2fe-d447a7b4bb8c.png"
+    },
+    {
+      "sex": "female",
+      "angle": "right90",
+      "layer": "vessels",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-right90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-vessels-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing fine red arteries, blue veins and yellow nerves across face, bald scalp and neck over pale warm ivory tissue base. Preserve exact nose, lips, closed eyelids, ears and jaw contour of reference. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-355164ac-ef76-4f39-94f6-97985d961f29.png"
+    },
+    {
+      "sex": "female",
+      "layer": "bone",
+      "angle": "front",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-front.png",
+      "prompt": "Use case: scientific-educational. Attached skin portrait defines camera angle and underlying head proportions ONLY. Render its BONE-ONLY SKELETON as a clean anatomical skull with mandible, teeth and a narrow upper cervical vertebral column on pure white. Absolutely NO EXTERNAL EARS, pinnae, skin, flesh, hair, nose cartilage, eyes, lips, neck skin, neck muscles, neck outline or shoulders. Background must show through around cervical vertebrae. External ears are cartilage and MUST BE ABSENT, never bone-colored ear shapes. Use ivory natural bone with realistic apertures, foramina and sutures. Keep orbital centers and mandibular position corresponding to reference; preserve pose, head scale and camera without shifting or zooming. Cranial dome follows skull under hair. Lower vertebrae fade softly to white. One1024x1024 square image, no labels. If reference2 exists it is bone material/style only; geometry always follows reference1. This is an educational skeletal model.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-a636c3f0-eb69-4448-8149-7515990cb0ef.png"
+    },
+    {
+      "sex": "female",
+      "angle": "left45",
+      "layer": "bone",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-left45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-bone-front.png",
+      "prompt": "Use case: scientific-educational. Attached skin portrait defines camera angle and underlying head proportions ONLY. Render its BONE-ONLY SKELETON as a clean anatomical skull with mandible, teeth and a narrow upper cervical vertebral column on pure white. Absolutely NO EXTERNAL EARS, pinnae, skin, flesh, hair, nose cartilage, eyes, lips, neck skin, neck muscles, neck outline or shoulders. Background must show through around cervical vertebrae. External ears are cartilage and MUST BE ABSENT, never bone-colored ear shapes. Use ivory natural bone with realistic apertures, foramina and sutures. Keep orbital centers and mandibular position corresponding to reference; preserve pose, head scale and camera without shifting or zooming. Cranial dome follows skull under hair. Lower vertebrae fade softly to white. One1024x1024 square image, no labels. If reference2 exists it is bone material/style only; geometry always follows reference1. This is an educational skeletal model.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-37150a05-73cd-4f3e-8d42-e41e82f4ad2a.png"
+    },
+    {
+      "sex": "female",
+      "angle": "left90",
+      "layer": "bone",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-left90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-bone-front.png",
+      "prompt": "Use case: scientific-educational. Attached skin portrait defines camera angle and underlying head proportions ONLY. Render its BONE-ONLY SKELETON as a clean anatomical skull with mandible, teeth and a narrow upper cervical vertebral column on pure white. Absolutely NO EXTERNAL EARS, pinnae, skin, flesh, hair, nose cartilage, eyes, lips, neck skin, neck muscles, neck outline or shoulders. Background must show through around cervical vertebrae. External ears are cartilage and MUST BE ABSENT, never bone-colored ear shapes. Use ivory natural bone with realistic apertures, foramina and sutures. Keep orbital centers and mandibular position corresponding to reference; preserve pose, head scale and camera without shifting or zooming. Cranial dome follows skull under hair. Lower vertebrae fade softly to white. One1024x1024 square image, no labels. If reference2 exists it is bone material/style only; geometry always follows reference1. This is an educational skeletal model.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-7ca6e19f-0c21-4c1c-b12f-a85210e27011.png"
+    },
+    {
+      "sex": "female",
+      "angle": "right45",
+      "layer": "bone",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-right45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-bone-front.png",
+      "prompt": "Use case: scientific-educational. Attached skin portrait defines camera angle and underlying head proportions ONLY. Render its BONE-ONLY SKELETON as a clean anatomical skull with mandible, teeth and a narrow upper cervical vertebral column on pure white. Absolutely NO EXTERNAL EARS, pinnae, skin, flesh, hair, nose cartilage, eyes, lips, neck skin, neck muscles, neck outline or shoulders. Background must show through around cervical vertebrae. External ears are cartilage and MUST BE ABSENT, never bone-colored ear shapes. Use ivory natural bone with realistic apertures, foramina and sutures. Keep orbital centers and mandibular position corresponding to reference; preserve pose, head scale and camera without shifting or zooming. Cranial dome follows skull under hair. Lower vertebrae fade softly to white. One1024x1024 square image, no labels. If reference2 exists it is bone material/style only; geometry always follows reference1. This is an educational skeletal model.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-518ffa75-1c51-48f2-9389-4856927b7d9b.png"
+    },
+    {
+      "sex": "female",
+      "angle": "right90",
+      "layer": "bone",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-right90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-bone-front.png",
+      "prompt": "Use case: scientific-educational. Attached skin portrait defines camera angle and underlying head proportions ONLY. Render its BONE-ONLY SKELETON as a clean anatomical skull with mandible, teeth and a narrow upper cervical vertebral column on pure white. Absolutely NO EXTERNAL EARS, pinnae, skin, flesh, hair, nose cartilage, eyes, lips, neck skin, neck muscles, neck outline or shoulders. Background must show through around cervical vertebrae. External ears are cartilage and MUST BE ABSENT, never bone-colored ear shapes. Use ivory natural bone with realistic apertures, foramina and sutures. Keep orbital centers and mandibular position corresponding to reference; preserve pose, head scale and camera without shifting or zooming. Cranial dome follows skull under hair. Lower vertebrae fade softly to white. One1024x1024 square image, no labels. If reference2 exists it is bone material/style only; geometry always follows reference1. This is an educational skeletal model.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-e21c2934-8cd7-47bb-afcd-9be8d644f20b.png"
+    },
+    {
+      "sex": "male",
+      "angle": "front",
+      "layer": "subcutaneous",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-front.png",
+      "palette": null,
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing yellow lobulated subcutaneous adipose compartments and delicate pale fibrous septa over face, scalp and neck. Retain nose cartilage, lips and closed eyelids exactly as positioned. Bald scalp follows underlying cranium, without hair volume. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-71041ec5-1d50-4590-9e9b-ae503faec74e.png"
+    },
+    {
+      "sex": "male",
+      "angle": "left45",
+      "layer": "subcutaneous",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-left45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-subcutaneous-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing yellow lobulated subcutaneous adipose compartments and delicate pale fibrous septa over face, scalp and neck. Retain nose cartilage, lips and closed eyelids exactly as positioned. Bald scalp follows underlying cranium, without hair volume. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-c3dc6e04-a030-40d2-8d31-e6c2cd5810b9.png"
+    },
+    {
+      "sex": "male",
+      "angle": "left90",
+      "layer": "subcutaneous",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-left90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-subcutaneous-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing yellow lobulated subcutaneous adipose compartments and delicate pale fibrous septa over face, scalp and neck. Retain nose cartilage, lips and closed eyelids exactly as positioned. Bald scalp follows underlying cranium, without hair volume. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-129f64e5-15bd-499a-bf49-d25d78775aa2.png"
+    },
+    {
+      "sex": "male",
+      "angle": "right45",
+      "layer": "subcutaneous",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-right45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-subcutaneous-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing yellow lobulated subcutaneous adipose compartments and delicate pale fibrous septa over face, scalp and neck. Retain nose cartilage, lips and closed eyelids exactly as positioned. Bald scalp follows underlying cranium, without hair volume. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-73af7d80-5090-4b1a-ac62-ade177b0d541.png"
+    },
+    {
+      "sex": "male",
+      "angle": "right90",
+      "layer": "subcutaneous",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-right90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-subcutaneous-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing yellow lobulated subcutaneous adipose compartments and delicate pale fibrous septa over face, scalp and neck. Retain nose cartilage, lips and closed eyelids exactly as positioned. Bald scalp follows underlying cranium, without hair volume. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-6acdbf7c-c890-450a-a6fc-9930d8bcab1b.png"
+    },
+    {
+      "sex": "male",
+      "angle": "front",
+      "layer": "superficial",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-front.png",
+      "palette": null,
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean educational superficial muscle layer with fine muted terracotta-red fibers: frontalis, orbicularis oculi, zygomaticus, masseter, orbicularis oris, platysma and sternocleidomastoid; pale galea over bald crown. Preserve closed eyelid contour, nose cartilage and lips. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-8e1708e2-1521-44b7-8596-8ff7a84c6733.png"
+    },
+    {
+      "sex": "male",
+      "angle": "left45",
+      "layer": "superficial",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-left45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-superficial-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean educational superficial muscle layer with fine muted terracotta-red fibers: frontalis, orbicularis oculi, zygomaticus, masseter, orbicularis oris, platysma and sternocleidomastoid; pale galea over bald crown. Preserve closed eyelid contour, nose cartilage and lips. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-3754ac0f-f191-4707-a2a6-8807d8c37814.png"
+    },
+    {
+      "sex": "male",
+      "angle": "left90",
+      "layer": "superficial",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-left90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-superficial-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean educational superficial muscle layer with fine muted terracotta-red fibers: frontalis, orbicularis oculi, zygomaticus, masseter, orbicularis oris, platysma and sternocleidomastoid; pale galea over bald crown. Preserve closed eyelid contour, nose cartilage and lips. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-2a57e4c6-44f8-4bae-880d-facf475537c9.png"
+    },
+    {
+      "sex": "male",
+      "angle": "right45",
+      "layer": "superficial",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-right45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-superficial-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean educational superficial muscle layer with fine muted terracotta-red fibers: frontalis, orbicularis oculi, zygomaticus, masseter, orbicularis oris, platysma and sternocleidomastoid; pale galea over bald crown. Preserve closed eyelid contour, nose cartilage and lips. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-af003e68-9603-4abc-b948-c6f14aa3ac34.png"
+    },
+    {
+      "sex": "male",
+      "angle": "right90",
+      "layer": "superficial",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-right90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-superficial-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean educational superficial muscle layer with fine muted terracotta-red fibers: frontalis, orbicularis oculi, zygomaticus, masseter, orbicularis oris, platysma and sternocleidomastoid; pale galea over bald crown. Preserve closed eyelid contour, nose cartilage and lips. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-b2a03f67-29ff-451d-829f-49acae4eb192.png"
+    },
+    {
+      "sex": "male",
+      "angle": "front",
+      "layer": "deep",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-front.png",
+      "palette": null,
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean manufactured deep-muscle teaching model, showing deep masticatory and buccinator components, pale tendons and ivory zygomatic landmarks; selected superficial components absent, visibly distinct from superficial muscle layer. Retain closed eyelids, nose cartilage and lip landmarks. Bald pale cranial dome. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-4f44434d-28ca-4b00-af78-b5e1299b3f06.png"
+    },
+    {
+      "sex": "male",
+      "angle": "left45",
+      "layer": "deep",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-left45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-deep-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean manufactured deep-muscle teaching model, showing deep masticatory and buccinator components, pale tendons and ivory zygomatic landmarks; selected superficial components absent, visibly distinct from superficial muscle layer. Retain closed eyelids, nose cartilage and lip landmarks. Bald pale cranial dome. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-7bc1d724-3080-4cd3-ba8f-352871d6e279.png"
+    },
+    {
+      "sex": "male",
+      "angle": "left90",
+      "layer": "deep",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-left90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-deep-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean manufactured deep-muscle teaching model, showing deep masticatory and buccinator components, pale tendons and ivory zygomatic landmarks; selected superficial components absent, visibly distinct from superficial muscle layer. Retain closed eyelids, nose cartilage and lip landmarks. Bald pale cranial dome. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-ab9a03fc-0c13-4550-b8fa-2d9e3165e6db.png"
+    },
+    {
+      "sex": "male",
+      "angle": "right45",
+      "layer": "deep",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-right45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-deep-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean manufactured deep-muscle teaching model, showing deep masticatory and buccinator components, pale tendons and ivory zygomatic landmarks; selected superficial components absent, visibly distinct from superficial muscle layer. Retain closed eyelids, nose cartilage and lip landmarks. Bald pale cranial dome. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-d91d250a-9f6f-44ad-b77b-2d5b4474bfde.png"
+    },
+    {
+      "sex": "male",
+      "angle": "right90",
+      "layer": "deep",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-right90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-deep-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean manufactured deep-muscle teaching model, showing deep masticatory and buccinator components, pale tendons and ivory zygomatic landmarks; selected superficial components absent, visibly distinct from superficial muscle layer. Retain closed eyelids, nose cartilage and lip landmarks. Bald pale cranial dome. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-4318ae98-e378-4e97-a30b-87b80db47f80.png"
+    },
+    {
+      "sex": "male",
+      "angle": "front",
+      "layer": "vessels",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-front.png",
+      "palette": null,
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing fine red arteries, blue veins and yellow nerves across face, bald scalp and neck over pale warm ivory tissue base. Preserve exact nose, lips, closed eyelids, ears and jaw contour of reference. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-af22017e-af90-485c-a12b-978760acd85d.png"
+    },
+    {
+      "sex": "male",
+      "angle": "left45",
+      "layer": "vessels",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-left45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-vessels-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing fine red arteries, blue veins and yellow nerves across face, bald scalp and neck over pale warm ivory tissue base. Preserve exact nose, lips, closed eyelids, ears and jaw contour of reference. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-6090f880-246f-4d41-b570-50e5ce3e3b34.png"
+    },
+    {
+      "sex": "male",
+      "angle": "left90",
+      "layer": "vessels",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-left90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-vessels-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing fine red arteries, blue veins and yellow nerves across face, bald scalp and neck over pale warm ivory tissue base. Preserve exact nose, lips, closed eyelids, ears and jaw contour of reference. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-bb12caf8-c116-4740-9a11-f19ca767cc17.png"
+    },
+    {
+      "sex": "male",
+      "angle": "right45",
+      "layer": "vessels",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-right45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-vessels-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing fine red arteries, blue veins and yellow nerves across face, bald scalp and neck over pale warm ivory tissue base. Preserve exact nose, lips, closed eyelids, ears and jaw contour of reference. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-3c23812d-717a-4d66-89dc-6cf24bef0377.png"
+    },
+    {
+      "sex": "male",
+      "angle": "right90",
+      "layer": "vessels",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-right90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-vessels-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing fine red arteries, blue veins and yellow nerves across face, bald scalp and neck over pale warm ivory tissue base. Preserve exact nose, lips, closed eyelids, ears and jaw contour of reference. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. IMPORTANT: this is the MALE character of reference1. Preserve his longer slender nose, narrower lips, softly tapered jaw and narrow chin; do not feminize his face.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-3611a9be-8d42-444c-9ae1-d6e63e0a9666.png"
+    },
+    {
+      "sex": "male",
+      "angle": "front",
+      "layer": "bone",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-front.png",
+      "palette": null,
+      "prompt": "Use case: scientific-educational. Attached skin portrait defines camera angle and underlying head proportions ONLY. Render its BONE-ONLY SKELETON as a clean anatomical skull with mandible, teeth and a narrow upper cervical vertebral column on pure white. Absolutely NO EXTERNAL EARS, pinnae, skin, flesh, hair, nose cartilage, eyes, lips, neck skin, neck muscles, neck outline or shoulders. Background must show through around cervical vertebrae. External ears are cartilage and MUST BE ABSENT, never bone-colored ear shapes. Use ivory natural bone with realistic apertures, foramina and sutures. Keep orbital centers and mandibular position corresponding to reference; preserve pose, head scale and camera without shifting or zooming. Cranial dome follows skull under hair. Lower vertebrae fade softly to white. One1024x1024 square image, no labels. If reference2 exists it is bone material/style only; geometry always follows reference1. This is an educational skeletal model.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-30d4820c-9d05-43c0-a973-3068a75e8aeb.png"
+    },
+    {
+      "sex": "male",
+      "angle": "left45",
+      "layer": "bone",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-left45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-bone-front.png",
+      "prompt": "Use case: scientific-educational. Attached skin portrait defines camera angle and underlying head proportions ONLY. Render its BONE-ONLY SKELETON as a clean anatomical skull with mandible, teeth and a narrow upper cervical vertebral column on pure white. Absolutely NO EXTERNAL EARS, pinnae, skin, flesh, hair, nose cartilage, eyes, lips, neck skin, neck muscles, neck outline or shoulders. Background must show through around cervical vertebrae. External ears are cartilage and MUST BE ABSENT, never bone-colored ear shapes. Use ivory natural bone with realistic apertures, foramina and sutures. Keep orbital centers and mandibular position corresponding to reference; preserve pose, head scale and camera without shifting or zooming. Cranial dome follows skull under hair. Lower vertebrae fade softly to white. One1024x1024 square image, no labels. If reference2 exists it is bone material/style only; geometry always follows reference1. This is an educational skeletal model.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-a42b04e9-5cc1-420b-a0a2-26a005638dcf.png"
+    },
+    {
+      "sex": "male",
+      "angle": "left90",
+      "layer": "bone",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-left90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-bone-front.png",
+      "prompt": "Use case: scientific-educational. Attached skin portrait defines camera angle and underlying head proportions ONLY. Render its BONE-ONLY SKELETON as a clean anatomical skull with mandible, teeth and a narrow upper cervical vertebral column on pure white. Absolutely NO EXTERNAL EARS, pinnae, skin, flesh, hair, nose cartilage, eyes, lips, neck skin, neck muscles, neck outline or shoulders. Background must show through around cervical vertebrae. External ears are cartilage and MUST BE ABSENT, never bone-colored ear shapes. Use ivory natural bone with realistic apertures, foramina and sutures. Keep orbital centers and mandibular position corresponding to reference; preserve pose, head scale and camera without shifting or zooming. Cranial dome follows skull under hair. Lower vertebrae fade softly to white. One1024x1024 square image, no labels. If reference2 exists it is bone material/style only; geometry always follows reference1. This is an educational skeletal model.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-c6d6c389-a339-4a51-ab2e-74d2bca81d7c.png"
+    },
+    {
+      "sex": "male",
+      "angle": "right45",
+      "layer": "bone",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-right45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-bone-front.png",
+      "prompt": "Use case: scientific-educational. Attached skin portrait defines camera angle and underlying head proportions ONLY. Render its BONE-ONLY SKELETON as a clean anatomical skull with mandible, teeth and a narrow upper cervical vertebral column on pure white. Absolutely NO EXTERNAL EARS, pinnae, skin, flesh, hair, nose cartilage, eyes, lips, neck skin, neck muscles, neck outline or shoulders. Background must show through around cervical vertebrae. External ears are cartilage and MUST BE ABSENT, never bone-colored ear shapes. Use ivory natural bone with realistic apertures, foramina and sutures. Keep orbital centers and mandibular position corresponding to reference; preserve pose, head scale and camera without shifting or zooming. Cranial dome follows skull under hair. Lower vertebrae fade softly to white. One1024x1024 square image, no labels. If reference2 exists it is bone material/style only; geometry always follows reference1. This is an educational skeletal model.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-9849a646-64bb-4560-b9d9-05ae9fcddd91.png"
+    },
+    {
+      "sex": "male",
+      "angle": "right90",
+      "layer": "bone",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-right90.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-bone-front.png",
+      "prompt": "Use case: scientific-educational. Attached skin portrait defines camera angle and underlying head proportions ONLY. Render its BONE-ONLY SKELETON as a clean anatomical skull with mandible, teeth and a narrow upper cervical vertebral column on pure white. Absolutely NO EXTERNAL EARS, pinnae, skin, flesh, hair, nose cartilage, eyes, lips, neck skin, neck muscles, neck outline or shoulders. Background must show through around cervical vertebrae. External ears are cartilage and MUST BE ABSENT, never bone-colored ear shapes. Use ivory natural bone with realistic apertures, foramina and sutures. Keep orbital centers and mandibular position corresponding to reference; preserve pose, head scale and camera without shifting or zooming. Cranial dome follows skull under hair. Lower vertebrae fade softly to white. One1024x1024 square image, no labels. If reference2 exists it is bone material/style only; geometry always follows reference1. This is an educational skeletal model.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-81241cdc-9ef0-437c-9149-b36dbd710966.png"
+    },
+    {
+      "sex": "female",
+      "angle": "left45",
+      "layer": "subcutaneous",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-left45.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-subcutaneous-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing yellow lobulated subcutaneous adipose compartments and delicate pale fibrous septa over face, scalp and neck. Retain nose cartilage, lips and closed eyelids exactly as positioned. Bald scalp follows underlying cranium, without hair volume. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle. Synthetic classroom model, clean illustrative surfaces. Preserve the female character of reference1 exactly; same 45-degree camera and eye/nose/lip/ear positions.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-8a282926-fa05-4dd5-b5ec-fd94ffd3279d.png"
+    },
+    {
+      "sex": "female",
+      "layer": "vessels",
+      "angle": "left45",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-left45.png",
+      "prompt": "Use case: scientific-educational. Create a clean educational illustration of a synthetic female head showing a diagram of facial vessels and nerves. The supplied female portrait is the direct geometry reference: preserve precisely her left45 pose, closed eyes, nose, lips, ears, jaw, expression and framing. Depict fine red arterial paths, blue venous paths and yellow nerve paths drawn over an opaque pale warm ivory mannequin surface. Remove scalp hair and bun; smooth bald cranial dome underneath their volume. Preserve all facial landmark positions. One square1024x1024 image, white background, neutral diffuse light, short upper neck softly fading to white. No labels. This is an artificial teaching model with diagrammatic paths and intact surfaces.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-acc72c3c-f785-433d-9563-9fb68daf1fb8.png"
+    }
+  ],
+  "failures": [
+    {
+      "sex": "female",
+      "layer": [
+        "subcutaneous",
+        "Tecido subcutâneo",
+        "yellow lobulated subcutaneous adipose compartments and delicate pale fibrous septa over face, scalp and neck. Retain nose cartilage, lips and closed eyelids exactly as positioned. Bald scalp follows underlying cranium, without hair volume"
+      ],
+      "angle": "left45",
+      "error": "image generation failed: http 400 Bad Request: Some(\"{\\n  \\\"error\\\": {\\n    \\\"message\\\": \\\"Your request was rejected by the safety system. If you believe this is an error, contact us at help.openai.com and include the request ID 1064d75e-120b-4298-877c-d3f0ac4a8f2c.\\\",\\n    \\\"type\\\": \\\"image_generation_user_error\\\",\\n    \\\"param\\\": null,\\n    \\\"code\\\": \\\"moderation_blocked\\\",\\n    \\\"moderation_details\\\": {\\n      \\\"moderation_stage\\\": \\\"output\\\",\\n      \\\"categories\\\": [\\n        \\\"other\\\"\\n      ]\\n    }\\n  }\\n}\")"
+    },
+    {
+      "sex": "female",
+      "layer": [
+        "vessels",
+        "Vasos e nervos",
+        "fine red arteries, blue veins and yellow nerves across face, bald scalp and neck over pale warm ivory tissue base. Preserve exact nose, lips, closed eyelids, ears and jaw contour of reference"
+      ],
+      "angle": "left45",
+      "error": "image generation failed: http 400 Bad Request: Some(\"{\\n  \\\"error\\\": {\\n    \\\"message\\\": \\\"Your request was rejected by the safety system. If you believe this is an error, contact us at help.openai.com and include the request ID 3da53b21-1284-4aa5-97d6-026cae1d2486.\\\",\\n    \\\"type\\\": \\\"image_generation_user_error\\\",\\n    \\\"param\\\": null,\\n    \\\"code\\\": \\\"moderation_blocked\\\",\\n    \\\"moderation_details\\\": {\\n      \\\"moderation_stage\\\": \\\"output\\\",\\n      \\\"categories\\\": [\\n        \\\"other\\\"\\n      ]\\n    }\\n  }\\n}\")"
+    }
+  ],
+  "rejected": [
+    {
+      "sex": "female",
+      "angle": "front",
+      "layer": "bone",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-skin-front.png",
+      "palette": null,
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing clean dry ivory skull, mandible with natural teeth, and upper cervical vertebrae. Orbital centers match original eyes, mandible corresponds to original chin and jaw, crown lies underneath original hair envelope. No skin, ears, cartilage nose, lips, eyeballs or hair. Do not enlarge skull to fill removed soft tissue. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-86228cfa-df0b-4765-82f7-23bd235be7b5.png"
+    },
+    {
+      "sex": "male",
+      "angle": "front",
+      "layer": "subcutaneous",
+      "reference": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/male-skin-front.png",
+      "palette": "/Users/renannoronha/Downloads/GEST_ENVIO_CODEX/public/clinical-lab/roc-v4/female-subcutaneous-front.png",
+      "prompt": "Use case: scientific-educational identity-preserve. Reference1 is the EXACT skin portrait and dictates identity, pose, anatomy landmarks, scale, framing and lighting. Make a clean SYNTHETIC ANATOMY TEACHING HEAD showing yellow lobulated subcutaneous adipose compartments and delicate pale fibrous septa over face, scalp and neck. Retain nose cartilage, lips and closed eyelids exactly as positioned. Bald scalp follows underlying cranium, without hair volume. This is a head-and-short-upper-neck manufactured educational illustration. Preserve the same person's face and head dimensions, eye/nose/lip/chin/ear positions wherever retained, exact pose and camera distance. No new face. No zoom, shift, stretch or rotation. Completely BALD in this internal layer: no scalp hair, bun, sideburns, eyebrows, eyelashes or stubble; cranial dome follows skull under hair, never retain hairstyle volume. Neutral diffuse light, stable muted tissue materials, pure white background and identical soft lower-neck fade. One square1024x1024 image, one head, no text. If reference2 supplied, use it ONLY for tissue color and drawing style; reference1 alone determines face geometry and angle.",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-bfa987c4-8284-4c04-a181-ab565bbcb2de.png"
+    }
+  ],
+  "tool": "native image_gen",
+  "postprocess": "Uniform sips resize only to 1024x1024; no crop, warp, translation or color correction",
+  "generatedViews": 50,
+  "deployed": false,
+  "validation": "VALIDATION.md"
+}

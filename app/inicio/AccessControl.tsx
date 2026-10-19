@@ -5,7 +5,7 @@ import { ShieldCheck, Users, Plus } from "lucide-react";
 import { ClientSelect } from "./ClientsExperience";
 import { appModules, canAccess, canManageAccess, defaultPermissions, roleLabels, validatePermissions, type AccessRole, type BusinessMember, type ModulePermissions } from "../../lib/access-control";
 import { appStorage, setStorageScope } from "../../lib/local-store";
-import { clearLocalAuthSession, getSupabase, supabaseConfigured } from "../../lib/supabase/client";
+import { clearLocalAuthSession, demoAllowed, getSupabase, supabaseConfigured } from "../../lib/supabase/client";
 
 const demoMembers: BusinessMember[] = [
   { id: "owner", businessId: "demo", name: "Mariana Oliveira", email: "mariana@bellagestao.com.br", role: "owner", active: true, permissions: defaultPermissions("owner") },
@@ -32,7 +32,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
       const db = getSupabase();
       if (!db) return;
       const { data: { user }, error: authError } = await db.auth.getUser();
-      if (authError || !user) { if (request === requestId.current) { setMember(null); setMembers([]); } return; }
+      if (authError || !user) { if (request === requestId.current) { setStorageScope("signed-out","none"); setMember(null); setMembers([]); } return; }
       const { data: memberships, error: membershipError } = await db.from("business_members").select("*, businesses(name)").eq("user_id", user.id).eq("active", true);
       if (membershipError) throw membershipError;
       const rows = memberships ?? [];
@@ -50,11 +50,12 @@ export function AccessProvider({ children }: { children: ReactNode }) {
       established.current = true;
       setMember(activeMember); setMembers((colleagues ?? []).map(normalize));
       setBusinesses(rows.map((row) => ({ id: row.business_id, name: row.businesses?.name ?? "Empreendimento" })));
-    } catch (cause) { if (request === requestId.current) { setMember(null); setError(cause instanceof Error ? cause.message : "Não foi possível carregar suas permissões."); } }
+    } catch { if (request === requestId.current) { setStorageScope("signed-out","none"); setMember(null); setMembers([]); setError("Não foi possível carregar suas permissões. Entre novamente ou contate o administrador."); } }
     finally { if (request === requestId.current) setLoading(false); }
   };
   useEffect(() => {
     if (!supabaseConfigured) {
+      if (!demoAllowed) { setMember(null); setMembers([]); setError("Configure o acesso seguro antes de utilizar o aplicativo."); setLoading(false); return; }
       setStorageScope("demo", "owner");
       let saved = demoMembers;
       try { const value = JSON.parse(appStorage.getItem("gest-demo-members") ?? "null"); if (Array.isArray(value)) saved = value.filter((row) => row && typeof row.id === "string" && typeof row.name === "string" && typeof row.email === "string" && row.role in roleLabels).map((row) => ({ ...row, businessId: "demo", active: row.active === true, permissions: validatePermissions(row.permissions) })); } catch { /* Perfis padrão. */ }
@@ -67,7 +68,9 @@ export function AccessProvider({ children }: { children: ReactNode }) {
     try { const subscription = getSupabase()!.auth.onAuthStateChange(() => { window.setTimeout(() => void load(), 0); }); cleanup = () => subscription.data.subscription.unsubscribe(); } catch { /* load exibe o erro de configuração. */ }
     const refresh = () => { if (document.visibilityState === "visible") void load(); };
     window.addEventListener("focus", refresh);
-    return () => { requestId.current++; cleanup(); window.removeEventListener("focus", refresh); };
+    document.addEventListener("visibilitychange",refresh);
+    const refreshTimer=window.setInterval(refresh,5*60*1000);
+    return () => { requestId.current++; cleanup(); window.clearInterval(refreshTimer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange",refresh); };
   }, []);
   const saveMember = async (next: BusinessMember) => {
     const original = members.find((row) => row.id === next.id);

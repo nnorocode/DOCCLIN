@@ -1,0 +1,415 @@
+/* Approved Maintenance reference. See DESIGN_SYSTEM.md before changing these rules. */
+/* Home uses the shared page inset, without a second centered width constraint. */
+.gest-redesign .gest-ai-home { max-width:none; margin-inline:0; }
+.gest-redesign .gest-dashboard-grid .home-empty-indicator { box-sizing:border-box; height:100%; min-height:132px; padding:14px; border:1px solid #e0e5ea; border-radius:30px; background:#f1f3f5; color:#697581; display:flex; flex-direction:column; gap:var(--module-content-space,12px); }
+.gest-redesign .home-empty-indicator > header { padding-right:56px; min-width:0; }
+.gest-redesign .home-empty-indicator h3 { margin:0; font-family:inherit; font-weight:560; font-size:15px; line-height:1.35; overflow-wrap:anywhere; }
+.gest-redesign .home-empty-indicator > [role="status"] { margin:auto 0; font-size:12px; line-height:1.5; }
+.gest-redesign.dark .gest-dashboard-grid .home-empty-indicator { background:var(--gest-surface,#27313d); border-color:var(--gest-divider,#45515d); color:var(--gest-text,#eef4fb); }
+/* Incremental refinement: Home insights, consultation picker and investment controls. */
+.gest-redesign .gest-insights-heading h2 { display:flex; align-items:center; gap:8px; }
+.gest-redesign .home-insight-grid {
+  --home-insight-title-size:18px;
+  --home-insight-description-size:13px;
+  --home-insight-action-size:12px;
+  --home-insight-label-size:9px;
+}
+.gest-redesign .home-insight-grid .lab-insight-action-card > strong { font-size:var(--home-insight-title-size); }
+.gest-redesign .home-insight-grid .lab-insight-action-head > span { font-size:var(--home-insight-label-size); }
+.gest-redesign .home-insight-grid .lab-insight-action-button { font-size:var(--home-insight-action-size); }
+.gest-redesign .home-insight-grid .lab-insight-action-card > p { font-size:var(--home-insight-description-size)!important; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; }
+.gest-redesign .home-insight-detail { width:min(560px,calc(100vw - 32px)); }
+.gest-redesign .home-insight-detail > p { white-space:normal; line-height:1.5; }
+.gest-redesign .clinical-attendance-day.is-today > .lab-timeline-card { background:#fff; border-color:#e2e8ee; box-shadow:none; }
+.gest-redesign .clinical-draft-grid > article { background:#fff; border-color:#e2e8ee; }
+.gest-redesign .clinical-draft-profile strong { color:#526a80; }
+.gest-redesign .clinical-draft-profile > i { background:#f0f3f6; color:#758596; }
+.gest-redesign .clinical-draft-state { padding:4px 8px; border-radius:12px; background:#f0f3f6; color:#758596; font-size:11.5px; font-weight:570; }
+.gest-redesign .clinical-draft-grid > article.is-overdue { background:#fff7e7; border-color:#eadfc9; }
+.gest-redesign .clinical-draft-grid > article.is-overdue .clinical-draft-state { color:#86632c; background:#f5dfb3; }
+.gest-redesign.dark .clinical-draft-grid > article,.gest-redesign.dark .clinical-attendance-day.is-today > .lab-timeline-card { background:var(--gest-surface); border-color:var(--gest-divider); }
+.gest-redesign.dark .clinical-draft-grid > article.is-overdue { background:#3a3224; border-color:#69583a; }
+.gest-redesign.dark .clinical-draft-profile strong { color:var(--gest-text); }
+.gest-redesign .investment-page .investment-mode-tabs > button { height:var(--module-tab-height); min-height:var(--module-tab-height); padding:0 42px 0 12px; font-family:inherit; }
+.gest-redesign .investment-page .investment-mode-tabs > button > strong { font-size:13px; font-weight:600; }
+.gest-redesign .investment-page :is(.investment-tab-info,.investment-objective-info) { width:20px; height:20px; }
+.gest-redesign .investment-page .investment-objective-picker { padding:var(--module-content-space); background:var(--gest-surface,#f7f9fb); }
+.gest-redesign .investment-page .investment-objective-picker button { min-height:48px; padding:8px 64px 8px 10px; }
+.gest-redesign .investment-page .investment-objective-picker button > i { width:28px; height:28px; }
+.gest-redesign .investment-page .investment-objective-picker button > i svg { width:17px; height:17px; }
+.gest-redesign .investment-page .investment-objective-picker button > strong { font-size:13px; font-weight:600; }
+.gest-redesign .investment-page :is(.investment-objective-picker h2,.investment-form h2,.investment-chart h2) { font-family:inherit; font-size:16px; font-weight:600; line-height:1.4; color:#526a80; }
+.gest-redesign .investment-page :is(.investment-objective-picker .investment-step-number,.investment-form > header .investment-step-number) { width:24px; height:24px; font-size:12px; }
+.gest-redesign .investment-page .investment-form { padding:var(--module-content-space); gap:var(--module-content-space); }
+.gest-redesign .investment-page .investment-form > label { font-size:12px; font-weight:500; }
+.gest-redesign .investment-page .investment-form > label > input { height:38px; min-height:38px; font-size:12px; }
+.gest-redesign .investment-page :is(.investment-goal-workspace,.investment-workspace,.investment-results) { gap:var(--module-content-space); }
+.gest-redesign.dark .investment-page :is(.investment-objective-picker h2,.investment-form h2,.investment-chart h2) { color:var(--gest-text); }
+.gest-redesign {
+  --app-topbar-height:54px;
+  --module-heading-action-height:34px;
+  --module-pagination-height:28px;
+  --module-recommendation-space:40px;
+  --module-title-font-size:32px;
+  --module-title-font-weight:560;
+  --module-title-color:#0d172d;
+}
+
+.gest-redesign.dark { --module-title-color:var(--gest-text,#eef4fb); }
+
+/* Same roles reuse Maintenance; chart, clinical and status variants remain distinct. */
+.gest-redesign .gest-compact-page .client-compact-intro h1 {
+  font-size:var(--module-title-font-size)!important;
+  font-weight:var(--module-title-font-weight);
+  color:var(--module-title-color);
+  line-height:1.18;
+}
+.gest-redesign .gest-compact-page .client-compact-intro :is(.module-title-action .lab-create-activity,.clinical-header-actions > .lab-create-activity),
+.gest-redesign .gest-compact-page .finance-intro :is(.finance-top-actions .lab-create-activity,.finance-context-controls .lab-select-trigger,.finance-basis > div) {
+  height:var(--module-heading-action-height)!important;
+  min-height:var(--module-heading-action-height)!important;
+}
+.gest-redesign .gest-compact-page :is(.finance-chart-library-grid,.finance-settings-grid,.finance-area-grid,.clinical-payment-columns,.clinical-commission-list,.clinical-payment-plan-content) {
+  row-gap:var(--module-section-space);
+}
+.gest-redesign .gest-compact-page :is(.clinical-commission-list,.clinical-payment-plan-content,.clinical-payment-summary-commissions) {
+  margin-top:var(--module-section-space);
+}
+.gest-redesign .gest-compact-page .clinical-payment-summary {
+  margin-block:var(--module-section-space);
+}
+.gest-redesign .gest-compact-page > .clock-page {
+  min-width:0;
+  grid-template-columns:minmax(0,1fr);
+}
+.gest-redesign .gest-compact-page .team-summary-table { min-width:0; }
+
+/* Extra separation before the shared recommendation footer, owned by its margin. */
+.gest-redesign .v2-content .v2-page > :has(+ .professional-recommendation) {
+  margin-bottom:0;
+}
+.gest-redesign .v2-content .v2-page > .professional-recommendation {
+  margin-top:var(--module-recommendation-space);
+}
+
+/* Shorter outer bar; search, account and icon dimensions stay unchanged. */
+.gest-redesign .v2-content > .v2-topbar {
+  height:var(--app-topbar-height);
+  min-height:var(--app-topbar-height);
+  align-items:center;
+}
+
+/* Maintenance is the reference being refined before broader adoption. */
+.gest-redesign .gest-compact-page:has(.maintenance-chart-modern) > .v2-card + .v2-card {
+  margin-top:var(--module-content-space);
+}
+.gest-redesign .gest-compact-page .v2-ranked-client-table > footer .client-select.compact {
+  width:auto;
+  min-width:0;
+}
+.gest-redesign .gest-compact-page .v2-ranked-client-table > footer .client-select.compact .lab-select-trigger {
+  height:var(--module-pagination-height);
+  min-height:var(--module-pagination-height);
+  width:48px;
+  min-width:48px;
+  padding:0 6px;
+  gap:4px;
+}
+.gest-redesign .gest-compact-page .v2-ranked-client-table > footer .pagination :is(button,b) {
+  width:var(--module-pagination-height);
+  min-width:var(--module-pagination-height);
+  height:var(--module-pagination-height);
+  min-height:var(--module-pagination-height);
+}
+
+/* A fixed title line cannot contain wrapped filters; retain every control. */
+@media(max-width:1100px) {
+  .gest-redesign .gest-compact-page .client-compact-intro.has-action {
+    height:auto!important;
+    min-height:var(--module-title-height);
+  }
+  .gest-redesign .gest-compact-page .finance-experience .finance-intro:has(.finance-top-actions) {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) var(--module-heading-action-height);
+    height:auto!important;
+    min-height:var(--module-title-height);
+    row-gap:var(--module-content-space);
+    margin-bottom:var(--module-content-space)!important;
+  }
+  .gest-redesign .gest-compact-page .finance-intro:has(.finance-top-actions) > h1 { grid-area:1 / 1; }
+  .gest-redesign .gest-compact-page .finance-intro > .finance-top-actions { grid-area:2 / 1 / auto / -1; width:100%; margin-left:0; }
+  .gest-redesign .gest-compact-page .finance-intro > .finance-settings-trigger { grid-area:1 / 2; margin-left:0; }
+}
+
+/* Align both Home titles at their shared panel inset, independent of the agenda action height. */
+.gest-redesign .gest-today-grid > .lab-timeline-card > header {
+  align-items:flex-start;
+}
+
+.gest-redesign .gest-compact-page {
+  --module-title-height:42px;
+  --module-content-space:12px;
+  --module-card-gap:14px;
+  --module-section-space:12px;
+  --module-tab-height:40px;
+  --module-history-font:13px;
+}
+
+/* One owner per gap: the preceding structural block. No stacked margins. */
+.gest-redesign .gest-compact-page,
+.gest-redesign .gest-compact-page :is(.clinical-page,.clock-page,.settings-modern,.assistant-pro-page,.investment-page,.first-steps-page,.approved-agenda-page,.finance-experience) {
+  row-gap:0;
+}
+.gest-redesign .gest-compact-page .client-compact-intro {
+  height:var(--module-title-height);
+  min-height:var(--module-title-height);
+  margin-block:0!important;
+  padding-block:0!important;
+}
+.gest-redesign .gest-compact-page .client-overview-metrics {
+  margin-block:0 var(--module-content-space)!important;
+  gap:var(--module-card-gap)!important;
+  row-gap:var(--module-content-space)!important;
+}
+.gest-redesign .gest-compact-page .client-compact-intro + * {
+  margin-top:0!important;
+}
+.gest-redesign .gest-compact-page .client-overview-metrics + * {
+  margin-top:0!important;
+}
+.gest-redesign .gest-compact-page :is(.gest-horizontal-nav,nav.detail-category-tabs,nav.investment-mode-tabs) {
+  margin-block:0 var(--module-content-space)!important;
+  min-width:0;
+}
+.gest-redesign .gest-compact-page :is(.gest-horizontal-nav,nav.detail-category-tabs,nav.investment-mode-tabs) + * {
+  margin-top:0!important;
+}
+
+/* Tabs grow across the available width, retaining their intrinsic width when scrolling. */
+.gest-redesign .gest-compact-page :is(.gest-horizontal-nav > nav,nav.detail-category-tabs,.support-workspace-tabs,.support-journey-filters,nav.investment-mode-tabs) {
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.gest-redesign .gest-compact-page .gest-horizontal-nav > nav {
+  flex:1 1 0;
+  margin:0!important;
+}
+.gest-redesign .gest-compact-page :is(.gest-horizontal-nav > nav,nav.detail-category-tabs,.support-workspace-tabs,.support-journey-filters,nav.investment-mode-tabs) > button {
+  flex:1 0 auto!important;
+  width:auto;
+  min-width:max-content;
+  justify-content:center;
+  text-align:center;
+  white-space:nowrap;
+}
+.gest-redesign .gest-compact-page :is(.gest-horizontal-nav > nav,nav.detail-category-tabs) > button {
+  min-height:var(--module-tab-height);
+}
+
+/* Settings are always the final action in page headings. */
+.gest-redesign .gest-compact-page .client-compact-intro :is(.module-settings-trigger,.clinical-settings-button) {
+  order:99;
+  flex-shrink:0;
+}
+
+/* Consultations and patient files share the same title → cards → tabs sequence. */
+.gest-redesign .gest-compact-page .clinical-page {
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+.gest-redesign .gest-compact-page .clinical-section-content {
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  gap:var(--module-section-space);
+}
+.gest-redesign .gest-compact-page .clinical-section-content > :not([hidden]) {
+  margin-block:0!important;
+}
+.gest-redesign .gest-compact-page .clinical-section-content > [hidden] { display:none; }
+
+/* Compact Reports filter strip: controls + six pixels on each side. */
+.gest-redesign .gest-compact-page .reports-unwrapped > header.reports-filter-row {
+  margin:0 0 var(--module-content-space);
+  padding:6px 8px;
+  gap:8px;
+  min-height:0;
+  height:auto;
+  align-items:center!important;
+}
+.gest-redesign .gest-compact-page .reports-filter-row .lab-select-trigger {
+  height:36px;
+  min-height:36px;
+}
+
+/* Consistent hierarchy across every entry in a patient's history. */
+.gest-redesign .gest-compact-page .patient-history-date > h3 {
+  margin:0 0 var(--module-content-space);
+  font-size:14px;
+  line-height:20px;
+}
+.gest-redesign .gest-compact-page .patient-history-date + .patient-history-date {
+  margin-top:var(--module-section-space);
+}
+.gest-redesign .gest-compact-page .patient-history .clinical-timeline {
+  gap:var(--module-content-space);
+}
+.gest-redesign .gest-compact-page .patient-history .clinical-timeline > article {
+  gap:8px;
+  padding:14px 16px;
+  font-size:var(--module-history-font);
+  line-height:1.5;
+}
+.gest-redesign .gest-compact-page .patient-history .clinical-timeline > article > strong {
+  font-size:14px;
+  line-height:1.5;
+  font-weight:600;
+}
+.gest-redesign .gest-compact-page .patient-history .clinical-timeline :is(p,ul,li,details,.patient-history-payment) {
+  margin-block:0;
+  font-size:var(--module-history-font);
+  line-height:1.5;
+}
+.gest-redesign .gest-compact-page .patient-history-payment > strong {
+  font-size:18px;
+  line-height:1.5;
+}
+
+/* Payment reuses the record panels, field controls and shared spacing scale. */
+.gest-redesign .clinical-payment-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--module-section-space); }
+.gest-redesign .clinical-payment-columns > section,
+.gest-redesign .clinical-commission-list > article { min-width:0; padding:16px; border:1px solid #e2eaf2; border-radius:18px; background:#f7f9fb; }
+.gest-redesign .clinical-payment-columns h3,
+.gest-redesign .clinical-payment-summary h3 { display:flex; align-items:center; gap:8px; margin:0 0 16px; color:#526b82; font-size:14px; font-weight:600; }
+.gest-redesign .clinical-payment-columns .clinical-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); margin:0; gap:16px; }
+.gest-redesign .clinical-payment-columns :is(.client-select,.clinical-field),
+.gest-redesign .clinical-commission-list :is(.client-select,.clinical-field) { min-width:0; width:100%; margin:0; }
+.gest-redesign .clinical-payment-columns .workflow-helper { margin-top:12px; }
+.gest-redesign .clinical-payment-totals { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:16px; }
+.gest-redesign .clinical-payment-totals > span { display:grid; gap:6px; padding:12px; border:1px solid #e2eaf2; border-radius:16px; color:#738295; background:#f7f9fb; font-size:12px; }
+.gest-redesign .clinical-payment-totals strong { color:#35649b; font-size:18px; font-weight:600; }
+.gest-redesign :is(.clinical-receipt-schedule,.clinical-treatment-plan) > summary { cursor:pointer; color:#526b82; font-size:14px; font-weight:600; }
+.gest-redesign .clinical-receipt-schedule { margin-top:16px; }
+.gest-redesign .clinical-receipt-schedule > div { display:grid; gap:8px; margin:12px 0; }
+.gest-redesign .clinical-receipt-schedule article { display:flex; align-items:center; gap:16px; padding:10px 12px; border-radius:14px; background:#f7f9fb; color:#60758a; font-size:13px; }
+.gest-redesign .clinical-receipt-schedule article strong { margin-left:auto; color:#35649b; font-weight:600; }
+.gest-redesign .clinical-commission-list { display:grid; gap:12px; margin-top:16px; }
+.gest-redesign .clinical-commission-list article > header { display:flex; align-items:center; flex-wrap:wrap; justify-content:space-between; gap:8px; margin-bottom:16px; color:#526b82; font-size:14px; }
+.gest-redesign .clinical-commission-list article > header span { font-size:12px; color:#738295; }
+.gest-redesign .clinical-commission-list .clinical-form-grid { grid-template-columns:minmax(180px,1.3fr) minmax(90px,.6fr) minmax(160px,1.2fr) minmax(130px,.9fr); gap:16px; margin:0; }
+.gest-redesign .clinical-commission-list .workflow-helper { margin-top:12px; }
+.gest-redesign .clinical-payment-plan-content { display:grid; gap:16px; margin-top:16px; }
+.gest-redesign .clinical-payment-review-action { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.gest-redesign .clinical-payment-review-action > p { margin:0!important; }
+.gest-redesign .clinical-payment-review-action > button { margin:0!important; flex:none; }
+.gest-redesign .clinical-payment-summary { margin-block:16px; }
+.gest-redesign .clinical-payment-summary .client-record-fields { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.gest-redesign .clinical-payment-summary-commissions { margin-top:16px; }
+.gest-redesign .clinical-payment-summary-commissions p { display:grid; gap:6px; margin:0 0 12px; color:#60758a; font-size:13px; }
+.gest-redesign.dark :is(.clinical-payment-columns > section,.clinical-commission-list > article,.clinical-payment-totals > span,.clinical-receipt-schedule article) { background:#1f3043; border-color:#364b60; }
+.gest-redesign.dark :is(.clinical-payment-columns h3,.clinical-payment-summary h3,.clinical-commission-list header,.clinical-treatment-plan > summary,.clinical-receipt-schedule > summary) { color:#b8d5f1; }
+@media(max-width:1100px) { .gest-redesign .clinical-commission-list .clinical-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:850px) { .gest-redesign .clinical-payment-columns { grid-template-columns:1fr; }.gest-redesign .clinical-payment-totals { grid-template-columns:repeat(2,minmax(0,1fr)); }.gest-redesign .clinical-payment-review-action { flex-wrap:wrap; } }
+@media(max-width:550px) { .gest-redesign .clinical-payment-columns .clinical-form-grid,.gest-redesign .clinical-commission-list .clinical-form-grid,.gest-redesign .clinical-payment-summary .client-record-fields { grid-template-columns:1fr; } }
+
+/* Ajustes aprovados em 19/10: mesmos papéis, mesmas medidas. */
+.gest-redesign {
+  --module-step-background:#355f80;
+  --module-step-text:#dceaf3;
+  --module-step-size:24px;
+  --module-form-label-size:12px;
+}
+.gest-redesign .investment-page .investment-feasibility.is-analysis > .investment-step-number,
+.gest-redesign :is(.clinical-section-number,.investment-step-number),
+.gest-redesign .investment-page :is(.investment-objective-picker,.investment-form > header) .investment-step-number,
+.gest-redesign .pricing-workspace .pricing-form > .pricing-section > h3::before {
+  display:inline-flex; align-items:center; justify-content:center; flex:none;
+  width:var(--module-step-size); height:var(--module-step-size); border-radius:50%;
+  background:var(--module-step-background); color:var(--module-step-text); font-size:12px; font-weight:600; line-height:1;
+}
+.gest-redesign .pricing-workspace .pricing-form > .pricing-section > h3 {
+  font-size:16px!important; font-weight:600; color:#526a80; line-height:1.4;
+}
+/* Keep the real heading text; the previous pseudo-element rewrote titles. */
+.gest-redesign .pricing-workspace .pricing-form > .pricing-section > h3::after { content:none; }
+.gest-redesign .pricing-workspace .pricing-section :is(label,input,.lab-select-trigger),
+.gest-redesign .pricing-workspace .pricing-section .client-select > label { font-size:var(--module-form-label-size)!important; }
+.gest-redesign .clinical-attendance-days + .clinical-drafts { margin-top:var(--module-recommendation-space); }
+.gest-redesign .clinical-draft-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:var(--module-content-space); }
+.gest-redesign .clinical-draft-grid > article { min-width:0; width:100%; border-radius:20px; }
+.gest-redesign .clinical-draft-grid > article :is(strong,span,small) { overflow-wrap:anywhere; }
+.gest-redesign .crm-contact-followups { margin:var(--module-content-space) 0 0; padding:0; border:0; background:transparent; }
+.gest-redesign .crm-contact-followups > summary { width:fit-content; cursor:pointer; color:var(--gest-text,#526a80); font-size:12px; padding:8px 0; }
+.gest-redesign .shelf-kanban-crm .shelf-kanban-meta { flex-wrap:wrap; }
+.gest-redesign .shelf-kanban-crm .shelf-kanban-person { flex:1 1 100%; min-width:0; text-align:left; }
+.gest-redesign .shelf-kanban-crm .shelf-kanban-person > span { min-width:0; white-space:normal; overflow:visible; overflow-wrap:anywhere; }
+.gest-redesign .settings-plans { display:grid; gap:var(--module-content-space); }
+.gest-redesign .settings-plan-comparison { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--module-content-space); align-items:stretch; }
+.gest-redesign .settings-plan-option { display:flex; flex-direction:column; min-width:0; gap:var(--module-content-space); padding:18px; }
+.gest-redesign .settings-plan-option.is-current { border:2px solid #7fabc9; background:#eff6fb; }
+.gest-redesign .settings-plan-option h2 { display:flex; align-items:center; gap:8px; font-size:16px; }
+.gest-redesign .settings-plan-option ul { margin:0; padding:0; list-style:none; display:grid; gap:10px; }
+.gest-redesign .settings-plan-option li { display:flex; align-items:flex-start; gap:8px; font-size:12px; line-height:1.5; }
+.gest-redesign .settings-plan-option li svg { flex:none; margin-top:2px; color:#5d8aab; }
+.gest-redesign .settings-plan-option footer { margin-top:auto; padding-top:var(--module-content-space); }
+.gest-redesign .settings-plan-option footer .lab-create-activity { width:100%; height:auto; min-height:var(--module-heading-action-height); white-space:normal; text-align:center; }
+.gest-redesign .settings-plan-badge { display:inline-block; padding:5px 9px; border-radius:14px; color:#526a80; background:#edf1f5; font-size:11px; }
+.gest-redesign .is-current .settings-plan-badge { color:#355f80; background:#dceaf3; }
+.gest-redesign .settings-plan-usage .settings-usage { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--module-content-space); }
+.gest-redesign .agenda-review-participants { margin:0 0 var(--module-content-space); padding:var(--module-content-space); border:1px solid var(--gest-divider,#dce5ed); border-radius:18px; min-width:0; }
+.gest-redesign .agenda-review-participants legend { font-size:13px; font-weight:600; padding-inline:6px; }
+.gest-redesign .agenda-confirm-grid .agenda-responsible-confirm { display:flex; flex-direction:row; align-items:center; gap:8px; }
+.gest-redesign .agenda-responsible-confirm input[type=checkbox] { width:18px; height:18px; min-height:18px; flex:none; accent-color:var(--module-step-background); }
+.gest-redesign .purchase-market-results button.active { outline:2px solid #7fabc9; outline-offset:2px; }
+.gest-redesign .purchase-market-chart { height:260px; min-width:0; margin:var(--module-content-space) 0; }
+@media(max-width:850px) {
+  .gest-redesign .settings-plan-comparison { grid-template-columns:1fr; }
+  .gest-redesign .settings-plan-usage .settings-usage { grid-template-columns:1fr; }
+}
+
+/* Compras: cotações identificáveis e atalhos visuais para marketplaces. */
+.gest-redesign :is(.purchase-quote-section,.purchase-marketplace-section) {
+  --purchase-card-bg:#f7f9fb; --purchase-card-border:#dfe7ee;
+  --purchase-copy:#526a80; --purchase-muted:#718497; --purchase-icon-bg:#eaf0f5;
+  margin-top:var(--module-section-space); min-width:0;
+}
+.gest-redesign :is(.purchase-quote-section,.purchase-marketplace-section) > header {
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  margin-bottom:var(--module-content-space);
+}
+.gest-redesign :is(.purchase-quote-section,.purchase-marketplace-section) h4 { margin:0; font-size:14px; font-weight:600; }
+.gest-redesign :is(.purchase-quote-section,.purchase-marketplace-section) > header > span { color:var(--purchase-muted); font-size:11px; }
+.gest-redesign .purchase-quote-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--module-content-space); }
+.gest-redesign .purchase-quote-card { min-width:0; padding:14px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; border:1px solid var(--purchase-card-border); border-radius:20px; background:var(--purchase-card-bg); }
+.gest-redesign .purchase-quote-supplier { display:flex; align-items:center; gap:9px; min-width:0; }
+.gest-redesign .purchase-quote-supplier > i { display:grid; place-items:center; flex:none; width:34px; height:34px; border-radius:12px; color:var(--purchase-copy); background:var(--purchase-icon-bg); }
+.gest-redesign .purchase-quote-supplier > div { display:grid; gap:4px; min-width:0; }
+.gest-redesign .purchase-quote-supplier strong { font-size:13px; font-weight:600; overflow-wrap:anywhere; color:var(--purchase-copy); }
+.gest-redesign .purchase-quote-card small { font-size:11px; color:var(--purchase-muted); }
+.gest-redesign .purchase-quote-price { display:grid; align-content:center; gap:4px; text-align:right; }
+.gest-redesign .purchase-quote-price strong { color:var(--purchase-copy); font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.gest-redesign .purchase-quote-card > footer { grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding-top:10px; border-top:1px solid var(--purchase-card-border); }
+.gest-redesign .purchase-quote-card time { display:inline-flex; align-items:center; gap:5px; color:var(--purchase-muted); font-size:11px; }
+.gest-redesign .purchase-quote-badge { border-radius:12px; padding:4px 7px; background:#e5f1e9; color:#39674d; font-size:10px; font-weight:600; }
+.gest-redesign .purchase-marketplace-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--module-content-space); }
+.gest-redesign .purchase-marketplace-card { display:flex; align-items:center; gap:10px; min-width:0; padding:12px; border:1px solid var(--purchase-card-border); border-radius:20px; color:var(--purchase-copy); background:var(--purchase-card-bg); text-decoration:none; transition:border-color .15s,background-color .15s; }
+.gest-redesign .purchase-marketplace-card:hover { border-color:#7fabc9; background:var(--purchase-icon-bg); }
+.gest-redesign .purchase-marketplace-card:focus-visible { outline:2px solid #7fabc9; outline-offset:3px; }
+.gest-redesign .purchase-marketplace-logo { display:grid; place-items:center; flex:none; width:46px; height:46px; border-radius:14px; background:#fff; border:1px solid #e4e8ed; }
+.gest-redesign .purchase-marketplace-logo img { display:block; object-fit:contain; max-width:32px; max-height:32px; }
+.gest-redesign .purchase-marketplace-copy { display:grid; gap:5px; min-width:0; flex:1; }
+.gest-redesign .purchase-marketplace-copy strong { font-size:13px; font-weight:600; overflow-wrap:anywhere; }
+.gest-redesign .purchase-marketplace-copy small { color:var(--purchase-muted); font-size:11px; }
+.gest-redesign .purchase-marketplace-card > svg { flex:none; color:var(--purchase-muted); }
+@media(max-width:650px) { .gest-redesign :is(.purchase-quote-grid,.purchase-marketplace-grid) { grid-template-columns:1fr; } }
+@media(max-width:420px) { .gest-redesign .purchase-quote-card { grid-template-columns:minmax(0,1fr); }.gest-redesign .purchase-quote-price { text-align:left; } }
+/* Fit the actual panel width as well as the viewport (sidebar and app scale vary). */
+.gest-redesign :is(.purchase-quote-section,.purchase-marketplace-section) { container:purchase-detail / inline-size; }
+@container purchase-detail (max-width:520px) { .gest-redesign :is(.purchase-quote-grid,.purchase-marketplace-grid) { grid-template-columns:1fr; } }
+@container purchase-detail (max-width:300px) { .gest-redesign .purchase-quote-card { grid-template-columns:minmax(0,1fr); }.gest-redesign .purchase-quote-price { text-align:left; } }

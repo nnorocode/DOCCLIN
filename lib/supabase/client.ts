@@ -3,6 +3,8 @@ let client: SupabaseClient | null = null;
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const publicKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 export const supabaseConfigured = Boolean(url || publicKey);
+// Demo is local development only. Missing production configuration fails closed.
+export const demoAllowed = process.env.NODE_ENV === "development" && !supabaseConfigured;
 let rememberSession = true;
 try { if (typeof window !== "undefined") rememberSession = window.localStorage.getItem("gest-auth-remember") !== "false"; } catch { rememberSession = false; }
 const authStorage = {
@@ -17,7 +19,10 @@ export function setSessionPersistence(remember: boolean) {
 }
 export function clearLocalAuthSession() { authStorage.removeItem("gest-supabase-auth"); authStorage.removeItem("gest-supabase-auth-code-verifier"); }
 export function getSupabase(): SupabaseClient | null {
-  if (!supabaseConfigured) return null;
+  if (!supabaseConfigured) {
+    if (demoAllowed) return null;
+    throw new Error("Configure o acesso seguro antes de utilizar o aplicativo.");
+  }
   if (client) return client;
   if (!url || !publicKey) throw new Error("Preencha a URL e a chave pública do Supabase.");
   const parsed = new URL(url);

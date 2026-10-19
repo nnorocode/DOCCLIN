@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { indicatorValue, money, useDataRevision } from "../../lib/operational-data";
 import { ClientSelect, StandardModuleTop } from "./ClientsExperience";
 import { InformativeMetricCardPreview, InsightActionCardPreview, type CardTone } from "../laboratorio/page";
 import {
@@ -25,20 +26,9 @@ import {
   X,
 } from "lucide-react";
 
-const insights = [
-  { icon: TrendingUp, tone: "green", title: "Seu faturamento cresceu 18,6% nos últimos 30 dias.", detail: "Eu comparei o resultado com o período anterior e identifiquei uma evolução acima da média.", action: "Ir para Vendas", view: "Vendas" },
-  { icon: UsersRound, tone: "orange", title: "3 clientes importantes não compram há mais de 60 dias.", detail: "Eu estimei que esses clientes representaram R$ 29.450 em vendas no último semestre.", action: "Ir para Clientes", view: "Clientes" },
-  { icon: Boxes, tone: "purple", title: "12 produtos estão próximos do estoque mínimo.", detail: "Minha sugestão é antecipar a reposição para evitar rupturas e perda de vendas.", action: "Ir para Estoque", view: "Estoque" },
-  { icon: WalletCards, tone: "blue", title: "As contas a pagar desta semana somam R$ 8.430,20.", detail: "Eu encontrei vencimentos concentrados nos próximos três dias.", action: "Ir para Financeiro", view: "Financeiro" },
-];
+const insights = [] as Array<{icon:typeof TrendingUp;tone:string;title:string;detail:string;action:string;view:string}>;
 
-const priorities = [
-  { id: "estoque", title: "Regularizar 12 produtos em estoque baixo", detail: "Risco de rupturas nos próximos 15 dias", level: "Alta", area: "Estoque", tone: "high" },
-  { id: "clientes", title: "Reativar 3 clientes inativos", detail: "Última compra há mais de 60 dias", level: "Alta", area: "Clientes", tone: "high" },
-  { id: "financeiro", title: "Atenção com contas a pagar", detail: "R$ 8.430,20 vencem esta semana", level: "Média", area: "Financeiro", tone: "medium" },
-  { id: "vendas", title: "Aproveitar produtos mais vendidos", detail: "Oportunidade de aumentar o ticket médio", level: "Média", area: "Vendas", tone: "medium" },
-  { id: "agenda", title: "Revisar agenda desta semana", detail: "2 compromissos importantes hoje", level: "Média", area: "Agenda", tone: "medium" },
-];
+const priorities = [] as Array<{id:string;title:string;detail:string;level:string;area:string;tone:string}>;
 
 function easterSunday(year: number) {
   const a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4;
@@ -75,11 +65,7 @@ function commercialDates(year: number, month: number) {
   return events.sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
-const opportunities = [
-  { icon: Megaphone, tone: "green", title: "Campanha de reativação", text: "Eu posso preparar uma mensagem personalizada para clientes inativos.", value: "Potencial: R$ 12.450,00", action: "Criar campanha", view: "Clientes" },
-  { icon: Gift, tone: "purple", title: "Promoção de kits", text: "Eu reuni produtos que vendem bem juntos e podem elevar o ticket médio.", value: "Potencial: +18%", action: "Abrir Catálogo", view: "Catálogo" },
-  { icon: WalletCards, tone: "orange", title: "Lembrete de cobrança", text: "Eu posso organizar lembretes para clientes com contas em aberto.", value: "Potencial: R$ 9.230,00", action: "Abrir Financeiro", view: "Financeiro" },
-];
+const opportunities = [] as Array<{icon:typeof TrendingUp;tone:string;title:string;text:string;value:string;action:string;view:string}>;
 
 const managerQuestions = [
   ["Por que o lucro caiu?", "Compare receita, custos e margem com o período anterior.", "Financeiro"],
@@ -90,7 +76,12 @@ const managerQuestions = [
 ] as const;
 
 export default function AssistantExperience({ onNavigate }: { onNavigate?: (view: string) => void }) {
-  const [selected, setSelected] = useState(priorities[0]);
+  useDataRevision();
+  const due=indicatorValue("Contas vencidas"), stock=indicatorValue("Estoque em alerta");
+  const insights=[...(due>0?[{icon:WalletCards,tone:"blue",title:"Há valores vencidos nos lançamentos",detail:money(due)+" registrados em atraso",action:"Ir para Financeiro",view:"Financeiro"}]:[]),...(stock>0?[{icon:Boxes,tone:"orange",title:stock+" itens em alerta no estoque",detail:"Confira os produtos sinalizados no cadastro",action:"Ir para Estoque",view:"Estoque"}]:[])];
+  const priorities=insights.map((item,index)=>({id:item.view,title:item.title,detail:item.detail,level:"Alta",area:item.view,tone:"high"}));
+  const opportunities=[] as Array<{icon:typeof TrendingUp;tone:string;title:string;text:string;value:string;action:string;view:string}>;
+  const [selected, setSelected] = useState(priorities[0] ?? {id:"empty",title:"Sem alertas registrados",detail:"Não há dados suficientes para esta análise",area:"",level:"",tone:""});
   const [conversationOpen, setConversationOpen] = useState(false);
   const [approved, setApproved] = useState<string[]>([]);
   const [scope, setScope] = useState("Visão geral");
@@ -109,10 +100,10 @@ export default function AssistantExperience({ onNavigate }: { onNavigate?: (view
         action={<ClientSelect compact hideLabel label="Visão" value={scope} onChange={setScope} options={["Visão geral", "Prioridades", "Oportunidades"]} />}
       >
         {[
-          ["Insights gerados", "18", "+12,5%", Lightbulb, "blue"],
-          ["Alertas críticos", "4", "+33,3%", CircleAlert, "rose"],
-          ["Oportunidades", "9", "+20,6%", Target, "teal"],
-          ["Ações recomendadas", "12", "Novas recomendações", CheckCircle2, "violet"],
+          ["Insights gerados", String(insights.length), "Dos registros", Lightbulb, "blue"],
+          ["Alertas críticos", String(priorities.length), "Dos registros", CircleAlert, "rose"],
+          ["Oportunidades", String(opportunities.length), "Dos registros", Target, "teal"],
+          ["Ações recomendadas", String(priorities.length), "Dos registros", CheckCircle2, "violet"],
         ].map(([label, value, detail, Icon, tone]) => (
           <InformativeMetricCardPreview key={String(label)} title={label as string} value={value as string} change={detail as string} icon={Icon as typeof Lightbulb} tone={tone as CardTone} />
         ))}

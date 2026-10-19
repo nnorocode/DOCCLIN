@@ -1,0 +1,107 @@
+/* Approved module spacing and compact controls, shared by the app's lists. */
+.gest-redesign .gest-horizontal-nav { display:flex; align-items:center; }
+.gest-redesign .gest-horizontal-nav > nav { flex:1; overflow-x:auto; scrollbar-width:none; }
+.gest-redesign .gest-horizontal-nav-arrow { flex:none; }
+.gest-redesign .gest-horizontal-nav-arrow[hidden] { display:none!important; }
+
+.gest-redesign :is(.shelf-kanban-crm,.shelf-kanban-workflow) {
+  --kanban-columns:5;
+  grid-auto-columns:max(190px,calc((100% - (var(--kanban-columns) - 1)*12px)/var(--kanban-columns)))!important;
+  gap:12px; scrollbar-gutter:auto; padding-top:0;
+}
+.gest-redesign .shelf-kanban > article { min-width:0; }
+.gest-redesign .shelf-kanban > article > header { gap:6px; }
+.gest-redesign .shelf-kanban > article > header > strong { font-size:13px; }
+.gest-redesign .workflow-scroll-control[hidden] { display:none!important; }
+.gest-redesign .crm-kanban-shell { margin-top:var(--module-content-space,12px)!important; }
+
+.gest-redesign .clinical-attendance-days { padding:0; border:0; background:transparent; box-shadow:none; gap:16px; }
+.gest-redesign .clinical-attendance-day { min-width:0; padding:16px; gap:12px; border:1px solid #e2e8ee; border-radius:24px; background:#f7f9fb; }
+.gest-redesign .clinical-attendance-day.is-adjacent { background:#f4f6f8; color:#8191a1; }
+.gest-redesign .clinical-attendance-day.is-adjacent > .lab-timeline-card { opacity:.7; }
+.gest-redesign .clinical-attendance-day.is-today { border-color:#bfd5e9; background:#fff; box-shadow:0 8px 26px #315d9110; }
+.gest-redesign .clinical-attendance-day > h3 { margin:0; text-align:center; }
+.gest-redesign .clinical-attendance-day > .lab-timeline-card { margin:0; padding:10px; border-radius:18px; }
+.gest-redesign .clinical-attendance-day .lab-timeline-list > article { grid-template-columns:40px 24px minmax(0,1fr); gap:8px; align-items:center; }
+.gest-redesign .clinical-attendance-day .lab-timeline-actions { grid-column:1/-1; display:flex; flex-direction:row; justify-content:flex-end; align-items:center; gap:8px; width:100%; }
+.gest-redesign .clinical-attendance-day .lab-timeline-list article :is(strong,small,span) { white-space:normal; overflow-wrap:anywhere; text-overflow:clip; }
+.gest-redesign .clinical-attendance-day .lab-timeline-list::before { display:none; }
+.gest-redesign .clinical-drafts { padding:0; border:0; background:transparent; box-shadow:none; }
+.gest-redesign .clinical-drafts > header { margin:0 0 14px; }
+.gest-redesign .clinical-drafts h2 { display:flex; align-items:center; gap:8px; margin:0; color:#315d91; font-family:inherit; font-size:17px; font-weight:600; line-height:1.4; }
+.gest-redesign .clinical-draft-grid > article { background:#f5f8fb; gap:10px; }
+.gest-redesign .clinical-draft-grid > article > .lab-create-activity { margin-top:auto; }
+.clinical-draft-profile { display:flex; align-items:center; gap:10px; width:100%; }
+.clinical-draft-profile > i { display:grid; place-items:center; width:40px; height:40px; flex:none; border-radius:50%; background:#e7eef6; color:#6384a6; }
+.clinical-draft-profile > div { min-width:0; display:grid; gap:4px; }
+.clinical-draft-profile strong { color:#315d91; font-size:14px; overflow-wrap:anywhere; }
+.clinical-draft-profile small { font-size:11px; color:#8190a0; }
+
+.gest-redesign .v2-ranked-client-table th.client-name-heading { text-align:center!important; }
+.client-directory-scroll { width:100%; overflow-x:auto; }
+.gest-redesign .client-directory-table { width:100%; min-width:1000px; table-layout:auto!important; }
+.gest-redesign .client-directory-table :is(th,td) { display:table-cell!important; width:auto!important; position:static!important; padding:12px 8px; vertical-align:middle; }
+.gest-redesign .client-directory-table td:nth-child(3) { min-width:160px; text-align:left!important; }
+.gest-redesign .client-directory-table td:nth-child(3) { padding-left:16px!important; }
+.gest-redesign .client-directory-table td:nth-child(3) > .initials { display:inline-flex!important; float:none; width:32px; height:32px; margin:0 8px 0 0!important; align-items:center; justify-content:center; vertical-align:middle; font-style:normal; }
+.gest-redesign .client-directory-table td:nth-child(3) > div { display:inline-block!important; width:calc(100% - 48px)!important; min-width:0!important; margin:0!important; vertical-align:middle; text-align:left; }
+.gest-redesign .client-directory-table td:nth-child(3) strong { white-space:normal; }
+.gest-redesign .client-directory-table td.client-actions-cell { min-width:220px; white-space:nowrap; text-align:center; }
+.gest-redesign .client-directory-table td.client-actions-cell > button { margin:0 2px; vertical-align:middle; }
+.gest-redesign .v2-ranked-client-table :is(.client-details-action,.client-document-status) {
+  min-height:28px!important; height:28px!important; padding:4px 10px!important;
+  width:auto; border:1px solid #e1e8ef; border-radius:16px; background:#fff!important;
+  color:#58789b; font-family:inherit; font-size:12px!important; line-height:18px; box-shadow:none;
+}
+.gest-redesign .client-documents-dialog { overflow-x:hidden; white-space:normal!important; }
+.gest-redesign .client-documents-dialog :is(p,article,small,h2) { white-space:normal!important; overflow-wrap:anywhere; max-width:100%; min-width:0; }
+.gest-redesign .client-documents-dialog p { font:inherit; font-size:13px; line-height:1.6; color:#647b91; }
+.gest-redesign .client-documents-dialog > header > button { flex:none; }
+
+.gest-redesign table .gest-empty-list-row > td,
+.gest-redesign table td.finance-empty { height:220px; text-align:center!important; vertical-align:middle; color:#7890a3; font-family:inherit; font-size:12px; font-weight:400; line-height:1.5; }
+.gest-redesign table .gest-empty-list-row > td > span { display:block; text-align:center; font-size:12px; font-weight:400; }
+body .gest-redesign .gest-compact-page table tbody .gest-empty-list-row { display:table-row!important; }
+body .gest-redesign .gest-compact-page table tbody .gest-empty-list-row > td { display:table-cell!important; width:auto!important; min-width:0!important; max-width:none!important; padding:20px!important; text-align:center!important; }
+.finance-table-scroll:has(.gest-empty-list-row) > p.finance-empty { display:none; }
+
+/* A plot fills its card, leaving only the regular padding below its legend. */
+.gest-redesign table thead th { text-align:center!important; vertical-align:middle; }
+.gest-redesign .client-directory-table td:nth-child(3) > .initials, .gest-redesign .client-grid-card .initials { border:2px solid rgba(255,255,255,.76); border-radius:50%; color:#535963; background:rgba(255,255,255,.62); font-size:11px!important; font-weight:650; }
+.gest-redesign .lab-agenda-time-grid article footer i { font-size:10px; }
+.gest-redesign .purchase-market-detail { min-width:0; }
+.gest-redesign .purchase-market-detail > header { display:flex!important; flex-wrap:wrap; min-width:0; gap:12px; }
+.gest-redesign .purchase-market-detail > header h3 { flex:1 1 180px!important; min-width:0; }
+.gest-redesign .purchase-market-detail > header .lab-select { position:relative!important; inset:auto!important; flex:0 1 140px!important; width:140px!important; min-width:100px!important; max-width:100%!important; }
+.gest-redesign .purchase-market-detail > header .lab-select-trigger { width:100%; white-space:nowrap; height:32px; min-height:32px; color:#607d98; font:inherit; font-size:12px; border-radius:18px; }
+.gest-redesign .home-ai-analysis { padding-top:0; }
+.gest-redesign .home-ai-thinking-layer { background:#101017; }
+.gest-redesign .home-ai-thinking-layer:has(.is-ready) { pointer-events:none; }
+.gest-redesign .gest-empty-list-panel { min-height:220px; display:flex; align-items:center; justify-content:center; width:100%; color:#738295; font-size:12px; }
+.gest-redesign table tbody .gest-empty-list-row { display:table-row!important; }
+.gest-redesign table tbody .gest-empty-list-row > td { display:table-cell!important; float:none!important; position:static!important; width:auto!important; height:220px!important; text-align:center!important; vertical-align:middle!important; padding:20px!important; }
+.gest-redesign .finance-pie-layout > div:last-child span { font-size:13px!important; line-height:1.6; }
+.gest-redesign .home-recommendation-context, .gest-redesign .home-recommendation-method { color:#607d98; font-size:12px; line-height:1.5; }
+.gest-redesign .home-recommendation-method { margin:8px 0 16px; }
+.gest-redesign .home-recommendation-method summary { cursor:pointer; }
+.gest-redesign .finance-chart-model { min-height:0; grid-template-rows:auto 240px; row-gap:8px; padding-bottom:14px; }
+.gest-redesign .finance-chart-model.finance-chart-main { min-height:0; grid-template-rows:auto 300px; }
+.gest-redesign .finance-chart-model > div:last-child { height:240px; min-height:0; padding-top:0; }
+.gest-redesign .finance-chart-model.finance-chart-main > div:last-child { height:300px; min-height:0; }
+.gest-redesign .reports-modern .report-model-card { height:auto; min-height:0; grid-template-rows:auto 240px; row-gap:8px; padding-bottom:14px; }
+.gest-redesign .reports-modern .report-model-card .report-finance-chart { margin-top:0; padding-bottom:0; }
+.gest-redesign :is(.finance-chart-model,.report-model-card,.report-finance-chart) .recharts-legend-wrapper { padding-bottom:0!important; }
+.gest-redesign :is(.finance-chart-model,.reports-modern) .gest-chart-mode,
+.gest-redesign .finance-mini-chart-filter { box-sizing:border-box; width:100px!important; min-width:100px!important; flex:0 0 100px; height:30px; min-height:30px; }
+.gest-redesign :is(.finance-chart-model,.reports-modern) .gest-chart-mode .client-select { width:100%; min-width:0; }
+.gest-redesign :is(.finance-chart-model,.reports-modern) .gest-chart-mode .lab-select-trigger { width:100%; min-height:30px; height:30px; padding:0 9px; font-size:12px; }
+.gest-redesign .finance-mini-chart-filter { padding:0 7px; border-radius:18px; }
+.gest-redesign .finance-mini-chart-filter .client-select { flex:1; width:0; min-width:0; }
+.gest-redesign .finance-mini-chart-filter .lab-select-trigger { min-height:28px; height:28px; font-size:12px; padding:0 2px; }
+.gest-redesign .finance-mini-chart-filter :is(.lab-select,.lab-select-trigger) { min-width:0; width:100%; }
+.gest-redesign .finance-mini-chart-filter .lab-select-trigger { display:flex; justify-content:space-between; gap:2px; }
+.gest-redesign .finance-mini-chart-filter .lab-select-trigger span { white-space:nowrap; }
+.gest-redesign .finance-mini-chart-filter svg { flex:none; }
+.dark.gest-redesign .clinical-attendance-day { background:#203143; border-color:#34485b; }
+.dark.gest-redesign .clinical-attendance-day.is-today { background:#273e52; }
+.dark.gest-redesign .clinical-draft-grid > article { background:#203143; }

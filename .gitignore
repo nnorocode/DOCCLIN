@@ -41,3 +41,14 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+/security-backups/
+/.keys/
+*.dump
+*.backup
+*.enc
+*.key
+
+# Local review evidence and incremental compiler cache
+/.functional-review/
+/.visual-review/
+*.tsbuildinfo

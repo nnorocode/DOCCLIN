@@ -1,5 +1,10 @@
 "use client";
+import { useInactivity } from "./InactivityFilter";
+import { ClientSelect } from "./ClientSelect";
+import EmptyTableBody from "./EmptyTableBody";
+import { validateImage } from "../../lib/file-security";
 import { appStorage } from "../../lib/local-store";
+import { indicatorValue, money, financeRows, useDataRevision } from "../../lib/operational-data";
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import InfoHint from "./InfoHint";
@@ -23,7 +28,7 @@ import {
   X,
 } from "lucide-react";
 
-type Client = {
+export type Client = {
   id: string;
   initials: string;
   name: string;
@@ -36,6 +41,11 @@ type Client = {
   source: string;
   birthday?: string;
   photo?: string;
+  createdAt?: string;
+  taxId?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
 };
 
 export function StandardModuleTop({ title, help, action, beforeCards, children }: { title: string; help: string; action?: ReactNode; beforeCards?: ReactNode; children: ReactNode }) {
@@ -175,7 +185,8 @@ export default function ClientsExperience({
   onDetails: (record: string[]) => void;
   onAnamnesis?: (id:string,name:string)=>void;
 }) {
-  const [rows, setRows] = useState<Client[]>(initial);
+  const [rows, setRows] = useState<Client[]>([]);
+  const revision=useDataRevision();
   const [rowsLoaded, setRowsLoaded] = useState(false);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("Mais recentes");
@@ -191,12 +202,18 @@ export default function ClientsExperience({
     window.addEventListener("gest:create-client", openNewClient);
     return () => window.removeEventListener("gest:create-client", openNewClient);
   }, []);
-  useEffect(() => { try { const saved = JSON.parse(appStorage.getItem("gest-clients") || "null"); if (Array.isArray(saved)) setRows(saved.filter((row): row is Client => row && ["id","initials","name","email","type","contact","relative","total","status","source"].every((key) => typeof row[key] === "string"))); } catch { /* Use the sample client list. */ } finally { setRowsLoaded(true); } }, []);
+  useEffect(() => { try { const saved = JSON.parse(appStorage.getItem("gest-clients") || "null"); if (Array.isArray(saved)) {
+    const filtered=saved.filter((row): row is Client => row && ["id","initials","name","email","type","contact","relative","total","status","source"].every((key) => typeof row[key] === "string") && !initial.some(sample=>JSON.stringify(sample)===JSON.stringify(row)));
+    if(filtered.length!==saved.length) appStorage.setItem("gest-demo-backup-clients",JSON.stringify(saved));
+    setRows(filtered);
+  } } catch { /* Cadastro começa vazio. */ } finally { setRowsLoaded(true); } }, []);
   useEffect(() => { if (rowsLoaded) { try { appStorage.setItem("gest-clients", JSON.stringify(rows)); } catch { /* Keep the client list available for this visit. */ } } }, [rows, rowsLoaded]);
 
+  const inactivity=useInactivity();
+  useEffect(()=>setCurrentPage(1),[inactivity.filterKey]);
   const filtered = useMemo(
     () =>
-      [...rows]
+      rows.map(client=>({...client,total:money(financeRows().filter(row=>row.kind==="income" && !row.cancelled && row.customer===client.name).reduce((sum,row)=>sum+row.installments.filter(part=>part.status==="paid").reduce((value,part)=>value+part.amountCents/100,0),0))}))
         .filter((client) =>
           `${client.name} ${client.email}`
             .toLowerCase()
@@ -204,6 +221,7 @@ export default function ClientsExperience({
         )
         .filter((client) => statusFilter === "Todos" || client.status === statusFilter)
         .filter((client) => typeFilter === "Todos" || client.type === typeFilter)
+        .filter(client=>inactivity.matches(client.name,client.contact))
         .sort((a, b) =>
           sort === "A–Z"
             ? a.name.localeCompare(b.name)
@@ -215,7 +233,7 @@ export default function ClientsExperience({
                   ? currencyToNumber(a.total) - currencyToNumber(b.total)
                   : 0,
         ),
-    [rows, query, sort, statusFilter, typeFilter],
+    [rows, query, sort, statusFilter, typeFilter, revision, inactivity],
   );
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageStart = (currentPage - 1) * pageSize;
@@ -241,29 +259,29 @@ export default function ClientsExperience({
 
   return (
     <>
-      <StandardModuleTop title="Clientes" help="Gerencie e acompanhe seus clientes e seu relacionamento.">
+      <StandardModuleTop title="Pacientes" help="Gerencie os cadastros e acompanhe o relacionamento com seus pacientes.">
         <Metric
-          label="Total de clientes"
-          value="1.248"
-          detail="7,2%"
+          label="Total de pacientes"
+          value={String(rows.length)}
+          detail="Cadastrados"
           tone="blue"
         />
         <Metric
-          label="Clientes ativos"
-          value="1.047"
-          detail="6,8%"
+          label="Pacientes ativos"
+          value={String(rows.filter(row=>row.status === "Ativo").length)}
+          detail="Cadastrados"
           tone="teal"
         />
         <Metric
-          label="Clientes inativos"
-          value="201"
-          detail="4,1%"
+          label="Pacientes inativos"
+          value={String(rows.filter(row=>row.status === "Inativo").length)}
+          detail="Cadastrados"
           tone="rose"
         />
         <Metric
           label="Ticket médio"
-          value="R$ 3.842,60"
-          detail="9,5%"
+          value={money(indicatorValue("Ticket médio"))}
+          detail="Lançamentos do mês"
           tone="violet"
         />
       </StandardModuleTop>
@@ -275,16 +293,17 @@ export default function ClientsExperience({
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar clientes por nome, e-mail ou telefone..."
+              placeholder="Buscar pacientes por nome, e-mail ou telefone..."
             />
             <button type="button" className={query ? "visible" : ""} onClick={() => setQuery("")} aria-label="Limpar busca"><X size={16} /></button>
           </div>
           <ClientSelect label="Status" value={statusFilter} onChange={setStatusFilter} showDot options={["Todos", "Ativo", "Inativo"]} />
           <ClientSelect label="Tipo" value={typeFilter} onChange={setTypeFilter} options={["Todos", "Pessoa Física", "Pessoa Jurídica"]} />
+          {inactivity.controls}
           <ClientSelect label="Ordenar por" value={sort} onChange={setSort} options={["Mais recentes", "Mais antigos", "A–Z", "Z–A", "Maior valor", "Menor valor"]} />
           <button className="lab-create-activity" onClick={() => setPanel("new")}>
             <Plus size={17} />
-            Cadastrar cliente
+            Cadastrar paciente
           </button>
           <div className="client-view-toggle" role="group" aria-label="Visualização dos clientes">
             <button type="button" className={viewMode === "list" ? "active" : ""} aria-label="Visualizar em lista" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")}>
@@ -296,24 +315,24 @@ export default function ClientsExperience({
           </div>
         </header>
 
-        {viewMode === "list" ? <table>
+        {viewMode === "list" ? <div className="client-directory-scroll"><table className="client-directory-table">
           <thead>
             <tr>
               {[
                 "Nº",
                 "Ranking",
-                "Cliente",
+                "Paciente",
                 "Tipo",
                 "Último contato",
                 "Total vendido",
-                "Status", "Pendências de documentos",
+                "Status", "Pendências doc.",
                 "Ações",
               ].map((item) => (
-                <th key={item} className={item==="Ações"?"client-actions-heading":undefined}>{item}</th>
+                <th key={item} className={item==="Ações"?"client-actions-heading":item==="Cliente"?"client-name-heading":undefined}>{item}</th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <EmptyTableBody>
             {visibleClients.map((client, index) => {
               const rank = clientRanking(rows, client.id);
 
@@ -327,7 +346,7 @@ export default function ClientsExperience({
                     </span>
                   </td>
                   <td>
-                    <i className="initials">{client.photo ? <img src={client.photo} alt={`Foto de ${client.name}`} /> : client.initials}</i>
+                    <i className="initials">{client.photo ? <img src={client.photo} alt={`Foto de ${client.name}`} /> : client.name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join("").toLocaleUpperCase("pt-BR")}</i>
                     <div>
                       <strong>{client.name} <ClinicalAlert patientId={client.id} patientName={client.name}/></strong>
                       <small>{client.email}</small>
@@ -359,10 +378,10 @@ export default function ClientsExperience({
                     </span>
                   </td>
                   <td><ClientDocumentStatus patientId={client.id} patientName={client.name}/></td><td className="client-actions-cell">
-                    {onAnamnesis&&<button type="button" className="lab-create-activity client-details-action" onClick={()=>onAnamnesis(client.id,client.name)}>Anamnese</button>}
+
                     <button
                       type="button"
-                      className="lab-create-activity client-details-action"
+                      className="lab-create-activity client-details-action patient-ficha-action"
                       onClick={() =>
                         onDetails([
                           String(pageStart + index + 1),
@@ -376,14 +395,7 @@ export default function ClientsExperience({
                         ])
                       }
                     >
-                      Ver detalhes
-                    </button>
-                    <button
-                      className="v2-icon-button"
-                      title="Editar cliente" aria-label="Editar cliente"
-                      onClick={() => setPanel(client)}
-                    >
-                      <Edit3 size={17} />
+                      Ficha
                     </button>
                     <button
                       className="v2-icon-button"
@@ -395,8 +407,8 @@ export default function ClientsExperience({
                 </tr>
               );
             })}
-          </tbody>
-        </table> : (
+          </EmptyTableBody>
+        </table></div> : (
           <section className="client-card-grid" aria-label="Clientes em grade">
             {visibleClients.map((client, index) => (
               <ClientGridCard
@@ -475,67 +487,7 @@ function Metric({
   return <InformativeMetricCardPreview tone={tone} icon={Icon} title={label} value={value} change={detail} />;
 }
 
-export function ClientSelect({ label, value, onChange, options, showDot = false, compact = false, hideLabel = false }: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: string[];
-  showDot?: boolean;
-  compact?: boolean;
-  hideLabel?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const close = (event: PointerEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("pointerdown", close);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", close);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, []);
-
-  const statusDotClass = (option: string) => {
-    const normalized = option.toLocaleLowerCase("pt-BR");
-    if (/ativo|aprovad|paga|pago|recebid|resolvid|conclu|convertid|normal|enviad|em dia/.test(normalized) && !normalized.includes("inativo")) return "green";
-    if (/inativo|cancelad|rejeitad|crítico|critico|atrasad|sem estoque|urgente|vencid/.test(normalized)) return "rose";
-    if (/pendente|aguardando|em atendimento|andamento|agendad|atenção|atencao|proposta/.test(normalized)) return "amber";
-    if (/novo|aberto|execução|execucao/.test(normalized)) return "blue";
-    return "gray";
-  };
-  const dotClass = statusDotClass(value);
-
-  return (
-    <div className={compact ? "client-select compact" : "client-select"} ref={rootRef}>
-      {hideLabel ? null : <label>{label}</label>}
-      <div className="lab-select">
-        <button type="button" className="lab-select-trigger" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
-          {showDot ? <i className={`client-select-dot ${dotClass}`} /> : null}
-          <span>{value}</span>
-          <ChevronDown size={16} className={open ? "open" : ""} />
-        </button>
-        {open ? (
-          <div className="lab-select-menu" role="listbox" aria-label={label} onWheel={(event) => event.stopPropagation()} onTouchMove={(event) => event.stopPropagation()}>
-            {options.map((option) => (
-              <button type="button" role="option" aria-selected={value === option} key={option} onClick={() => { onChange(option); setOpen(false); }}>
-                {showDot ? <i className={`client-select-dot ${statusDotClass(option)}`} /> : null}
-                <span>{option}</span>
-                {value === option ? <Check size={15} /> : null}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
+export { ClientSelect } from "./ClientSelect";
 
 function ClientGridCard({ client, rank, tone, onDetails, onEdit, onAnamnesis }: {
   client: Client;
@@ -549,7 +501,7 @@ function ClientGridCard({ client, rank, tone, onDetails, onEdit, onAnamnesis }: 
     <article className={`client-grid-card is-${tone}`}>
       <div className="client-grid-profile">
         <div className="client-grid-avatar">
-          {client.photo ? <img src={client.photo} alt={`Foto de ${client.name}`} /> : <span>{client.initials}</span>}
+          {client.photo ? <img src={client.photo} alt={`Foto de ${client.name}`} /> : client.name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join("").toLocaleUpperCase("pt-BR")}
           <i className={client.status === "Ativo" ? "active" : ""} aria-hidden />
         </div>
         <h2>{client.name} <ClinicalAlert patientId={client.id} patientName={client.name}/></h2>
@@ -564,16 +516,15 @@ function ClientGridCard({ client, rank, tone, onDetails, onEdit, onAnamnesis }: 
         <div><small>Retorno</small><strong>{client.status === "Ativo" ? "18 set, 10:00" : "A definir"}</strong></div>
       </div>
       <footer>
-        {onAnamnesis&&<button type="button" className="lab-create-activity client-details-action" onClick={onAnamnesis}>Anamnese</button>}
-        <button type="button" className="lab-create-activity client-details-action" onClick={onDetails}>Ver detalhes</button>
-        <button type="button" title="Editar cliente" aria-label="Editar cliente" onClick={onEdit}><Edit3 size={17} /></button>
+
+        <button type="button" className="lab-create-activity client-details-action patient-ficha-action" onClick={onDetails}>Ficha</button>
         <button type="button" title="Organizar posição" aria-label="Organizar posição"><GripVertical size={18} /></button>
       </footer>
     </article>
   );
 }
 
-function ClientForm({
+export function ClientForm({
   client,
   onClose,
   onSave,
@@ -589,6 +540,11 @@ function ClientForm({
   const [source, setSource] = useState(client?.source ?? "Indicação");
   const [status, setStatus] = useState(client?.status ?? "Ativo");
   const [birthday, setBirthday] = useState(client?.birthday ?? "");
+  const [taxId,setTaxId]=useState(client?.taxId??"");
+  const [phone,setPhone]=useState(client?.phone??"");
+  const [address,setAddress]=useState(client?.address??"");
+  const [city,setCity]=useState(client?.city??"");
+  const [photoError,setPhotoError]=useState("");
 
   return (
     <aside className="v2-record-drawer client-form-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
@@ -596,6 +552,7 @@ function ClientForm({
         className="v2-dialog v2-client-form"
         onSubmit={(event) => {
           event.preventDefault();
+          if (!name.trim() || !taxId.trim()) return;
           const initials = name
             .split(" ")
             .map((part) => part[0])
@@ -604,32 +561,36 @@ function ClientForm({
             .toUpperCase();
 
           onSave({
-            id: client?.id ?? String(Date.now()).slice(-4),
+            ...client,
+            id: client?.id ?? crypto.randomUUID(),
             initials,
             name,
-            email: email || "cliente@email.com.br",
+            email,
+            createdAt: client?.createdAt ?? new Date().toISOString(),
             type,
-            contact: client?.contact ?? "Hoje",
-            relative: "Agora",
+            contact: client?.contact ?? "",
+            relative: client?.relative ?? "Sem contato registrado",
             total: client?.total ?? "R$ 0,00",
             status,
             source,
             birthday,
             photo,
+            taxId,phone,address,city,
           });
         }}
       >
         <button type="button" className="close" onClick={onClose}>
           <X />
         </button>
-        <small>CLIENTES</small>
-        <h2>{client ? "Editar cliente" : "Cadastrar cliente"}</h2>
+        <small>PACIENTES</small>
+        <h2>{client ? "Editar paciente" : "Cadastrar paciente"}</h2>
         <p className="client-form-description">Preencha as informações principais para manter o relacionamento organizado.</p>
         <label className="client-photo-upload">
           <i className="initials">{photo ? <img src={photo} alt="Prévia da foto" /> : (name || "CL").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</i>
-          <span>Foto do cliente<small>Opcional. O nome continua visível quando não houver foto.</small></span>
-          <input type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) setPhoto(URL.createObjectURL(file)); }} />
+          <span>Foto do paciente<small>Opcional. O nome continua visível quando não houver foto.</small></span>
+          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={async (event) => { const file = event.target.files?.[0]; if(!file)return;try {await validateImage(file);}catch(error){setPhotoError(error instanceof Error?error.message:"Imagem inválida.");return;}const reader=new FileReader();reader.onload=()=>{setPhoto(String(reader.result));setPhotoError("");};reader.readAsDataURL(file); }} />
         </label>
+        {photoError&&<p role="alert" className="clinical-error">{photoError}</p>}
         <div>
           <label>
             Nome ou razão social *
@@ -642,12 +603,12 @@ function ClientForm({
           </label>
           <label>
             CPF/CNPJ *
-            <input defaultValue="" placeholder="00.000.000/0000-00" />
+            <input required value={taxId} onChange={event=>setTaxId(event.target.value)} placeholder="CPF ou CNPJ" />
           </label>
           <ClientSelect compact label="Tipo" value={type} onChange={setType} options={["Pessoa Física", "Pessoa Jurídica"]} />
           <label>
             Telefone / WhatsApp
-            <input placeholder="(00) 00000-0000" />
+            <input value={phone} onChange={event=>setPhone(event.target.value)} placeholder="(00) 00000-0000" />
           </label>
           <label>
             E-mail
@@ -657,14 +618,14 @@ function ClientForm({
             Data de nascimento
             <input type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} />
           </label>
-          <ClientSelect compact label="Origem do cliente" value={source} onChange={setSource} options={["Indicação", "Instagram", "Facebook", "Google", "WhatsApp", "Outro"]} />
+          <ClientSelect compact label="Origem do paciente" value={source} onChange={setSource} options={["Indicação", "Instagram", "Facebook", "Google", "WhatsApp", "Outro"]} />
           <label>
             Endereço
-            <input placeholder="Rua, número, complemento" />
+            <input value={address} onChange={event=>setAddress(event.target.value)} placeholder="Rua, número, complemento" />
           </label>
           <label>
             Cidade / UF
-            <input placeholder="Cidade, UF" />
+            <input value={city} onChange={event=>setCity(event.target.value)} placeholder="Cidade, UF" />
           </label>
           <ClientSelect compact label="Status" value={status} onChange={setStatus} showDot options={["Ativo", "Inativo"]} />
         </div>
@@ -673,7 +634,7 @@ function ClientForm({
             Cancelar
           </button>
           <button className="v2-primary" type="submit">
-            Salvar cliente
+            Salvar paciente
           </button>
         </footer>
       </form>

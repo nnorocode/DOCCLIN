@@ -1,0 +1,368 @@
+/* Operational theme only. Preserve artwork, clinical anatomy, branding and document paper. */
+:root[data-docclin-theme="dark"],
+.gest-redesign.dark {
+  --gest-canvas:#0f1722;
+  --gest-surface:#1a2634;
+  --gest-surface-2:#223142;
+  --gest-text:#edf3f8;
+  --gest-muted:#aebdca;
+  --gest-divider:#34485b;
+  --gest-border:var(--gest-divider);
+  --surface:var(--gest-surface);
+  --ink:var(--gest-text);
+  --muted:var(--gest-muted);
+  --line:var(--gest-divider);
+  --chart-tooltip-background:var(--gest-surface-2);
+  --chart-tooltip-text:var(--gest-text);
+  --chart-grid:var(--gest-divider);
+  --chart-axis-text:var(--gest-muted);
+  --chart-area-fill:#254356;
+  --module-step-background:#436c8c;
+  --module-step-text:#edf3f8;
+  color-scheme:dark;
+}
+.gest-redesign.dark .finance-experience {
+  --finance-text:var(--gest-text); --finance-ink:var(--gest-text); --finance-muted:var(--gest-muted);
+}
+.gest-redesign.dark .shelf-kanban {
+  --kb-column:var(--gest-surface); --kb-surface:var(--gest-surface-2);
+  --kb-text:var(--gest-text); --kb-muted:var(--gest-muted); --kb-line:var(--gest-divider);
+  --kb-green-soft:#213b31; --kb-yellow-soft:#403927; --kb-red-soft:#412e34;
+}
+/* Surfaces missing from the original dark theme, grouped by component role. */
+.gest-redesign.dark :is(
+  .finance-table-card,.finance-area-list,.finance-settings-card,.finance-closing-hero,.finance-register-metric,
+  .finance-chart-card,.finance-goal-card,.finance-metric,.finance-example-notice,.finance-preview,.finance-toast,
+  .v2-drawer-card,.v2-event-popover,.v2-notifications,.v2-review-summary,.v2-postpone-fields,
+  .v2-client-form,.v2-detail-fields article,.v2-client-financial-summary article,.v2-client-observation,
+  .v2-ai-priorities,.v2-ai-priority-grid article,.v2-ai-conversation,.v2-ai-chat-preview,
+  .workflow-comments-panel > div,.workflow-files-panel > div,.workflow-project-filter,.workflow-composer-field,
+  .shelf-document-sheet,.shelf-document-details,.lab-document-modal,
+  .lab-line-chart-card,.lab-service-relevance-card,.lab-goal-gauge-card,.lab-column-chart-card,.lab-chart-model,
+  .lab-informative-help,.lab-chart-tooltip,.lab-ai-results section,
+  .lab-mini-calendar,.lab-agenda-filter-card,.lab-other-calendars,.lab-agenda-toolbar,.lab-agenda-days-head,
+  .lab-agenda-month-grid,.lab-event-control,.lab-event-field,.lab-event-menu,.lab-event-calendar,
+  .lab-event-colors,.lab-event-video,.lab-event-note,.lab-other-calendar-list,.lab-priority-empty,
+  .v2-report-chart,.report-model-card,.reports-insert-menu,
+  .pricing-section,.pricing-grid > aside,.pricing-derived,
+  .investment-feasibility,.investment-target-summary,.investment-analysis-details,.investment-options,
+  .v2-dialog,.finance-dialog,.workflow-card-dialog,.client-form-panel,.client-documents-dialog,
+  .agenda-confirm-card,.agenda-confirm-summary,.agenda-confirm-body,.agenda-confirm-missed,
+  .lab-event-card,.lab-agenda-time-grid,.lab-agenda-day-header,.lab-agenda-event-tooltip,
+  .support-contact-list,.support-chat,.support-automation-panel,.support-template-list > article,
+  .clock-card,.clock-panel,.clock-summary-card,.clock-settings-card,.clock-record-card,
+  .clinical-draft-grid > article,.clinical-attendance-day,.clinical-anamnesis-group,
+  .clinical-page .clinical-anamnesis .clinical-question-item,.clinical-page .clinical-exam-row,
+  .clinical-order-totals > span,.clinical-exam-row,.clinical-document-status,
+  .clinical-inline-preview,.clinical-letterhead,.clinical-layer-tabs,.clinical-face-sidebar,
+  .clinical-image-grid figure,.clinical-image-preview .v2-dialog,.patient-encounter-highlight,
+  .clinical-attention > [role=tooltip],.clinical-quick-actions,
+  .settings-modern .access-module-grid label,.settings-plan-option,.settings-plan-usage,
+  .assistant-calendar-list article,.assistant-calendar-empty,.access-settings-controls,.gest-app-toast,
+  .tutorial-storyboard,.tutorial-storyboard-heading,.tutorial-story-caption,.tutorial-unified-frame
+) {
+  background:var(--gest-surface)!important; color:var(--gest-text)!important;
+  border-color:var(--gest-divider)!important;
+}
+.gest-redesign.dark :is(
+  .finance-category-list span,.finance-basis,.finance-basis > div,.finance-legend,.finance-goal-values span,
+  .v2-segment button,.v2-agenda-tools > button,.v2-filter button,.v2-chart-eye,
+  .v2-activity-detail footer button,.v2-detail-head button,.v2-detail-list button,
+  .v2-drawer-card footer,.v2-dialog footer,.finance-dialog > footer,
+  .v2-drawer-card footer button,.v2-dialog footer button:not(.v2-primary):not(.primary),
+  .client-grid-facts > div,.client-grid-card > footer button,.client-photo-upload,
+  .workflow-quick-add,.workflow-card-dialog > header button,.workflow-card-dialog > nav button,
+  .workflow-files-panel > label,.workflow-comments-panel form button,
+  .lab-chart-period > button,.lab-chart-period > div,.lab-chart-period > div button,
+  .lab-informative-icon,.lab-informative-card header button,
+  .lab-mini-calendar header button,.lab-agenda-views,.lab-mini-days button:hover,
+  .lab-event-secondary-actions > button,.lab-event-card > footer button:not(.primary),
+  .v2-client-form > .close,.v2-client-form footer button:not(.primary),
+  .pricing-input,.pricing-derived,.pricing-toggle,.pricing-kind-switch,
+  .clinical-draft-profile > i,.clinical-draft-state,.clinical-patient-summary > div,
+  .clinical-question-answers button,.clinical-exam-answers button,.clinical-question-row button,
+  .clinical-chips button,.clinical-face-views button,.clinical-recipe-types button[aria-pressed=false],
+  .agenda-confirm-choice button,.agenda-confirm-services button,.agenda-confirm-reasons button,
+  .agenda-confirm-custom-service button,.agenda-confirm-actions button:not(.primary),
+  .lab-agenda-zoom button,.agenda-clinical-open,.reports-insert-menu button,
+  .support-workspace-tabs,.support-template-list button,.support-font-controls button,
+  .assistant-calendar-controls button,.settings-plan-badge,.investment-objective-picker button,
+  .purchase-market-offers,.purchase-signal-label.gray,.purchase-market-results button.signal-gray,
+  .lab-chart-mode-select,.lab-chart-actions button,.info-hint-popover
+) {
+  background:var(--gest-surface-2)!important; color:var(--gest-text)!important;
+  border-color:var(--gest-divider)!important;
+}
+/* Text-only descendants with legacy fixed light-theme colors. Do not recolor status dots or illustrations. */
+.gest-redesign.dark :is(
+  .pricing-workspace,.investment-page,.finance-experience,.reports-modern,.purchase-market,
+  .clinical-attendance-picker,.clinical-drafts,.clinical-anamnesis,.clinical-payment,
+  .settings-plans,.agenda-confirm-card,.support-whatsapp,.clock-page
+) :is(h2,h3,h4,strong,b,dt,label,legend) { color:var(--gest-text)!important; }
+.gest-redesign.dark :is(
+  .pricing-workspace,.investment-page,.finance-experience,.reports-modern,.purchase-market,
+  .clinical-attendance-picker,.clinical-drafts,.clinical-anamnesis,.clinical-payment,
+  .settings-plans,.agenda-confirm-card,.support-whatsapp,.clock-page
+) :is(p,small,dd,time) { color:var(--gest-muted)!important; }
+.gest-redesign.dark :is(
+  .pricing-workspace .pricing-grid,.investment-page .investment-form,.clinical-patient-summary,
+  .clinical-exam-row,.clinical-question-label,.clinical-order-lines,.clinical-order-totals,
+  .crm-contact-followups,.settings-usage,.purchase-market-prices,.finance-legend,.shelf-kanban-person,
+  .lab-event-card,.v2-drawer-card,.v2-client-form,.v2-detail-fields,.v2-review-summary,
+  .workflow-card-dialog,.lab-informative-card,.lab-informative-help,.lab-chart-tooltip,
+  .lab-chart-model,.lab-service-relevance-card,.lab-line-chart-card,.lab-column-chart-card,.lab-goal-gauge-card
+) :is(span,label,input,textarea,select) { color:var(--gest-text)!important; }
+.gest-redesign.dark :is(input:not([type=checkbox]):not([type=radio]):not([type=color]),textarea,select) {
+  color:var(--gest-text)!important; background:var(--gest-surface-2)!important; border-color:var(--gest-divider)!important;
+}
+.gest-redesign.dark :is(.lab-select-trigger,.lab-select-menu) :is(span,button) { color:var(--gest-text)!important; }
+.gest-redesign.dark :is(.lab-select-menu,.reports-insert-menu) button:hover { background:#31465a!important; }
+.gest-redesign.dark :is(.clinical-question-answers,.clinical-exam-answers) button[aria-pressed=true],
+.gest-redesign.dark .agenda-confirm-choice button.active,
+.gest-redesign.dark .agenda-confirm-services button.active,
+.gest-redesign.dark .investment-objective-picker button.active,
+.gest-redesign.dark .pricing-kind-switch button.selected { background:#314e68!important; border-color:#7fabc9!important; color:#edf3f8!important; }
+.gest-redesign.dark .agenda-confirm-choice button.missed,
+.gest-redesign.dark .agenda-confirm-reasons button.active { background:#492f37!important; border-color:#966571!important; color:#f6d5dc!important; }
+.gest-redesign.dark .settings-plan-option.is-current { background:#223c51!important; border-color:#7fabc9!important; }
+.gest-redesign.dark .settings-plan-option.is-current .settings-plan-badge { background:#436c8c!important; color:#edf3f8!important; }
+.gest-redesign.dark .clinical-draft-grid > article.is-overdue { background:#3a3224!important; border-color:#69583a!important; }
+.gest-redesign.dark .clinical-draft-grid > article.is-overdue .clinical-draft-state { background:#53442b!important; color:#f4d998!important; }
+.gest-redesign.dark .clinical-attendance-day.is-adjacent > .lab-timeline-card { opacity:1; }
+.gest-redesign.dark .purchase-market-results button.signal-green { background:#213b31!important; border-color:#355e4c!important; }
+.gest-redesign.dark .purchase-market-results button.signal-yellow { background:#403927!important; border-color:#665a39!important; }
+.gest-redesign.dark .purchase-market-results button.signal-red { background:#412e34!important; border-color:#79505a!important; }
+.gest-redesign.dark .purchase-market-results button > em.green { background:#315844!important; color:#d7f0e0!important; }
+.gest-redesign.dark .purchase-market-results button > em.yellow { background:#5b4b28!important; color:#f9e5b4!important; }
+.gest-redesign.dark .purchase-market-results button > em.red { background:#64404b!important; color:#f6d5dc!important; }
+.gest-redesign.dark .purchase-market-results button > em.gray { background:var(--gest-surface-2)!important; color:var(--gest-muted)!important; }
+.gest-redesign.dark :is(.clinical-section-number,.investment-step-number),
+.gest-redesign.dark .investment-page :is(.investment-objective-picker,.investment-form > header) .investment-step-number,
+.gest-redesign.dark .pricing-workspace .pricing-form > .pricing-section > h3::before {
+  color:var(--module-step-text)!important; background:var(--module-step-background)!important;
+}
+.gest-redesign.dark .recharts-cartesian-axis-tick-value { fill:var(--gest-muted)!important; }
+.gest-redesign.dark .recharts-cartesian-grid line { stroke:var(--gest-divider); }
+.gest-redesign.dark .recharts-legend-item-text { color:var(--gest-text)!important; }
+.gest-redesign.dark .recharts-default-tooltip { background:var(--gest-surface-2)!important; border-color:var(--gest-divider)!important; color:var(--gest-text)!important; }
+.gest-redesign.dark .recharts-default-tooltip :is(p,span,li) { color:var(--gest-text)!important; }
+.gest-redesign.dark :is(.clinical-document-sheet,.clinical-paper,.v2-document-paper,.lab-document-sheet) {
+  /* Document previews remain printable paper; prevent inherited dark text overrides. */
+  color-scheme:light; color:#263649; background:#fff;
+}
+.gest-redesign.dark :is(.clinical-document-sheet,.clinical-paper,.v2-document-paper,.lab-document-sheet) :is(h1,h2,h3,h4,h5,p,small,strong,b,span,label,dd,dt,time) { color:#263649!important; }
+.gest-redesign.dark :is(.clinical-document-sheet,.clinical-paper,.v2-document-paper,.lab-document-sheet) :is(input,textarea) { color:#263649!important; background:#fff!important; }
+.gest-redesign.dark :is(button,a,input,select,textarea,summary):focus-visible { outline:2px solid #91bfdf; outline-offset:3px; }
+.gest-redesign.dark .lab-informative-card {
+  --info-a:#273b50; --info-b:#223448; --info-c:#1a2939;
+  background:linear-gradient(145deg,var(--info-a),var(--info-b),var(--info-c))!important;
+}
+.gest-redesign.dark .lab-informative-card.tone-teal { --info-a:#24433e; --info-b:#203a36; --info-c:#1b302e; }
+.gest-redesign.dark .lab-informative-card.tone-rose { --info-a:#493340; --info-b:#3b2c36; --info-c:#30252e; }
+.gest-redesign.dark .lab-informative-card.tone-amber { --info-a:#453e2c; --info-b:#383426; --info-c:#2e2c23; }
+.gest-redesign.dark .lab-informative-card.tone-violet { --info-a:#3b3550; --info-b:#302c42; --info-c:#282637; }
+.gest-redesign.dark .lab-informative-card.tone-gray { --info-a:#303b46; --info-b:#28333e; --info-c:#222c35; }
+.gest-redesign.dark .lab-informative-copy > small.neutral { color:var(--gest-muted)!important; background:var(--gest-surface-2)!important; }
+.gest-redesign.dark .clinical-chips button.active,
+.gest-redesign.dark .clinical-question-row button.active { color:#edf3f8!important; background:#314e68!important; border-color:#7fabc9!important; }
+.gest-redesign.dark .investment-feasibility.is-analysis > .investment-step-number { color:var(--module-step-text)!important; background:var(--module-step-background)!important; }
+.gest-redesign.dark .investment-feasibility.is-analysis.is-good { background:#20382f!important; border-color:#3b6854!important; }
+.gest-redesign.dark .investment-feasibility.is-analysis.is-attention { background:#3a3224!important; border-color:#69583a!important; }
+.gest-redesign.dark .investment-feasibility.is-analysis.is-risk { background:#412e34!important; border-color:#79505a!important; }
+.gest-redesign.dark .investment-plan-donut::after { background:var(--gest-surface)!important; }
+
+/* Portals attach to body, outside .gest-redesign. Theme follows the document while the app is mounted. */
+:root[data-docclin-theme="dark"] .v2-info-popover {
+  background:var(--gest-surface-2); color:var(--gest-text); border-color:var(--gest-divider);
+}
+:root[data-docclin-theme="dark"] .message-attachment-dialog {
+  background:var(--gest-surface); color:var(--gest-text); border-color:var(--gest-divider);
+}
+:root[data-docclin-theme="dark"] .message-attachment-dialog :is(h2,h3,strong,b,label) { color:var(--gest-text); }
+:root[data-docclin-theme="dark"] .message-attachment-dialog :is(p,small) { color:var(--gest-muted); }
+:root[data-docclin-theme="dark"] .message-attachment-dialog .lab-create-activity {
+  background:#28425f; color:#d9ecff; border-color:#456b91; box-shadow:none;
+}
+:root[data-docclin-theme="dark"] .message-attachment-dialog .lab-create-activity:focus-visible { outline:2px solid #91bfdf; outline-offset:3px; }
+.gest-redesign.dark :is(.finance-secondary,.finance-settle,.finance-dialog > footer > button:not(.lab-create-activity),.document-side-preview footer button,.document-preview-actions button) {
+  background:var(--gest-surface-2)!important; color:var(--gest-text)!important; border-color:var(--gest-divider)!important;
+}
+.gest-redesign.dark .document-side-preview { background:var(--gest-surface); color:var(--gest-text); border-color:var(--gest-divider); }
+
+/* Screenshot follow-up: directory filter strips and recommendations are shared across modules. */
+.gest-redesign.dark .v2-page :is(.v2-ranked-client-table,.v2-module-table,.document-modern-directory,.team-summary-table) > :is(header,footer),
+.gest-redesign.dark .v2-page :is(.v2-ranked-client-table,.v2-module-table) > :is(.client-card-grid,.module-card-grid) {
+  background:var(--gest-surface)!important;
+  color:var(--gest-text)!important;
+  border-color:var(--gest-divider)!important;
+  box-shadow:none!important;
+}
+/* The wrapper is structural: only the rounded trigger/menu owns a filled surface. */
+.gest-redesign.dark .v2-page .client-select {
+  background:transparent!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-page .client-select > label { color:var(--gest-muted)!important; }
+.gest-redesign.dark .v2-page .client-select .lab-select-trigger {
+  background:var(--gest-surface-2)!important; color:var(--gest-text)!important;
+  border-color:var(--gest-divider)!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-page .v2-ranked-client-table :is(.client-details-action,.client-document-status) {
+  background:var(--gest-surface-2)!important; color:#c4dff5!important;
+  border-color:#496682!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-page > .professional-recommendation {
+  background:var(--gest-surface)!important; color:var(--gest-text)!important;
+  border-color:var(--gest-divider)!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-page .professional-summary > :is(span,small) { color:var(--gest-muted)!important; }
+.gest-redesign.dark .v2-page :is(.professional-toggle,.professional-contact-card) {
+  background:var(--gest-surface-2)!important; color:var(--gest-text)!important;
+  border-color:var(--gest-divider)!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-page .professional-contact-grid { border-color:var(--gest-divider); }
+.gest-redesign.dark .v2-page .professional-contact-card > i { background:#31465a; border-color:#496682; color:#c4dff5; }
+.gest-redesign.dark .v2-page .professional-contact-card :is(span,small) { color:var(--gest-muted)!important; }
+.gest-redesign.dark .support-toolbar :is(.support-filter-box,.support-journey-box,.support-journey-filters) {
+  background:var(--gest-surface)!important; border-color:var(--gest-divider)!important; box-shadow:none!important;
+}
+.gest-redesign.dark .support-toolbar .support-journey-filters button { color:var(--gest-muted); background:transparent; box-shadow:none; }
+.gest-redesign.dark .support-toolbar .support-journey-filters button.active {
+  background:#314e68!important; color:var(--gest-text)!important; box-shadow:inset 0 0 0 1px #7fabc9;
+}
+.gest-redesign.dark .support-toolbar .support-journey-filters button b {
+  background:var(--gest-surface-2); color:var(--gest-text)!important;
+}
+.gest-redesign.dark .support-toolbar .support-journey-filters button.active b { background:#436c8c; }
+.gest-redesign.dark :is(.module-view-toggle,.client-view-toggle) { border-color:var(--gest-divider)!important; box-shadow:none!important; }
+
+/* Global operational controls. Match the whole shell to outrank page-specific light recipes. */
+.gest-redesign.dark {
+  --gest-control-bg:#263a4e;
+  --gest-control-text:#d6eafb;
+  --gest-control-border:#526d85;
+  --gest-selected-bg:#355775;
+  --gest-selected-text:#f3f8fc;
+  --gest-positive-bg:#214235;
+  --gest-positive-text:#c6efd8;
+  --gest-warning-bg:#463c28;
+  --gest-warning-text:#f3dfab;
+  --gest-danger-bg:#4b3037;
+  --gest-danger-text:#ffd4dc;
+}
+.gest-redesign.dark .v2-content > .v2-topbar :is(.v2-bell,.gest-help-trigger) {
+  background:var(--gest-control-bg)!important; color:var(--gest-control-text)!important;
+  border-color:var(--gest-control-border)!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-content > .v2-topbar :is(.v2-bell,.gest-help-trigger):is(:hover,[aria-expanded=true]) {
+  background:var(--gest-selected-bg)!important; color:var(--gest-selected-text)!important;
+}
+.gest-redesign.dark .v2-content > .v2-topbar :is(.v2-bell,.gest-help-trigger) > svg { color:inherit!important; }
+.gest-redesign.dark .v2-content > .v2-topbar .v2-bell > b { color:#fff!important; background:#a33f54!important; }
+.gest-redesign.dark .v2-content :is(.gest-help-menu,.gest-account-menu) :is(a,button) {
+  color:var(--gest-text)!important; border-color:var(--gest-divider)!important;
+}
+.gest-redesign.dark .v2-content :is(.gest-help-menu,.gest-account-menu) :is(a,button):hover { background:var(--gest-control-bg)!important; }
+.gest-redesign.dark .v2-content .gest-help-menu :is(span,svg) { color:var(--gest-control-text)!important; }
+.gest-redesign.dark .v2-content :is(.gest-help-menu,.gest-account-menu) small { color:var(--gest-muted)!important; }
+.gest-redesign.dark .v2-content :is(.v2-info-hint,.module-settings-trigger) {
+  color:var(--gest-control-text)!important; background:var(--gest-control-bg)!important;
+  border-color:var(--gest-control-border)!important; box-shadow:none!important;
+}
+/* NotificationCenter is a component inside the popover, with its own surfaces. */
+.gest-redesign.dark .v2-content .gest-notification-popover :is(.lab-center,.lab-center-item) {
+  background:var(--gest-surface)!important; color:var(--gest-text)!important;
+  border-color:var(--gest-divider)!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-content .gest-notification-popover :is(.lab-center-tabs,.lab-center-list) {
+  background:var(--gest-surface-2)!important; border-color:var(--gest-divider)!important;
+}
+.gest-redesign.dark .v2-content .gest-notification-popover :is(h2,strong) { color:var(--gest-text)!important; }
+.gest-redesign.dark .v2-content .gest-notification-popover :is(p,small,time,.lab-center-copy > div > span) { color:var(--gest-muted)!important; }
+.gest-redesign.dark .v2-content .gest-notification-popover button {
+  background:var(--gest-control-bg)!important; color:var(--gest-control-text)!important;
+  border-color:var(--gest-control-border)!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-content .gest-notification-popover button:is(.active,[aria-selected=true]) { background:var(--gest-selected-bg)!important; color:var(--gest-selected-text)!important; }
+.gest-redesign.dark .v2-content .gest-notification-popover .lab-center-tabs span { background:var(--gest-surface)!important; color:var(--gest-control-text)!important; }
+.gest-redesign.dark .v2-content .gest-notification-popover .lab-center-head button:disabled { color:var(--gest-muted)!important; background:var(--gest-surface-2)!important; }
+.gest-redesign.dark .v2-content .gest-notification-popover .lab-center-icon { background:var(--gest-positive-bg); color:var(--gest-positive-text); }
+.gest-redesign.dark .v2-content .gest-notification-popover .is-error .lab-center-icon { background:var(--gest-danger-bg); color:var(--gest-danger-text); }
+.gest-redesign.dark .v2-content .gest-notification-popover .is-information .lab-center-icon { background:var(--gest-control-bg); color:var(--gest-control-text); }
+/* Lists: row actions may have no class (Propostas, Vendas and other directory modules). */
+.gest-redesign.dark .v2-content .v2-page :is(.v2-ranked-client-table,.v2-module-table,.v2-client-table) td button:not(.v2-icon-button),
+.gest-redesign.dark .v2-content .v2-page :is(.client-grid-card,.module-grid-card) > footer > button,
+.gest-redesign.dark .v2-content .v2-page :is(.v2-dialog,.finance-dialog,.lab-event-card,.workflow-card-dialog,.client-form-panel,.v2-client-form) footer button,
+.gest-redesign.dark .v2-content .v2-page :is(.v2-primary,.lab-create-activity,.v2-back,.v2-action-link,.v2-filter button,.finance-secondary,.finance-settle,.clock-secondary,.v2-year-grid button,.v2-month-grid > button) {
+  background:var(--gest-control-bg)!important; color:var(--gest-control-text)!important;
+  border-color:var(--gest-control-border)!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-content .v2-page .v2-icon-button {
+  background:transparent!important; color:#a9d5f7!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-content .v2-page :is(.v2-icon-button,.module-settings-trigger):hover { color:#eef7ff!important; background:var(--gest-selected-bg)!important; }
+.gest-redesign.dark .v2-content .v2-page :is(.v2-dialog,.finance-dialog,.lab-event-card,.workflow-card-dialog,.client-form-panel,.v2-client-form) footer :is(.primary,.v2-primary),
+.gest-redesign.dark .v2-content .v2-page .pagination :is(.active,b,[aria-current=page]),
+.gest-redesign.dark .v2-content .v2-page .gest-horizontal-nav > nav > button:is(.active,[aria-selected=true]) {
+  background:var(--gest-selected-bg)!important; color:var(--gest-selected-text)!important;
+  border-color:#7fabc9!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-content .v2-page :is(.module-view-toggle,.client-view-toggle,.v2-segment,.v2-tabs,.v2-settings-tabs),
+.gest-redesign.dark .v2-content .v2-page .gest-horizontal-nav > nav {
+  background:var(--gest-surface)!important; border-color:var(--gest-divider)!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-content .v2-page :is(.module-view-toggle,.client-view-toggle,.v2-segment,.v2-tabs,.v2-settings-tabs) > button,
+.gest-redesign.dark .v2-content .v2-page .gest-horizontal-nav > nav > button,
+.gest-redesign.dark .v2-content .v2-page .pagination button {
+  color:var(--gest-control-text)!important; background:var(--gest-surface-2)!important;
+  border-color:var(--gest-divider)!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-content .v2-page :is(.module-view-toggle,.client-view-toggle,.v2-segment,.v2-tabs,.v2-settings-tabs) > button:is(.active,.selected,[aria-selected=true],[aria-pressed=true]),
+.gest-redesign.dark .v2-content .v2-page .pagination button.active {
+  color:var(--gest-selected-text)!important; background:var(--gest-selected-bg)!important; border-color:#7fabc9!important;
+}
+/* Ranking keeps its category colors with a dark surface and legible numbers. */
+.gest-redesign.dark .v2-content :is(.client-rank-badge,.client-rank-seal) {
+  --rank-accent:#c3e4ff; color:var(--rank-accent)!important;
+  background:#253d53!important; border-color:#567994!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-content :is(.client-rank-badge,.client-rank-seal).gold { --rank-accent:#f6dda0; background:#453c28!important; border-color:#8a7748!important; }
+.gest-redesign.dark .v2-content :is(.client-rank-badge,.client-rank-seal).silver { --rank-accent:#d9e4ef; background:#303d4b!important; border-color:#677a8e!important; }
+.gest-redesign.dark .v2-content :is(.client-rank-badge,.client-rank-seal).bronze { --rank-accent:#f6cfb1; background:#49372c!important; border-color:#916b50!important; }
+.gest-redesign.dark .v2-content :is(.client-rank-badge,.client-rank-seal) :is(strong,b,span,small,svg) { color:var(--rank-accent)!important; }
+/* Shared semantic chips: never place light text on the old pale badges. */
+.gest-redesign.dark .v2-content .v2-page :is(.type,.status,.finance-kind,.finance-status,.gest-muted-status) {
+  color:var(--gest-control-text)!important; background:var(--gest-surface-2)!important;
+  border-color:var(--gest-divider)!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-content .v2-page :is(.status.active,.finance-kind.income,.finance-status.paid,.gest-muted-status.completed) { color:var(--gest-positive-text)!important; background:var(--gest-positive-bg)!important; }
+.gest-redesign.dark .v2-content .v2-page :is(.status.warn,.finance-status.pending,.gest-muted-status.pending) { color:var(--gest-warning-text)!important; background:var(--gest-warning-bg)!important; }
+.gest-redesign.dark .v2-content .v2-page :is(.status.inactive,.finance-kind.expense,.finance-status.overdue,.gest-muted-status.cancelled) { color:var(--gest-danger-text)!important; background:var(--gest-danger-bg)!important; }
+.gest-redesign.dark .v2-content .v2-page table th { background:var(--gest-surface-2)!important; color:var(--gest-control-text)!important; border-color:var(--gest-divider)!important; }
+/* Remaining independent component surfaces discovered by the global source review. */
+.gest-redesign.dark .v2-content .workflow-settings-dialog,
+.gest-redesign.dark .v2-content .workflow-settings-dialog > :is(header,section,footer) {
+  background:var(--gest-surface)!important; color:var(--gest-text)!important; border-color:var(--gest-divider)!important;
+}
+.gest-redesign.dark .v2-content .workflow-settings-dialog :is(input,button:not(.switch),.workflow-stage-list label > span),
+.gest-redesign.dark .v2-content .investment-options b,
+.gest-redesign.dark .v2-content :is(.clock-worker-list,.clock-map-zoom,.clock-actions) button,
+.gest-redesign.dark .v2-content .settings-section-card > button,
+.gest-redesign.dark .v2-content :is(.gest-theme-setting,.settings-logo-field button,.workflow-settings-button,.pricing-workspace .v2-primary) {
+  background:var(--gest-control-bg)!important; color:var(--gest-control-text)!important;
+  border-color:var(--gest-control-border)!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-content .workflow-settings-dialog :is(label,legend,.workflow-stage-list label > span) { color:var(--gest-text)!important; }
+.gest-redesign.dark .v2-content .workflow-settings-dialog > footer .primary { background:var(--gest-selected-bg)!important; color:var(--gest-selected-text)!important; }
+/* Destructive actions must stay distinct from neutral footer/row controls. */
+.gest-redesign.dark .v2-content .v2-page :is(button.danger,button.deleted,.settings-reset-button,.finance-danger,.workflow-delete) {
+  background:var(--gest-danger-bg)!important; color:var(--gest-danger-text)!important;
+  border-color:#a46d7b!important; box-shadow:none!important;
+}
+.gest-redesign.dark .v2-content .v2-page :is(.lab-event-card,.v2-dialog,.finance-dialog,.workflow-card-dialog,.workflow-settings-dialog) footer button.danger {
+  background:var(--gest-danger-bg)!important; color:var(--gest-danger-text)!important; border-color:#a46d7b!important;
+}
+.gest-redesign.dark :is(.purchase-quote-section,.purchase-marketplace-section) {
+  --purchase-card-bg:var(--gest-surface-2); --purchase-card-border:var(--gest-divider);
+  --purchase-copy:var(--gest-text); --purchase-muted:var(--gest-muted); --purchase-icon-bg:#31465a;
+}
+.gest-redesign.dark .purchase-quote-card .purchase-quote-badge { color:var(--gest-positive-text); background:var(--gest-positive-bg); }

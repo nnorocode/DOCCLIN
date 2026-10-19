@@ -1,0 +1,135 @@
+{
+  "status": "generated-validation-failed-not-deployed",
+  "tool": "native image_gen",
+  "complete": false,
+  "generatedViews": 60,
+  "pendingInternalViews": 0,
+  "postprocess": "sips uniform resize from square original to 1024x1024; no warp, crop or color correction",
+  "inspection": "60 individual PNGs generated. All load at 1024x1024 with unique SHA256 hashes. Visual overlays reveal landmark and contour drift, especially male muscle layers and female left profile. Female vessels left45 differs in base material/style. Not approved or deployed; no precise alignment claim.",
+  "files": [
+    {
+      "sex": "female",
+      "angle": "front",
+      "file": "female-skin-front.png",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-43c3bb38-7e0b-4a3b-bb08-7e89e037dbf0.png",
+      "reference": "../roc-v2/female-skin.png"
+    },
+    {
+      "sex": "female",
+      "angle": "left45",
+      "file": "female-skin-left45.png",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-9466515d-f7d4-4935-8da2-e0da545d8108.png",
+      "reference": "female-skin-front.png"
+    },
+    {
+      "sex": "female",
+      "angle": "left90",
+      "file": "female-skin-left90.png",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-c378eab3-9c52-4d6e-834f-73395c78dff1.png",
+      "reference": "female-skin-front.png"
+    },
+    {
+      "sex": "female",
+      "angle": "right45",
+      "file": "female-skin-right45.png",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-19b8478f-cb32-4865-97fb-ee42b62ad0d5.png",
+      "reference": "female-skin-front.png"
+    },
+    {
+      "sex": "female",
+      "angle": "right90",
+      "file": "female-skin-right90.png",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-3a613b3a-7b5e-4c6b-8fb5-c7d7e65a3e82.png",
+      "reference": "female-skin-front.png"
+    },
+    {
+      "sex": "male",
+      "angle": "front",
+      "file": "male-skin-front.png",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-f8605ec4-93fe-49b2-b397-553a86fe937f.png",
+      "reference": "../roc-v3/male-skin-candidate.png"
+    },
+    {
+      "sex": "male",
+      "angle": "left45",
+      "file": "male-skin-left45.png",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-e7898830-32c1-4fbd-8622-57da0b3cc1d3.png",
+      "reference": "male-skin-front.png"
+    },
+    {
+      "sex": "male",
+      "angle": "left90",
+      "file": "male-skin-left90.png",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-fb334cc4-9227-430e-974b-ce23a15dafb1.png",
+      "reference": "male-skin-front.png"
+    },
+    {
+      "sex": "male",
+      "angle": "right45",
+      "file": "male-skin-right45.png",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-013ba231-3452-4c04-bd37-5731d5032948.png",
+      "reference": "male-skin-front.png"
+    },
+    {
+      "sex": "male",
+      "angle": "right90",
+      "file": "male-skin-right90.png",
+      "source": "/Users/renannoronha/.codex/generated_images/01a13016-afb4-7882-8cee-ce876c2ee028/exec-6738aeb4-5abc-4d02-9d30-63c0cceebd1d.png",
+      "reference": "male-skin-front.png"
+    }
+  ],
+  "prompts": [
+    {
+      "sex": "female",
+      "angle": 0,
+      "prompt": "Use case: identity-preserve. Input image is the identity reference: use ONLY the CENTRAL FRONTAL woman in the attached sheet. Create ONE individual 1024x1024 square portrait, frontal skin view of that EXACT same woman. Preserve her identity, face shape, nose, lips, ears, jaw, skin color, fine skin texture, brown hair pulled back into bun and CLOSED EYES. Do not beautify, change age, slim face, enlarge lips or invent a different person. Realistic detailed natural illustration matching reference. Head and upper neck only, pure white background, soft neck fade, no shoulders or clothing. Registration template: head vertical, zero yaw/pitch/roll; central head axis x512, eye line y420, chin y740, hair crown around y130, lower neck fade y940. Entire head visible, plenty of white side margin for later profile views, no zoomed face. Soft neutral diffuse studio lighting, fixed warm natural skin tone. No text or other heads. New individual portrait based faithfully on reference, not a five-view sheet."
+    },
+    {
+      "sex": "female",
+      "angle": -45,
+      "prompt": "Use case: identity-preserve. Reference is the attached single frontal portrait. Change ONLY head yaw to 45 degrees facing screen LEFT (nose points left), creating one square individual skin view of the SAME WOMAN. Preserve her precise identity, same nose, lips, closed eyes, jaw, ears, brown pulled-back bun, hairline, skin color and skin texture. No beauty retouch or different woman. Maintain exact physical head size and camera distance of reference; do not fit or enlarge the rotated face. Keep eyes and chin at same vertical heights as reference, vertical rotation axis through center of skull at canvas x50%; zero head tilt and pitch. Same diffuse neutral lighting and fixed skin tone, no angle-dependent warm/cool color change. Pure white background, full head and bun inside canvas, upper neck softly fades, no torso, text or other heads. Output 1024x1024. Preserve appearance of reference, only rotate the same head 45 degrees toward screen LEFT."
+    },
+    {
+      "sex": "female",
+      "angle": -90,
+      "prompt": "Use case: identity-preserve. Edit the attached frontal portrait into ONE 1024x1024 square true LEFT-FACING 90-degree profile of the EXACT SAME WOMAN. Change ONLY yaw: nose points screen LEFT, only near eye visible. Preserve the frontal woman's nose bridge and tip, lips, chin, jaw, closed eye, ear, hairline and brown compact bun, skin tone and fine texture, age and identity. No new person or beauty changes. Fixed camera distance and physical head scale, same eye and chin heights as frontal reference, head rotation axis stays at canvas center; no tilt, pitch, zoom or automatic recentering of face. Same diffuse neutral lighting and warm skin color, pure white background, entire nose and bun with white margin; head and upper neck, soft bottom fade, no shoulders or clothes. One head, no labels. True side profile, not three-quarter, no mirroring. Faithful identity-preserving rotation of supplied frontal face."
+    },
+    {
+      "sex": "female",
+      "angle": 45,
+      "prompt": "Use case: identity-preserve. Attached frontal portrait is the invariant identity reference. Create ONE square individual 1024x1024 SKIN view of that SAME WOMAN turned exactly 45 degrees toward screen RIGHT (nose right). Preserve her nose, lips, jaw, ears, closed eyes, age, skin color, texture and brown pulled-back compact bun. Only change yaw, not face proportions, lighting, scale or expression. Keep reference eye and chin vertical heights, same camera distance, centered head rotation axis, zero pitch and roll. Whole head visible with white margins, no fitting/recentering the rotated bounding box. Same soft diffuse neutral light and warm skin tone. White background and upper neck softly fading to white, no shoulders, clothes, text or extra heads. Do not mirror left portrait; use supplied frontal identity. All features belong to exactly the reference woman."
+    },
+    {
+      "sex": "female",
+      "angle": 90,
+      "prompt": "Use case: identity-preserve. Transform supplied frontal woman's portrait into one true RIGHT-FACING 90-degree profile, nose toward screen RIGHT. SAME EXACT woman: preserve identity, nose shape, mouth and lip shape, chin, jaw, ear anatomy, closed eye, skin tone and texture, brown pulled-back compact bun. Only yaw changes. No far eye visible. Match frontal head physical size, camera distance, eye and chin heights; zero pitch or roll, stable center rotation axis. Complete nose and bun with white margins. Pure white background, soft diffuse neutral lighting unchanged in color, upper neck fades softly, no shoulders, clothes or labels. One 1024x1024 square portrait only. No beautification, no new face, no horizontal mirror of another view."
+    },
+    {
+      "sex": "male",
+      "angle": 0,
+      "prompt": "Use case: identity-preserve. Input sheet is identity reference; use ONLY CENTRAL FRONTAL man, the slim-faced man, to create ONE 1024x1024 square individual FRONTAL SKIN portrait. Preserve his exact slim oval face, softly tapered jaw and rounded narrow chin, slender straight nose, natural medium lips, ear shape, closed eyes, brown brushed-back hair, warm light skin tone, realistic pores. Do not widen or square the jaw, exaggerate muscles, beautify or create a plastic mannequin. Same person and same natural realistic style as reference. Head and upper neck only, white background, soft lower-neck fade, no shoulders or clothes. Zero yaw/pitch/roll, head axis at x50%, eyes at38% height, chin71%, crown4%, neck fade94%, entire head with generous white side margins. Diffuse neutral studio lighting. No text, extra views or collage. Faithful new individual rendering of the reference man."
+    },
+    {
+      "sex": "male",
+      "angle": -45,
+      "prompt": "Use case: identity-preserve. Attached individual frontal male portrait is the exact identity reference. Change ONLY yaw to 45 degrees facing screen LEFT, nose left. One 1024x1024 square skin portrait. Preserve the SAME slim oval face, tapered soft jaw, narrow rounded chin, nose, lips, ears, closed eyes, natural skin texture and tone, brown swept-back hair. No square jaw, no new man, no beautification. Same camera distance and physical head scale, eye and chin vertical heights fixed to reference, zero pitch/roll, centered head rotation axis. Preserve neutral diffuse light, exposure and skin color. Entire head and hair visible, white background and gentle neck fade, no torso, clothes, labels or additional heads. Only rotate reference man's head 45 degrees left, do not reshape him."
+    },
+    {
+      "sex": "male",
+      "angle": -90,
+      "prompt": "Use case: identity-preserve. Attached frontal man is invariant identity reference. Create ONE individual true LEFT-FACING 90-degree SKIN PROFILE, nose to screen LEFT, only near closed eye visible. SAME slim oval-faced man, unchanged nose bridge/tip, lips, narrow chin, gentle jaw, ears, short brown swept hair, natural skin texture and exact skin color. Do not square/widen jaw, masculinize, beautify or invent new face. Only head yaw changes, zero pitch/roll, same physical head scale, camera distance, eye/chin vertical positions and central rotation axis. Pure white background, entire nose/back of head visible with margin, upper neck soft fade; no shoulders, clothes, labels or other views. Lighting stays neutral diffuse and exposure fixed. Square1024x1024, realistic natural appearance matching supplied reference."
+    },
+    {
+      "sex": "male",
+      "angle": 45,
+      "prompt": "Use case: identity-preserve. Attached frontal man is exact identity reference. Change ONLY yaw to45 degrees facing screen RIGHT (nose right). ONE square1024x1024 skin portrait. Preserve same slim oval face, softly tapered jaw and narrow rounded chin, nose, lips, closed eyes, ears, brown swept hair, age, natural skin texture and warm light skin color. No square jaw, new face, artificial model or beautification. Fixed physical head scale and camera distance, same eye/chin height and central rotation axis as frontal reference, no pitch or roll. Same neutral diffuse light and exposure. Entire head with white margin, upper neck softly fades into pure white background, no shoulders or clothing, labels or other views. Render this same man's right45 view, do not mirror an existing left view."
+    },
+    {
+      "sex": "male",
+      "angle": 90,
+      "prompt": "Use case: identity-preserve. Use the attached frontal man's portrait to create ONE individual true RIGHT-FACING 90-degree profile, nose toward screen RIGHT. The SAME exact slim oval-faced man, unchanged nose/lips/chin/jaw/ear/hairline, closed near eye with no far eye visible. Preserve soft tapered jaw, narrow chin, brown brushed-back hair, age, natural skin texture and warm light skin tone. Only yaw changes; zero pitch/roll, same head scale and camera distance, same eye/chin heights, rotation axis fixed in canvas center. Entire nose and back of head visible with white margins. Neutral diffuse lighting and exposure unchanged. Upper neck fades softly to pure white background, no shoulders, clothes, labels or extra heads. Square1024x1024. No new identity, no square jaw, no beautification or artificial waxy rendering. Do not mirror a left profile; use frontal reference."
+    }
+  ],
+  "internalManifest": "internal-generation.json",
+  "validation": "VALIDATION.md"
+}

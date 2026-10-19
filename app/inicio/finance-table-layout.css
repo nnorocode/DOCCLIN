@@ -1,0 +1,23 @@
+/* Keep table cells in the table layout; legacy client-table rules must not leak here. */
+.gest-redesign .finance-experience .finance-table { table-layout:auto; width:100%; min-width:900px; }
+.gest-redesign .finance-experience .finance-transactions-table { table-layout:auto; min-width:1280px; }
+.gest-redesign .finance-experience .finance-table :is(th,td) { display:table-cell; width:auto; box-sizing:border-box; text-align:left; padding:12px 14px; vertical-align:middle; overflow-wrap:normal; }
+.gest-redesign .finance-experience .finance-table td { white-space:nowrap; }
+.gest-redesign .finance-experience .finance-table :is(th,td):first-child { min-width:210px; max-width:280px; white-space:normal; }
+.gest-redesign .finance-experience .finance-table td:first-child :is(strong,small) { overflow-wrap:anywhere; }
+.gest-redesign .finance-experience .finance-transactions-table :is(th,td):nth-child(2) { min-width:95px; }
+.gest-redesign .finance-experience .finance-transactions-table :is(th,td):nth-child(3),
+.gest-redesign .finance-experience .finance-transactions-table :is(th,td):nth-child(4),
+.gest-redesign .finance-experience .finance-transactions-table :is(th,td):nth-child(5) { min-width:110px; }
+.gest-redesign .finance-experience .finance-transactions-table :is(th,td):nth-child(6) { min-width:140px; }
+.gest-redesign .finance-experience .finance-table :is(th,td):last-child { min-width:180px; }
+.gest-redesign .finance-experience .finance-table td:has(.finance-status) { min-width:125px; }
+.gest-redesign .finance-experience .finance-row-actions { display:flex; justify-content:flex-start; align-items:center; gap:8px; flex-wrap:nowrap; width:max-content; }
+.gest-redesign .finance-experience .finance-row-actions .finance-icon-button { flex:0 0 32px; width:32px; height:32px; display:inline-grid; place-items:center; border:1px solid #dce6ed; border-radius:50%; background:#f3f8fc; color:#527b9e; }
+.gest-redesign .finance-experience .finance-row-actions .finance-settle { min-height:32px; padding:6px 12px; border:1px solid #dce6ed; border-radius:20px; background:#edf4fa; color:#527b9e; font-size:12px; font-weight:500; }
+.gest-redesign .finance-experience .finance-table-scroll { max-width:100%; min-width:0; overflow-x:auto; }
+.gest-redesign .finance-experience .finance-table-card { min-width:0; }
+.gest-redesign .finance-experience .finance-toolbar { display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; }
+.gest-redesign .finance-experience .finance-toolbar .client-select { flex:0 0 130px; min-width:130px; }
+.gest-redesign .finance-experience .finance-toolbar .client-select>label { font-size:12px; text-transform:none; letter-spacing:0; color:#7890a3; }
+.gest-redesign .finance-experience .finance-list-footer { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; }

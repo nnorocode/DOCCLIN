@@ -2,25 +2,31 @@
   "name": "site-creator-vinext-starter",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@11.25.0",
   "engines": {
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "vinext dev --hostname 0.0.0.0",
+    "preinstall": "node scripts/enforce-package-manager.mjs",
+    "dev": "vinext dev --hostname 127.0.0.1",
     "dev:stable": "./scripts/ensure-local-preview",
     "build": "vinext build",
     "start": "vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
-    "test:security": "node --test tests/security.test.mjs"
+    "test:security": "node --test tests/security.test.mjs tests/security-hardening.test.mjs tests/security-invite.test.mjs tests/security-operations.test.mjs tests/security-worker-contract.test.mjs",
+    "test:security:production": "pnpm run build && node --test tests/security-production.test.mjs",
+    "scan:security": "node scripts/security-scan.mjs && pnpm audit --prod",
+    "security:preflight": "node scripts/security-preflight.mjs",
+    "backup:encrypted": "node scripts/encrypted-backup.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
     "drizzle-orm": "0.45.2",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.24.0",
-    "next": "16.3.3",
+    "next": "16.3.8",
     "ogl": "^1.0.11",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -38,7 +44,7 @@
     "@vitejs/plugin-rsc": "0.5.26",
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.3.3",
+    "eslint-config-next": "16.3.8",
     "react-server-dom-webpack": "19.2.8",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",

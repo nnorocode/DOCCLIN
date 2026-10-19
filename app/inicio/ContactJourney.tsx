@@ -17,5 +17,5 @@ export function CrmContactFollowups(){
  const [entries,setEntries]=useState<Journey[]>([]);
  useEffect(()=>{setEntries(Object.values(readJourneys()));},[]);
  if(!entries.length)return null;
- return <section className="client-record-panel crm-contact-followups"><header><h2>Acompanhamento das conversas</h2></header>{entries.map(entry=><article key={id(entry.name)}><strong>{entry.name}</strong><span>{entry.status}</span><time>{entry.date?`Próximo contato: ${new Date(`${entry.date}T12:00:00`).toLocaleDateString("pt-BR")}`:"Sem contato programado"}</time><small>{entry.message}</small></article>)}</section>;
+ return <details className="crm-contact-followups"><summary>Acompanhamento das conversas <span>({entries.length})</span></summary>{entries.map(entry=><article key={id(entry.name)}><strong>{entry.name}</strong><span>{entry.status}</span><time>{entry.date?`Próximo contato: ${new Date(`${entry.date}T12:00:00`).toLocaleDateString("pt-BR")}`:"Sem contato programado"}</time><small>{entry.message}</small></article>)}</details>;
 }
